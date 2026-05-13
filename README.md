@@ -1,2 +1,0 @@
-# GmansOS
-OS
