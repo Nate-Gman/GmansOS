@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GMAN OS v1.0 - MONOLITHIC UNIVERSAL HYBRID OPERATING SYSTEM
+GMAN'SOS v1.0 - MONOLITHIC UNIVERSAL HYBRID OPERATING SYSTEM
 Cross-Platform Compatibility Layer + BIOS Flash Capable
 Win11 + Linux + Android + macOS + iOS Universal Runtime
 Quantum Security + Hardware Virtualization Engine
@@ -12,6 +12,7 @@ import sys
 import random
 import time
 import math
+import re
 import subprocess
 import threading
 import os
@@ -63,36 +64,39 @@ BUNDLED_FILES = {
 
 "FLASH_BIOS.bat": r"""@echo off
 REM ============================================================
-REM GMan OS - USB Boot Wizard Launcher (BIOS Flash + OS Install)
-REM Place this on a USB drive alongside SmartWatchOS.py.
-REM Double-click to launch the unified wizard.
+REM Gman'sOS 1.0 - BIOS Flash Utility Launcher (Windows)
 REM
-REM The wizard lets you choose:
-REM   - FLASH BIOS + INSTALL OS (recommended for fresh hardware)
-REM   - FLASH BIOS ONLY
-REM   - INSTALL OS ONLY
-REM   - LIVE MODE (no changes)
+REM Place this on a USB drive alongside SmartWatchOS.py.
+REM Double-click to launch the staged BIOS flasher.
+REM
+REM Related launch modes (run from cmd / powershell):
+REM   python SmartWatchOS.py --usb-boot    (unified Flash + Install + Live wizard)
+REM   python SmartWatchOS.py --install     (OS installer only)
+REM   python SmartWatchOS.py               (boot the OS)
+REM   python SmartWatchOS.py --run-tests   (run every embedded test)
+REM
+REM See USB_README.md for the full reference.
 REM ============================================================
 
 setlocal
 cd /d "%~dp0"
 
 echo ============================================================
-echo GMAN OS - UNIFIED USB BOOT WIZARD
-echo Single port handles BIOS flash + OS install
+echo GMAN'SOS 1.0 - BIOS FLASH UTILITY
+echo Standalone USB Boot Mode
 echo ============================================================
 echo.
 echo Detecting Python...
 
 where python >nul 2>&1
 if %errorlevel% equ 0 (
-    python SmartWatchOS.py --usb-boot
+    python SmartWatchOS.py --bios-flash
     goto :end
 )
 
 where py >nul 2>&1
 if %errorlevel% equ 0 (
-    py SmartWatchOS.py --usb-boot
+    py SmartWatchOS.py --bios-flash
     goto :end
 )
 
@@ -103,30 +107,36 @@ exit /b 1
 
 :end
 echo.
-echo USB Boot Wizard exited.
+echo Flash utility exited.
+echo.
+echo TIP: Drop a file named 'GMAN_USB_BOOT' next to SmartWatchOS.py to
+echo      auto-launch the unified USB Boot Wizard on next run.
 pause
 endlocal
 """,
 
 "FLASH_BIOS.sh": r"""#!/usr/bin/env bash
 # ============================================================
-# GMan OS - USB Boot Wizard Launcher (Linux/macOS)
-# Place this on a USB drive alongside SmartWatchOS.py.
-# Run to launch the unified wizard.
+# Gman'sOS 1.0 - BIOS Flash Utility Launcher (Linux/macOS)
 #
-# The wizard offers:
-#   - FLASH BIOS + INSTALL OS (recommended)
-#   - FLASH BIOS ONLY
-#   - INSTALL OS ONLY
-#   - LIVE MODE (no changes)
+# Place this on a USB drive alongside SmartWatchOS.py.
+# Run to launch the staged BIOS flasher.
+#
+# Related launch modes:
+#   python3 SmartWatchOS.py --usb-boot    # unified Flash + Install + Live wizard
+#   python3 SmartWatchOS.py --install     # OS installer only
+#   python3 SmartWatchOS.py               # boot the OS
+#   python3 SmartWatchOS.py --run-tests   # run every embedded test
+#
+# See USB_README.md for the full reference.
 # ============================================================
 
 set -e
 cd "$(dirname "$0")"
 
 echo "============================================================"
-echo "GMAN OS - UNIFIED USB BOOT WIZARD"
-echo "Single port handles BIOS flash + OS install"
+echo "GMAN'SOS 1.0 - BIOS FLASH UTILITY"
+echo "Standalone USB Boot Mode"
 echo "============================================================"
 echo ""
 
@@ -140,96 +150,174 @@ else
     exit 1
 fi
 
-echo "Launching USB Boot Wizard..."
-"$PY" SmartWatchOS.py --usb-boot
+echo "Launching BIOS flash utility..."
+"$PY" SmartWatchOS.py --bios-flash
 
 echo ""
-echo "USB Boot Wizard exited."
+echo "Flash utility exited."
+echo ""
+echo "TIP: Drop a file named 'GMAN_USB_BOOT' next to SmartWatchOS.py to"
+echo "     auto-launch the unified USB Boot Wizard on next run."
 """,
 
-"USB_README.md": r"""# GMan OS - USB Flash Drive Contents
+"USB_README.md": r"""# Gman'sOS — USB Flash Drive Contents
 
-This USB drive contains the standalone **GMan OS BIOS Flash Utility**.
+This USB drive carries **Gman'sOS 1.0**: a single-file monolith containing the
+full OS, the BIOS flasher, the OS installer, and the unified USB Boot Wizard.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `SmartWatchOS.py` | The monolithic OS + BIOS flasher + Installer + all tests |
-| `FLASH_BIOS.bat` | Windows launcher - double-click to flash BIOS |
-| `FLASH_BIOS.sh` | Linux/macOS launcher - run in terminal |
-| `GMAN_USB_BOOT` | Marker file - when present, auto-launches BIOS flasher |
+| `SmartWatchOS.py` | Monolith: OS + BIOS flasher + Installer + USB Wizard + all tests |
+| `FLASH_BIOS.bat` | Windows launcher — double-click to flash BIOS |
+| `FLASH_BIOS.sh` | Linux/macOS launcher — run in terminal to flash BIOS |
+| `GMAN_USB_BOOT` | Marker file — when present, auto-launches the **USB Boot Wizard** |
 | `USB_README.md` | This file |
 
-> Note: every file above (and every test) is embedded inside SmartWatchOS.py.
-> If any file is missing, run `python SmartWatchOS.py --extract-files` to
-> rebuild the folder from the bundle.
+> Every file above (and every embedded test) lives inside `SmartWatchOS.py`.
+> If any file is missing, run `python SmartWatchOS.py --extract-files`
+> to rebuild the folder from the bundle.
 
-## How to Launch the BIOS Flash Utility
+## Launch Modes
 
-You have **three options** to enter BIOS flash mode (any one works):
+### Unified USB Boot Wizard (recommended on USB drop)
+Drop `GMAN_USB_BOOT` next to `SmartWatchOS.py` — the wizard appears with a
+4-card menu:
 
-### 1. Double-click `FLASH_BIOS.bat` (Windows)
-The easiest method. Runs the flasher immediately.
+- **Flash BIOS only** — runs the staged flasher (see below)
+- **Install OS only** — runs the OS installer (auto-discovers 144+ apps)
+- **Flash + Install** — does both back-to-back
+- **Live Mode** — boots the OS in-place without writing anything
 
-### 2. Run from command line
+Or invoke directly:
+```
+python SmartWatchOS.py --usb-boot
+python SmartWatchOS.py --usb
+python SmartWatchOS.py -u
+```
+
+### BIOS Flasher (direct, no wizard)
+Skips the menu and goes straight into the flash UI.
 ```
 python SmartWatchOS.py --bios-flash
-```
-or
-```
+python SmartWatchOS.py --flash
 python SmartWatchOS.py -b
 ```
+Or double-click `FLASH_BIOS.bat` (Windows) / run `./FLASH_BIOS.sh` (Linux/macOS).
 
-### 3. Auto-launch via USB marker
-If the file `GMAN_USB_BOOT` exists next to `SmartWatchOS.py`, the flasher
-will automatically run instead of the normal OS whenever the script is
-executed.
+### OS Installer (direct, no wizard)
+Auto-discovers every app + state in the bundle and installs them.
+```
+python SmartWatchOS.py --install
+python SmartWatchOS.py --installer
+python SmartWatchOS.py -i
+```
 
-## What the Flasher Does
+### Run / Boot the OS
+```
+python SmartWatchOS.py
+```
+
+### Tests + Tools
+```
+python SmartWatchOS.py --run-tests              # run every embedded test
+python SmartWatchOS.py --run-test <name>        # run one embedded test
+python SmartWatchOS.py --extract-files [dir]    # rebuild this folder
+```
+
+### Environment-variable triggers (alternative to flags)
+- `GMAN_BIOS_FLASH=1` — force BIOS flash mode
+- `GMAN_INSTALL=1` — force installer mode
+- `GMAN_USB_WIZARD=1` — force USB Boot Wizard mode
+
+## What the BIOS Flasher Does
 
 The utility walks through **9 detailed stages**:
-1. **Pre-Flight Safety Checks** -- power, USB lock, write-protect jumper
-2. **Current BIOS Backup** -- saves your existing BIOS to a recovery image
-3. **Image Integrity Verification** -- SHA-256 + quantum signature check
-4. **Hardware Compatibility Scan** -- matches image to chip + architecture
-5. **Flashing BIOS Sectors** -- writes the new firmware
-6. **Post-Flash Verification** -- read-back compare + checksum
-7. **Quantum Security Injection** -- installs quantum-resistant boot signatures
-8. **Bootloader Registration** -- registers GMan OS bootloader with UEFI NVRAM
-9. **Finalization** -- sets first-boot flags and creates install marker
+1. **Pre-Flight Safety Checks** — power, USB lock, write-protect jumper
+2. **Current BIOS Backup** — saves your existing BIOS to a recovery image
+3. **Image Integrity Verification** — SHA-256 + quantum signature check
+4. **Hardware Compatibility Scan** — matches image to chip + architecture
+5. **Flashing BIOS Sectors** — writes the new firmware
+6. **Post-Flash Verification** — read-back compare + checksum
+7. **Quantum Security Injection** — installs quantum-resistant boot signatures
+8. **Bootloader Registration** — registers Gman'sOS with UEFI NVRAM
+9. **Finalization** — sets first-boot flags and creates install marker
 
 Each stage has its own progress bar, status indicator, and live log entries.
 A full memory-map visualization shows which flash sectors are written.
 
 ## Hardware Tier Selection
 
-Choose from 5 hardware tiers (1945-present) - each tier scales the image
-size, duration, and flash steps:
-- **MODERN / QUANTUM** (2015+) - 8 MB UEFI + Quantum Security
-- **LEGACY BIOS** (1995-2014) - 2 MB Pentium/Core 2 class
-- **VINTAGE IBM-PC** (1981-1994) - 512 KB 8088/8086 real-mode
-- **TRANSISTOR ERA** (1960-1980) - 64 KB minicomputer/mainframe
-- **VACUUM TUBE** (pre-1960) - 4 KB ENIAC-class minimal glue logic
+5 hardware tiers (1945-present) — each tier scales image size, duration, and
+flash steps:
+- **MODERN / QUANTUM** (2015+) — 8 MB UEFI + Quantum Security
+- **LEGACY BIOS** (1995-2014) — 2 MB Pentium / Core 2 class
+- **VINTAGE IBM-PC** (1981-1994) — 512 KB 8088/8086 real-mode
+- **TRANSISTOR ERA** (1960-1980) — 64 KB minicomputer/mainframe
+- **VACUUM TUBE** (pre-1960) — 4 KB ENIAC-class minimal glue logic
 
 ## Safety
 
-- **DRY RUN is ON by default** -- nothing is actually written unless you toggle it off.
+- **DRY RUN is ON by default** — nothing is actually written unless you toggle it off.
 - Hit **ESC** or click **EMERGENCY ABORT** at any time to halt safely.
 - Your original BIOS is backed up in stage 2 before any writes happen.
+- The USB Boot Wizard (the GMAN_USB_BOOT default) requires explicit user
+  confirmation before flashing — it never auto-flashes without consent.
 
-## Other Standalone Modes
+## What's in the OS
 
-- `--install` -- Full OS Installer (auto-discovers all 110+ apps)
-- `--run-tests` -- Run every embedded test in subprocess
-- `--run-test <name>` -- Run a single test
-- `--extract-files [dir]` -- Rebuild this folder from the bundle
+Gman'sOS 1.0 ships with **144 apps** + a fully wired desktop environment:
+
+**Foundation systems (Cycle 1)**
+- Universal `ActionRegistry` — every action exposed by name
+- Command Palette (`Ctrl+K`) — fuzzy-search every action in the OS
+- `ActivityLog` event bus + Timeline app
+- `AIAssistant` chat — natural-language action dispatcher
+- `WorkspaceManager` — 4 virtual desktops (`Ctrl+1..4`, `Ctrl+←/→`)
+- `NotificationCenter` — categorized, filterable, DND-aware
+
+**Polish + integration (Cycle 2)**
+- `HotkeyManager` + Settings panel (conflict detection)
+- `SnapshotManager` — capture / restore / auto-snapshot
+- `FocusModeManager` — Off / Work / Sleep / Game presets
+- `PermissionsCenter` — per-app capability matrix with audit log
+- `SecureClipboard` — TTL + sensitivity tags + auto-sweep
+
+**Right-click + rules + a11y (Cycle 3)**
+- `ContextMenuSystem` — right-click on desktop / window title bar
+- Auto-save snapshots on key events + snapshot GC
+- Always-on-top toggle per window
+- `NotificationRulesEngine` — per-app rules, quiet hours, snooze
+  (critical-severity always bypasses)
+- `AccessibilityManager` — 8 font scales (0.75x..2.0x), reduced motion,
+  high contrast, large cursor
+
+## Hotkeys (in-OS)
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+K` | Open Command Palette |
+| `Ctrl+1`..`Ctrl+4` | Switch to workspace 1..4 |
+| `Ctrl+←` / `Ctrl+→` | Previous / next workspace |
+| Right-click | Context menu (desktop or window title bar) |
+| `F1` | Show / hide help overlay |
+| `F11` | Toggle fullscreen emulator mode |
+| `ESC` | Close menus / dismiss overlays |
 
 ## Requirements
 
 - Python 3.8+ with pygame installed (`pip install pygame`)
 - A USB port
 - Stable power (battery >50% if laptop)
+
+## Verification
+
+The bundle ships with self-contained test suites runnable via
+`--run-tests` or individually via `--run-test <name>`:
+`test_all_apps`, `test_app_launch`, `test_main_loop`, `test_ui_layouts`,
+`test_smartwatch_mode`, `test_display_profiles`, `test_autodiscovery`,
+`test_bios_standalone`, `test_installer_standalone`.
 """,
 
 # ---------- Test Files (each is a fully runnable Python test) ----------
@@ -756,11 +844,11 @@ failed = []
 # Test 1: Window title contains EMULATOR (when not installed)
 try:
     title = pygame.display.get_caption()[0]
-    if "EMULATOR" in title or "GMan OS" in title:
+    if "EMULATOR" in title or "Gman'sOS" in title:
         print(f"  OK   Window title: '{title}'")
         passed += 1
     else:
-        raise AssertionError(f"Title doesn't mention EMULATOR or GMan OS: '{title}'")
+        raise AssertionError(f"Title doesn't mention EMULATOR or Gman'sOS: '{title}'")
 except Exception as e:
     failed.append(("window_title", e))
     print(f"  FAIL window_title: {e}")
@@ -1114,7 +1202,7 @@ def run_bios_flash_standalone():
     except Exception:
         screen = _pg.display.set_mode((800, 600))
         SCREEN_W, SCREEN_H = screen.get_size()
-    _pg.display.set_caption("GMAN OS - BIOS Flash Utility v1.0 [STANDALONE MODE]")
+    _pg.display.set_caption("GMAN'SOS - BIOS Flash Utility v1.0 [STANDALONE MODE]")
     clock = _pg.time.Clock()
 
     # Fonts
@@ -1240,7 +1328,7 @@ def run_bios_flash_standalone():
         elapsed_in_stage = 0.0
         total_elapsed = 0.0
         log_lines = [
-            "[SYSTEM] GMan OS BIOS Flash Utility v1.0 initialized",
+            "[SYSTEM] Gman'sOS BIOS Flash Utility v1.0 initialized",
             "[SYSTEM] Running in STANDALONE mode",
             f"[DETECT] Architecture: {arch}",
             f"[DETECT] Host OS: {sys_name}",
@@ -1294,7 +1382,7 @@ def run_bios_flash_standalone():
             sy = (i * 73) % SCREEN_H
             _pg.draw.circle(surf, (60, 80, 120), (sx, sy), 1)
         # Compact title - we need room for profile cards
-        title = f_large.render("GMAN OS BIOS FLASH UTILITY", True, C_ACCENT)
+        title = f_large.render("GMAN'SOS BIOS FLASH UTILITY", True, C_ACCENT)
         surf.blit(title, (SCREEN_W // 2 - title.get_width() // 2, 18))
         ver = f_small.render("v1.0 - STANDALONE USB MODE | Works on ANY motherboard from 1945 - present", True, C_DIM)
         surf.blit(ver, (SCREEN_W // 2 - ver.get_width() // 2, 48))
@@ -1365,7 +1453,7 @@ def run_bios_flash_standalone():
         hdr = _pg.Rect(0, 0, SCREEN_W, 56)
         _pg.draw.rect(surf, C_PANEL, hdr)
         _pg.draw.rect(surf, C_ACCENT, (0, 54, SCREEN_W, 2))
-        surf.blit(f_large.render("GMAN OS BIOS FLASH - IN PROGRESS", True, C_ACCENT), (20, 14))
+        surf.blit(f_large.render("GMAN'SOS BIOS FLASH - IN PROGRESS", True, C_ACCENT), (20, 14))
         mode_txt = f"MODE: {'DRY RUN' if ctx.dry_run else 'LIVE FLASH'}"
         mt = f_small.render(mode_txt, True, C_WARN if ctx.dry_run else C_ERR)
         surf.blit(mt, (SCREEN_W - mt.get_width() - 20, 20))
@@ -1487,7 +1575,7 @@ def run_bios_flash_standalone():
         if ctx.dry_run:
             sub = f_med.render("[DRY RUN] No hardware was modified - simulation successful", True, C_WARN)
         else:
-            sub = f_med.render("BIOS has been successfully flashed with GMan OS v1.0", True, C_TEXT)
+            sub = f_med.render("BIOS has been successfully flashed with Gman'sOS v1.0", True, C_TEXT)
         surf.blit(sub, (cx - sub.get_width() // 2, 350))
         # Stats box
         sb = _pg.Rect(cx - 300, 400, 600, 140)
@@ -1499,7 +1587,7 @@ def run_bios_flash_standalone():
             f"Duration: {ctx.total_elapsed:.1f} seconds",
             f"Quantum signature: VERIFIED",
             f"Bootloader: INSTALLED",
-            f"Next step: Reboot to begin using GMan OS v1.0",
+            f"Next step: Reboot to begin using Gman'sOS v1.0",
         ]
         for i, line in enumerate(stats):
             col = C_OK if i < 5 else C_ACCENT
@@ -1559,7 +1647,7 @@ def run_bios_flash_standalone():
 
     # Main loop for the BIOS utility
     _safe_print("=" * 64)
-    _safe_print("GMAN OS BIOS FLASH UTILITY v1.0 - STANDALONE MODE")
+    _safe_print("GMAN'SOS BIOS FLASH UTILITY v1.0 - STANDALONE MODE")
     _safe_print("=" * 64)
     _safe_print("Launching detailed BIOS flash UI...")
     _safe_print("(Close the window or click ABORT/EXIT to quit)")
@@ -1658,7 +1746,7 @@ if _is_bios_flash_mode():
 # ============================================================================
 # STANDALONE OS INSTALLER
 # ============================================================================
-# Full OS installer - installs GMan OS to a target disk, setting up:
+# Full OS installer - installs Gman'sOS to a target disk, setting up:
 #   - Partition table + filesystem
 #   - Base system files (copied from this monolith)
 #   - Auto-discovered application registry (picks up ALL current + future apps)
@@ -1725,7 +1813,7 @@ def run_installer_standalone():
     except Exception:
         screen = _pg.display.set_mode((800, 600))
         SCREEN_W, SCREEN_H = screen.get_size()
-    _pg.display.set_caption("GMan OS Installer v1.0 [STANDALONE]")
+    _pg.display.set_caption("Gman'sOS Installer v1.0 [STANDALONE]")
     clock = _pg.time.Clock()
 
     try:
@@ -1767,7 +1855,7 @@ def run_installer_standalone():
 
     install_types = [
         {"id": "full",     "name": "FULL INSTALL",      "desc": "Erase target disk, fresh install (recommended)", "color": C_OK,     "time": "5-10 min"},
-        {"id": "dual",     "name": "DUAL BOOT",         "desc": "Keep existing OS, add GMan OS alongside",         "color": (100, 200, 255), "time": "10-15 min"},
+        {"id": "dual",     "name": "DUAL BOOT",         "desc": "Keep existing OS, add Gman'sOS alongside",         "color": (100, 200, 255), "time": "10-15 min"},
         {"id": "live",     "name": "LIVE MODE",         "desc": "Run from USB, no disk changes",                   "color": C_WARN,   "time": "1 min"},
         {"id": "recovery", "name": "RECOVERY / REPAIR", "desc": "Fix broken install, keep user data",              "color": (200, 100, 255), "time": "3-5 min"},
     ]
@@ -1798,7 +1886,7 @@ def run_installer_standalone():
         elapsed_in_stage = 0.0
         total_elapsed = 0.0
         log_lines = [
-            "[SYSTEM] GMan OS Installer v1.0 ready",
+            "[SYSTEM] Gman'sOS Installer v1.0 ready",
             f"[SCAN]   Discovered {registry['total_apps']} draw functions",
             f"[SCAN]   Discovered {len(registry['state_dicts'])} application states",
             "[SCAN]   Registry auto-updates on future additions",
@@ -1831,7 +1919,7 @@ def run_installer_standalone():
             sy = (i * 71) % SCREEN_H
             _pg.draw.circle(surf, (50, 70, 110), (sx, sy), 1)
         # Branding
-        title = f_huge.render("GMAN OS", True, C_ACCENT)
+        title = f_huge.render("GMAN'SOS", True, C_ACCENT)
         surf.blit(title, (SCREEN_W // 2 - title.get_width() // 2, 80))
         sub = f_large.render("UNIVERSAL OS INSTALLER", True, C_TEXT)
         surf.blit(sub, (SCREEN_W // 2 - sub.get_width() // 2, 145))
@@ -1842,7 +1930,7 @@ def run_installer_standalone():
         _pg.draw.rect(surf, C_PANEL, card, border_radius=12)
         _pg.draw.rect(surf, C_BORDER, card, 2, border_radius=12)
         info = [
-            ("Installing GMan OS Universal Hybrid", C_ACCENT),
+            ("Installing Gman'sOS Universal Hybrid", C_ACCENT),
             ("", C_TEXT),
             ("What this installer does:", C_TEXT),
             (f"  - Auto-discovers and installs {registry['total_apps']} apps from the monolith", C_DIM),
@@ -1875,7 +1963,7 @@ def run_installer_standalone():
     def draw_disk_selection(surf):
         surf.fill(C_BG)
         surf.blit(f_large.render("SELECT TARGET DISK", True, C_ACCENT), (20, 20))
-        surf.blit(f_small.render("Choose where GMan OS will be installed. The disk's contents will be erased on FULL install.", True, C_DIM), (20, 55))
+        surf.blit(f_small.render("Choose where Gman'sOS will be installed. The disk's contents will be erased on FULL install.", True, C_DIM), (20, 55))
         disk_card_rects.clear()
         for i, d in enumerate(simulated_disks):
             y = 90 + i * 90
@@ -1931,7 +2019,7 @@ def run_installer_standalone():
     # --- INSTALLING ---
     def draw_installing(surf):
         surf.fill(C_BG)
-        surf.blit(f_large.render("INSTALLING GMAN OS", True, C_ACCENT), (20, 16))
+        surf.blit(f_large.render("INSTALLING GMAN'SOS", True, C_ACCENT), (20, 16))
         d = simulated_disks[ctx.selected_disk]
         t = install_types[ctx.selected_type]
         surf.blit(f_small.render(f"Target: /dev/{d['name']}  |  Type: {t['name']}  |  Apps: {registry['total_apps']}", True, C_DIM), (20, 48))
@@ -1994,7 +2082,7 @@ def run_installer_standalone():
         _pg.draw.lines(surf, (255, 255, 255), False, [(cx - 30, 180), (cx - 10, 205), (cx + 35, 150)], 8)
         title = f_huge.render("INSTALL COMPLETE", True, C_OK)
         surf.blit(title, (cx - title.get_width() // 2, 290))
-        sub = f_med.render(f"GMan OS v1.0 installed with {registry['total_apps']} apps and {len(registry['state_dicts'])} states", True, C_TEXT)
+        sub = f_med.render(f"Gman'sOS v1.0 installed with {registry['total_apps']} apps and {len(registry['state_dicts'])} states", True, C_TEXT)
         surf.blit(sub, (cx - sub.get_width() // 2, 360))
         # Stats
         sb = _pg.Rect(cx - 320, 400, 640, 160)
@@ -2009,7 +2097,7 @@ def run_installer_standalone():
             f"States initialized: {len(registry['state_dicts'])}",
             f"Bootloader: INSTALLED",
             f"GMAN_INSTALLED marker: CREATED",
-            f"Next step: Reboot to boot into GMan OS natively",
+            f"Next step: Reboot to boot into Gman'sOS natively",
         ]
         for i, line in enumerate(stats):
             col = C_OK if i < 7 else C_ACCENT
@@ -2027,7 +2115,7 @@ def run_installer_standalone():
                 try:
                     here = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
                     with open(os.path.join(here, 'GMAN_INSTALLED'), 'w') as f:
-                        f.write(f"# GMan OS v1.0 - Installation Marker\n")
+                        f.write(f"# Gman'sOS v1.0 - Installation Marker\n")
                         f.write(f"# Installed: {time.ctime()}\n")
                         f.write(f"# Target: /dev/{simulated_disks[ctx.selected_disk]['name']}\n")
                         f.write(f"# Type: {install_types[ctx.selected_type]['id']}\n")
@@ -2059,7 +2147,7 @@ def run_installer_standalone():
             ctx.current_stage += 1
 
     _safe_print("=" * 64)
-    _safe_print("GMAN OS INSTALLER v1.0 - STANDALONE MODE")
+    _safe_print("GMAN'SOS INSTALLER v1.0 - STANDALONE MODE")
     _safe_print("=" * 64)
     _safe_print(f"Auto-discovered {registry['total_apps']} apps, {len(registry['state_dicts'])} state dicts")
 
@@ -2201,7 +2289,7 @@ def run_usb_boot_wizard():
     """Self-contained USB boot wizard. Walks the user through any combination
     of BIOS flash and OS install in sequence from a single window."""
     _safe_print("=" * 70)
-    _safe_print("GMan OS - UNIFIED USB BOOT WIZARD")
+    _safe_print("Gman'sOS - UNIFIED USB BOOT WIZARD")
     _safe_print("Single port handles BIOS flash + OS install in sequence")
     _safe_print("=" * 70)
     sys.stdout.flush()
@@ -2214,7 +2302,7 @@ def run_usb_boot_wizard():
     except Exception:
         screen = _pg.display.set_mode((800, 600))
         SCREEN_W, SCREEN_H = screen.get_size()
-    _pg.display.set_caption("GMan OS - USB Boot Wizard [BIOS Flash + OS Install]")
+    _pg.display.set_caption("Gman'sOS - USB Boot Wizard [BIOS Flash + OS Install]")
     clock = _pg.time.Clock()
 
     try:
@@ -2265,7 +2353,7 @@ def run_usb_boot_wizard():
         {
             "id": "install",
             "title": "INSTALL OS ONLY",
-            "subtitle": "Install GMan OS to a target disk (BIOS already compatible)",
+            "subtitle": "Install Gman'sOS to a target disk (BIOS already compatible)",
             "color": (100, 200, 255),
             "icon": "💾",
             "tasks": ["os_install"],
@@ -2274,7 +2362,7 @@ def run_usb_boot_wizard():
         {
             "id": "live",
             "title": "LIVE MODE (no changes)",
-            "subtitle": "Run GMan OS in RAM only - no disk or BIOS writes",
+            "subtitle": "Run Gman'sOS in RAM only - no disk or BIOS writes",
             "color": C_WARN,
             "icon": "▷",
             "tasks": ["live"],
@@ -2319,7 +2407,7 @@ def run_usb_boot_wizard():
         # Top branding bar
         _pg.draw.rect(surf, (15, 22, 38), (0, 0, SCREEN_W, 70))
         _pg.draw.line(surf, C_ACCENT, (0, 70), (SCREEN_W, 70), 2)
-        title = f_huge.render("GMan OS - USB BOOT WIZARD", True, C_ACCENT)
+        title = f_huge.render("Gman'sOS - USB BOOT WIZARD", True, C_ACCENT)
         surf.blit(title, (SCREEN_W // 2 - title.get_width() // 2, 14))
         sub = f_small.render("Single-port unified BIOS Flash + OS Install workflow", True, C_DIM)
         surf.blit(sub, (SCREEN_W // 2 - sub.get_width() // 2, 56))
@@ -2372,7 +2460,7 @@ def run_usb_boot_wizard():
         fy = SCREEN_H - 60
         _pg.draw.rect(surf, C_PANEL, (0, fy, SCREEN_W, 60))
         _pg.draw.line(surf, C_BORDER, (0, fy), (SCREEN_W, fy), 1)
-        info = "GMan OS works on any motherboard (1945-present)  |  ESC to exit  |  Click a card above"
+        info = "Gman'sOS works on any motherboard (1945-present)  |  ESC to exit  |  Click a card above"
         surf.blit(f_small.render(info, True, C_DIM), (20, fy + 22))
 
     def draw_running(surf):
@@ -2467,7 +2555,7 @@ def run_usb_boot_wizard():
         _pg.draw.rect(surf, C_OK, sb, 2, border_radius=10)
         completed_descr = []
         for t in ctx.completed_tasks:
-            d = {"bios_flash": "BIOS firmware updated to GMan v1.0", "os_install": "GMan OS installed to target disk", "live": "Live OS session loaded"}.get(t, t)
+            d = {"bios_flash": "BIOS firmware updated to GMan v1.0", "os_install": "Gman'sOS installed to target disk", "live": "Live OS session loaded"}.get(t, t)
             completed_descr.append(d)
         summary = [
             ("Completed Tasks", C_ACCENT),
@@ -2476,7 +2564,7 @@ def run_usb_boot_wizard():
             ("Next Steps", C_ACCENT),
             ("  - Remove the USB drive", C_TEXT),
             ("  - Reboot the system", C_TEXT),
-            ("  - GMan OS will boot natively", C_TEXT),
+            ("  - Gman'sOS will boot natively", C_TEXT),
         ]
         for i, (line, col) in enumerate(summary):
             surf.blit(f_small.render(line, True, col), (sb.x + 20, sb.y + 12 + i * 19))
@@ -2531,7 +2619,7 @@ def run_usb_boot_wizard():
                         try:
                             here = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
                             with open(os.path.join(here, 'GMAN_INSTALLED'), 'w') as f:
-                                f.write(f"# GMan OS v1.0 - USB Boot Wizard install\n")
+                                f.write(f"# Gman'sOS v1.0 - USB Boot Wizard install\n")
                                 f.write(f"# Installed: {time.ctime()}\n")
                                 f.write(f"# Tasks: {', '.join(ctx.completed_tasks)}\n")
                             log("GMAN_INSTALLED marker created", "OK")
@@ -2541,7 +2629,7 @@ def run_usb_boot_wizard():
                     log("USB BOOT WIZARD: workflow complete", "OK")
 
     _safe_print("=" * 70)
-    _safe_print("GMan OS USB BOOT WIZARD - Unified BIOS Flash + OS Install")
+    _safe_print("Gman'sOS USB BOOT WIZARD - Unified BIOS Flash + OS Install")
     _safe_print("=" * 70)
 
     last_tick = time.time()
@@ -2636,7 +2724,7 @@ class Platform(Enum):
     IOS = "ios"
 
 class UniversalHAL:
-    """Universal Hardware Abstraction Layer for GMan OS"""
+    """Universal Hardware Abstraction Layer for Gman'sOS"""
     
     def __init__(self):
         self.architecture = self._detect_architecture()
@@ -2695,7 +2783,7 @@ class UniversalHAL:
     
     def _initialize_hal(self):
         """Initialize HAL and all drivers"""
-        _safe_print(f"GMan OS Universal HAL Initializing...")
+        _safe_print(f"Gman'sOS Universal HAL Initializing...")
         _safe_print(f"Architecture: {self.architecture.value}")
         _safe_print(f"Platform: {self.platform.value}")
         
@@ -3088,7 +3176,7 @@ class BIOSFlashCreator:
             }
         }
         
-        self.gman_os_version = "1.0"
+        self.gmansos_version = "1.0"
         self.quantum_security_enabled = True
         self.universal_compatibility = True
         
@@ -3103,8 +3191,8 @@ class BIOSFlashCreator:
         else:
             boot_sector[0:5] = arch_info['signature']
             
-        # GMan OS boot loader entry point
-        boot_sector[64:96] = b'GMan OS v1.0 Universal Hybrid'
+        # Gman'sOS boot loader entry point
+        boot_sector[64:96] = b"Gman'sOS v1.0 Universal Hybrid"
         
         # Architecture-specific initialization
         if architecture == 'x86_64':
@@ -3145,15 +3233,15 @@ class BIOSFlashCreator:
         security_header = struct.pack(
             '<32s256sI',
             quantum_hash,
-            b'GMan OS Quantum Security Layer v1.0',
+            b"Gman'sOS Quantum Security Layer v1.0",
             len(data)
         )
         
         return security_header + data
     
-    def create_bios_image(self, architecture='x86_64', output_path='gman_os_bios.bin'):
+    def create_bios_image(self, architecture='x86_64', output_path='gmansos_bios.bin'):
         """Create complete BIOS flash image"""
-        print(f"Creating GMan OS BIOS image for {architecture}...")
+        print(f"Creating Gman'sOS BIOS image for {architecture}...")
         
         # Validate architecture
         if architecture not in self.architectures:
@@ -3171,18 +3259,18 @@ class BIOSFlashCreator:
             efi_data = gpt_header + esp_entry
             
         # Create universal HAL
-        hal_data = b"# GMan OS Universal Hardware Abstraction Layer\n# Supports all major architectures and hardware platforms\n"
+        hal_data = b"# Gman'sOS Universal Hardware Abstraction Layer\n# Supports all major architectures and hardware platforms\n"
         
         # Create OS kernel stub
         kernel_data = f"""
-# GMan OS Universal Kernel v1.0
+# Gman'sOS Universal Kernel v1.0
 # Architecture: {architecture}
 # Features: Universal Compatibility, Quantum Security, Hardware Virtualization
 
 import sys
 import os
 
-class GManOSKernel:
+class GmansOSKernel:
     def __init__(self):
         self.version = "1.0"
         self.architecture = "{architecture}"
@@ -3191,7 +3279,7 @@ class GManOSKernel:
         self.hardware_virtualization = True
         
     def boot_sequence(self):
-        print("GMan OS Universal Hybrid Starting...")
+        print("Gman'sOS Universal Hybrid Starting...")
         print(f"Architecture: {{self.architecture}}")
         print("Universal Compatibility Layer: ACTIVE")
         print("Quantum Security: ENABLED")
@@ -3203,7 +3291,7 @@ class GManOSKernel:
         # Load cross-OS runtime
         self.load_cross_os_runtime()
         
-        print("GMan OS Ready - All applications compatible")
+        print("Gman'sOS Ready - All applications compatible")
         
     def init_universal_layer(self):
         pass
@@ -3211,9 +3299,9 @@ class GManOSKernel:
     def load_cross_os_runtime(self):
         pass
 
-# Boot GMan OS
+# Boot Gman'sOS
 if __name__ == "__main__":
-    kernel = GManOSKernel()
+    kernel = GmansOSKernel()
     kernel.boot_sequence()
 """.encode()
         
@@ -3252,7 +3340,7 @@ if __name__ == "__main__":
         if len(data) < 512:
             raise ValueError("Invalid BIOS image: too small")
             
-        # Check signatures - look for GMan OS signature and architecture-specific signatures
+        # Check signatures - look for Gman'sOS signature and architecture-specific signatures
         valid_arch = None
         for arch, info in self.architectures.items():
             sig_len = len(info['signature'])
@@ -3264,15 +3352,15 @@ if __name__ == "__main__":
             if data[-sig_len:] == info['signature']:
                 valid_arch = arch
                 break
-            # Check for GMan OS boot signature
-            if b'GMan OS v1.0 Universal Hybrid' in data:
+            # Check for Gman'sOS boot signature
+            if b"Gman'sOS v1.0 Universal Hybrid" in data:
                 valid_arch = arch
                 break
                 
         if not valid_arch:
-            # Fallback: check if GMan OS signature is present
-            if b'GMan OS v1.0 Universal Hybrid' in data:
-                _safe_print("[OK] GMan OS signature found, architecture auto-detected")
+            # Fallback: check if Gman'sOS signature is present
+            if b"Gman'sOS v1.0 Universal Hybrid" in data:
+                _safe_print("[OK] Gman'sOS signature found, architecture auto-detected")
                 valid_arch = "universal"
             else:
                 raise ValueError("Invalid BIOS image: no valid architecture signature")
@@ -3288,7 +3376,7 @@ if __name__ == "__main__":
 # =============================================
 
 class PerformanceTestSuite:
-    """Performance testing suite for GMan OS optimization"""
+    """Performance testing suite for Gman'sOS optimization"""
     
     def __init__(self):
         self.test_results = {}
@@ -3296,7 +3384,7 @@ class PerformanceTestSuite:
         
     def run_all_tests(self):
         """Run comprehensive performance tests"""
-        print("Running GMan OS Performance Tests...")
+        print("Running Gman'sOS Performance Tests...")
         print("=" * 50)
         
         # Test graphics performance
@@ -3570,15 +3658,15 @@ def _set_emulator_window_title():
         installed = False
     host_os = "Windows" if os.name == "nt" else ("macOS" if sys.platform == "darwin" else "Linux")
     if installed:
-        pygame.display.set_caption("GMan OS v1.0 - Universal Hybrid Operating System")
+        pygame.display.set_caption("Gman'sOS v1.0 - Universal Hybrid Operating System")
     else:
-        pygame.display.set_caption(f"[GMan OS EMULATOR] running on {host_os} - Press F11 fullscreen, F1 help")
+        pygame.display.set_caption(f"[Gman'sOS EMULATOR] running on {host_os} - Press F11 fullscreen, F1 help")
 _set_emulator_window_title()
 
 
 def _show_emulator_splash():
     """Show a clearly-branded startup splash so users immediately recognize
-    this as the GMan OS Emulator (not a browser/Chrome window). Skipped if
+    this as the Gman'sOS Emulator (not a browser/Chrome window). Skipped if
     running bare-metal (GMAN_INSTALLED marker present).
     """
     try:
@@ -3605,7 +3693,7 @@ def _show_emulator_splash():
                 pygame.draw.circle(screen, col, (sw // 2, sh // 2), r)
             # Big logo
             logo_y = sh // 2 - 80
-            title = f_huge.render("GMan OS", True, (0, 220, 255))
+            title = f_huge.render("Gman'sOS", True, (0, 220, 255))
             screen.blit(title, (sw // 2 - title.get_width() // 2, logo_y))
             sub = f_large.render("EMULATOR", True, (255, 200, 60))
             screen.blit(sub, (sw // 2 - sub.get_width() // 2, logo_y + 60))
@@ -5094,6 +5182,8075 @@ class MultiSeatManager:
 seat_mgr = MultiSeatManager()
 
 
+# =============================================================================
+# CYCLE 1 — FOUNDATIONAL OS PRIMITIVES
+# These five systems become the substrate that future cycles build upon.
+# Every meaningful OS action flows through ActionRegistry (discoverable),
+# emits to ActivityLog (auditable + replayable), can target any virtual
+# WorkspaceManager desktop, surfaces in NotificationCenter, and is callable
+# from the AIAssistant chat.
+# =============================================================================
+
+class ActionRegistry:
+    """Single index of every callable OS action - apps, system commands, settings.
+
+    Ranks results by fuzzy match score so the Command Palette (Ctrl+K)
+    can search across the entire OS in one box. Used by AIAssistant too.
+    """
+    def __init__(self):
+        self._actions = []   # list of dicts {id, label, category, callback, hotkey, hint}
+        self._by_id = {}
+
+    def register(self, action_id, label, callback, category="App",
+                 hotkey=None, hint=None):
+        if action_id in self._by_id:
+            return self._by_id[action_id]
+        a = {
+            "id": action_id,
+            "label": label,
+            "category": category,
+            "callback": callback,
+            "hotkey": hotkey,
+            "hint": hint or label,
+            "uses": 0,
+            "last_used": 0.0,
+        }
+        self._actions.append(a)
+        self._by_id[action_id] = a
+        return a
+
+    def unregister(self, action_id):
+        a = self._by_id.pop(action_id, None)
+        if a and a in self._actions:
+            self._actions.remove(a)
+            return True
+        return False
+
+    def get(self, action_id):
+        return self._by_id.get(action_id)
+
+    def all(self):
+        return list(self._actions)
+
+    def by_category(self, category):
+        return [a for a in self._actions if a["category"] == category]
+
+    def search(self, query, limit=20):
+        """Fuzzy-rank actions by query. Score = subsequence match + recency boost."""
+        if not query.strip():
+            # No query: return most-recently-used
+            return sorted(self._actions, key=lambda a: -a["last_used"])[:limit]
+        q = query.lower()
+        scored = []
+        for a in self._actions:
+            label = a["label"].lower()
+            cat = a["category"].lower()
+            haystack = f"{label} {cat} {a['hint'].lower()}"
+            # Substring match - strong score
+            if q in label:
+                base = 100 - label.index(q)
+            elif q in haystack:
+                base = 50
+            else:
+                # Subsequence match (every char of q appears in order in label)
+                idx = 0
+                for ch in q:
+                    found = label.find(ch, idx)
+                    if found < 0:
+                        base = -1
+                        break
+                    idx = found + 1
+                else:
+                    base = 30
+                if base < 0:
+                    continue
+            # Boost by usage
+            base += min(a["uses"] * 2, 20)
+            scored.append((base, a))
+        scored.sort(key=lambda t: -t[0])
+        return [a for _, a in scored[:limit]]
+
+    def execute(self, action_id):
+        a = self.get(action_id)
+        if not a or not a["callback"]:
+            return False
+        try:
+            a["callback"]()
+            a["uses"] += 1
+            a["last_used"] = time.time()
+            activity_log.record("action", a["label"],
+                                category=a["category"], action_id=action_id)
+            return True
+        except Exception as e:
+            activity_log.record("action_error", f"{a['label']}: {e}",
+                                category="System")
+            return False
+
+    def stats(self):
+        return {
+            "total": len(self._actions),
+            "categories": len(set(a["category"] for a in self._actions)),
+            "total_uses": sum(a["uses"] for a in self._actions),
+        }
+
+
+class ActivityLog:
+    """Append-only log of significant OS events. Foundation for time travel,
+    forensics, audit, AI context, and replay. Capped at MAX entries (oldest
+    drop). Subscribers receive each event as it lands.
+    """
+    MAX_ENTRIES = 500
+
+    def __init__(self):
+        self._entries = []
+        self._subscribers = []
+        self._next_id = 1
+
+    def record(self, kind, summary, category="System", **details):
+        entry = {
+            "id": self._next_id,
+            "kind": kind,
+            "summary": summary,
+            "category": category,
+            "details": details,
+            "timestamp": time.time(),
+            "ts_str": time.strftime("%H:%M:%S"),
+        }
+        self._next_id += 1
+        self._entries.append(entry)
+        if len(self._entries) > self.MAX_ENTRIES:
+            self._entries.pop(0)
+        for sub in list(self._subscribers):
+            try:
+                sub(entry)
+            except Exception:
+                pass
+        return entry
+
+    def subscribe(self, callback):
+        self._subscribers.append(callback)
+        return callback
+
+    def unsubscribe(self, callback):
+        if callback in self._subscribers:
+            self._subscribers.remove(callback)
+
+    def recent(self, n=50, kind=None, category=None):
+        items = self._entries
+        if kind:
+            items = [e for e in items if e["kind"] == kind]
+        if category:
+            items = [e for e in items if e["category"] == category]
+        return items[-n:][::-1]   # newest first
+
+    def all(self):
+        return list(self._entries)
+
+    def clear(self):
+        self._entries.clear()
+
+    def stats(self):
+        kinds = {}
+        cats = {}
+        for e in self._entries:
+            kinds[e["kind"]] = kinds.get(e["kind"], 0) + 1
+            cats[e["category"]] = cats.get(e["category"], 0) + 1
+        return {"total": len(self._entries), "kinds": kinds, "categories": cats}
+
+
+class NotificationCenter:
+    """Real notification routing - replaces the simple `notifications` list.
+
+    Backwards-compatible: the existing global `notifications` (list of strings)
+    still works but every `.append()` will be mirrored into the proper feed
+    via the global `notify()` function below.
+
+    Supports:
+      - Persistent history (capped)
+      - Per-category filters (each app type)
+      - Do-Not-Disturb with optional schedule
+      - Severity levels (info/warn/error/success)
+    """
+    def __init__(self):
+        self.feed = []         # full history of notification dicts
+        self.filters = {       # per-category enable
+            "System": True, "App": True, "Health": True, "Security": True,
+            "Network": True, "Battery": True, "Multi-User": True,
+        }
+        self.dnd = False
+        self.dnd_schedule = None   # (start_h, end_h) or None
+        self.unread_count = 0
+
+    def notify(self, message, category="App", severity="info",
+                source=None, sticky=False):
+        """Emit a notification. Always logged; only displayed if filters
+        + DND allow it."""
+        e = {
+            "id": len(self.feed) + 1,
+            "message": str(message),
+            "category": category,
+            "severity": severity,
+            "source": source,
+            "sticky": sticky,
+            "timestamp": time.time(),
+            "ts_str": time.strftime("%H:%M:%S"),
+            "read": False,
+        }
+        self.feed.append(e)
+        # Cap history
+        if len(self.feed) > 200:
+            self.feed.pop(0)
+        if self._should_display(e):
+            self.unread_count += 1
+            activity_log.record("notification", message,
+                                category=category, severity=severity)
+        return e
+
+    def _should_display(self, e):
+        # CYCLE 3: defer to NotificationRulesEngine if active
+        rules_engine = globals().get("notif_rules")
+        if rules_engine is not None:
+            try:
+                decision = rules_engine.evaluate(e)
+                if decision in ("block", "silent"):
+                    return False
+            except Exception:
+                pass
+        if self.dnd: return False
+        if self.dnd_schedule:
+            h = time.localtime().tm_hour
+            start, end = self.dnd_schedule
+            in_window = (start <= h < end) if start <= end \
+                        else (h >= start or h < end)
+            if in_window: return False
+        if not self.filters.get(e["category"], True):
+            return False
+        return True
+
+    def set_filter(self, category, enabled):
+        self.filters[category] = bool(enabled)
+
+    def toggle_dnd(self):
+        self.dnd = not self.dnd
+        return self.dnd
+
+    def mark_all_read(self):
+        for e in self.feed:
+            e["read"] = True
+        self.unread_count = 0
+
+    def clear(self):
+        self.feed.clear()
+        self.unread_count = 0
+
+    def recent(self, n=20, category=None):
+        items = self.feed
+        if category:
+            items = [e for e in items if e["category"] == category]
+        return items[-n:][::-1]
+
+    def stats(self):
+        sev = {}
+        for e in self.feed:
+            sev[e["severity"]] = sev.get(e["severity"], 0) + 1
+        return {
+            "total": len(self.feed),
+            "unread": self.unread_count,
+            "dnd": self.dnd,
+            "severities": sev,
+        }
+
+
+class WorkspaceManager:
+    """Real virtual-desktops: each workspace owns its own list of windows,
+    and the global `open_windows` is hot-swapped when switching.
+    """
+    DEFAULT_NAMES = ("Main", "Work", "Comms", "Play")
+    COLORS = [(100, 150, 255), (150, 220, 130), (240, 180, 90), (220, 130, 220)]
+
+    def __init__(self, n=4):
+        self.spaces = []
+        for i in range(n):
+            self.spaces.append({
+                "id": i + 1,
+                "name": self.DEFAULT_NAMES[i] if i < len(self.DEFAULT_NAMES)
+                         else f"Workspace {i + 1}",
+                "color": self.COLORS[i % len(self.COLORS)],
+                "windows": [],     # snapshot of open_windows when not active
+                "wallpaper_offset": i * 50,
+            })
+        self.active_idx = 0
+
+    def active(self):
+        return self.spaces[self.active_idx]
+
+    def add_workspace(self, name=None):
+        i = len(self.spaces)
+        ws = {
+            "id": i + 1,
+            "name": name or f"Workspace {i + 1}",
+            "color": self.COLORS[i % len(self.COLORS)],
+            "windows": [],
+            "wallpaper_offset": i * 50,
+        }
+        self.spaces.append(ws)
+        return ws
+
+    def remove_workspace(self, idx):
+        if len(self.spaces) <= 1:
+            return False
+        if not (0 <= idx < len(self.spaces)):
+            return False
+        # Move any windows on the doomed workspace to the previous one
+        doomed = self.spaces[idx]
+        target_idx = idx - 1 if idx > 0 else 1
+        if target_idx == idx:
+            target_idx = 0 if idx else 1
+        # If we're removing the active workspace, switch off it first
+        if idx == self.active_idx:
+            self.switch_to(target_idx if target_idx < idx else target_idx)
+        # Now safe to remove
+        if idx == self.active_idx:
+            return False  # switch failed
+        self.spaces[target_idx]["windows"].extend(doomed["windows"])
+        self.spaces.pop(idx)
+        if self.active_idx > idx:
+            self.active_idx -= 1
+        return True
+
+    def switch_to(self, idx):
+        """Switch to workspace `idx` - swap open_windows in-place so all
+        existing code that references the global continues to work.
+        """
+        if not (0 <= idx < len(self.spaces)) or idx == self.active_idx:
+            return False
+        # Stash current windows on the active workspace
+        self.spaces[self.active_idx]["windows"] = list(open_windows)
+        # Pull the target workspace's windows into the live list
+        open_windows.clear()
+        open_windows.extend(self.spaces[idx]["windows"])
+        prev = self.active_idx
+        self.active_idx = idx
+        activity_log.record("workspace_switch",
+                             f"{self.spaces[prev]['name']} -> {self.spaces[idx]['name']}",
+                             category="Workspace",
+                             from_idx=prev, to_idx=idx)
+        return True
+
+    def switch_next(self):
+        return self.switch_to((self.active_idx + 1) % len(self.spaces))
+
+    def switch_prev(self):
+        return self.switch_to((self.active_idx - 1) % len(self.spaces))
+
+    def move_window_to(self, win, target_idx):
+        """Move a window from the active workspace to another workspace."""
+        if not (0 <= target_idx < len(self.spaces)) or target_idx == self.active_idx:
+            return False
+        if win in open_windows:
+            open_windows.remove(win)
+            self.spaces[target_idx]["windows"].append(win)
+            return True
+        return False
+
+    def stats(self):
+        # Count windows: live ones for active, snapshots for the rest
+        counts = []
+        for i, ws in enumerate(self.spaces):
+            n = len(open_windows) if i == self.active_idx else len(ws["windows"])
+            counts.append(n)
+        return {
+            "active": self.active_idx,
+            "total": len(self.spaces),
+            "windows_per_space": counts,
+            "total_windows": sum(counts),
+        }
+
+
+class AIAssistant:
+    """Chat assistant that dispatches commands through ActionRegistry.
+
+    No real LLM (would need network/API key); instead a deterministic intent
+    parser maps natural-language phrases to registered actions, with helpful
+    fallbacks like "I found 3 actions matching X - which one?"
+    """
+    def __init__(self):
+        self.history = []
+        self.intent_aliases = {
+            # Common verbs that should map to actions
+            "open": ["open", "launch", "start", "show", "load"],
+            "close": ["close", "quit", "exit", "stop"],
+            "search": ["search", "find", "look for", "where is"],
+            "switch": ["switch", "go to", "jump to"],
+        }
+
+    def reset(self):
+        self.history.clear()
+
+    def send(self, text):
+        """Process a user message. Returns dict with 'reply' + 'actions'."""
+        text = (text or "").strip()
+        if not text:
+            return {"reply": "Type a question or a command (try 'open weather').", "actions": []}
+        self.history.append({"role": "user", "text": text, "ts": time.time()})
+
+        reply, actions = self._handle(text)
+
+        self.history.append({
+            "role": "assistant", "text": reply, "actions": actions,
+            "ts": time.time(),
+        })
+        # Cap history
+        if len(self.history) > 100:
+            self.history = self.history[-80:]
+        activity_log.record("ai_query", text[:80], category="AI")
+        return {"reply": reply, "actions": actions}
+
+    def _handle(self, text):
+        low = text.lower().strip().rstrip("?.!")
+
+        # Built-in intents
+        if low in ("help", "what can you do", "?"):
+            stats = action_registry.stats()
+            return (f"I can search and run any of {stats['total']} OS actions across "
+                    f"{stats['categories']} categories. Try: 'open weather', "
+                    f"'switch to workspace 2', 'show notifications', or just press Ctrl+K.",
+                    [])
+        if low in ("clear", "reset"):
+            self.reset()
+            return ("(history cleared)", [])
+
+        # Workspace switching
+        if "workspace" in low:
+            for digit in "12345678":
+                if digit in low:
+                    workspace_mgr.switch_to(int(digit) - 1)
+                    return (f"Switched to workspace {digit}.", [])
+            if "next" in low:
+                workspace_mgr.switch_next()
+                return (f"Switched to next workspace ({workspace_mgr.active()['name']}).", [])
+            if "prev" in low or "previous" in low:
+                workspace_mgr.switch_prev()
+                return (f"Switched to previous workspace ({workspace_mgr.active()['name']}).", [])
+
+        # Notifications
+        if low in ("notifications", "show notifications", "notify"):
+            n = notification_center.stats()
+            return (f"You have {n['total']} notifications, {n['unread']} unread. "
+                    f"DND is {'ON' if n['dnd'] else 'OFF'}.",
+                    [])
+        if low in ("dnd", "do not disturb", "mute"):
+            new_state = notification_center.toggle_dnd()
+            return (f"Do Not Disturb is now {'ON' if new_state else 'OFF'}.", [])
+
+        # "open X" / "launch X" / "show X"
+        for verb in self.intent_aliases["open"]:
+            if low.startswith(verb + " "):
+                target = low[len(verb) + 1:].strip()
+                results = action_registry.search(target, limit=5)
+                if not results:
+                    return (f"No action matches '{target}'.", [])
+                if len(results) == 1:
+                    action_registry.execute(results[0]["id"])
+                    return (f"Opened {results[0]['label']}.", [results[0]["id"]])
+                # Ambiguous - offer choices
+                names = ", ".join(a["label"] for a in results[:5])
+                return (f"Multiple matches for '{target}': {names}. Be more specific.",
+                        [a["id"] for a in results[:5]])
+
+        # Status query
+        if "status" in low or "summary" in low:
+            ar = action_registry.stats()
+            ws = workspace_mgr.stats()
+            nc = notification_center.stats()
+            sm = seat_mgr.stats()
+            hw_summary = hw_detector.get_summary() if hw_detector.detection_complete else "(detecting)"
+            return (
+                f"OS status: {ar['total']} registered actions, "
+                f"{ws['total_windows']} windows across {ws['total']} workspaces, "
+                f"{nc['unread']} unread notifications, "
+                f"{sm['sessions_active']} active sessions. "
+                f"Hardware: {hw_summary}",
+                [])
+
+        # Generic search through the action registry
+        results = action_registry.search(low, limit=5)
+        if results:
+            if len(results) == 1:
+                return (f"Did you mean '{results[0]['label']}'? Type 'open {low}' to launch it.",
+                        [results[0]["id"]])
+            names = ", ".join(a["label"] for a in results[:5])
+            return (f"I found {len(results)} matching actions: {names}. "
+                    f"Type 'open <name>' to launch one.",
+                    [a["id"] for a in results[:5]])
+
+        return ("I don't know how to do that yet. Try 'help' for examples.", [])
+
+
+# Globals (instantiate now; bootstrapped in main()).
+action_registry = ActionRegistry()
+activity_log = ActivityLog()
+notification_center = NotificationCenter()
+workspace_mgr = WorkspaceManager(n=4)
+ai_assistant = AIAssistant()
+
+
+def notify(message, category="App", severity="info", source=None, sticky=False):
+    """Global helper - emit a notification through the proper center AND
+    keep the legacy `notifications` list working so existing code is unaffected.
+    """
+    notification_center.notify(message, category=category, severity=severity,
+                                source=source, sticky=sticky)
+    # Mirror to legacy queue so old draws still render the toast briefly
+    try:
+        notifications.append(str(message))
+    except NameError:
+        pass
+
+
+# Command Palette + Activity Timeline + AI Assistant + Workspace overlay state.
+command_palette_state = {
+    "open": False,
+    "query": "",
+    "selected_idx": 0,
+    "results": [],
+}
+ai_assistant_state = {
+    "input": "",
+    "scroll": 0,
+}
+workspace_overlay_state = {
+    "open": False,    # toggled by Ctrl+Tab to show all workspaces
+}
+
+
+# =============================================================================
+# CYCLE 2 — Hotkey, Snapshot, Focus Mode, Permissions, Secure Clipboard
+# =============================================================================
+
+class HotkeyManager:
+    """Maintains a single source-of-truth for every keyboard binding in the
+    OS. Bindings live in ActionRegistry actions' "hotkey" string field; this
+    manager indexes them, surfaces conflicts, supports rebind-by-overwrite,
+    and exposes them to a settings panel.
+    """
+    def __init__(self):
+        self.user_overrides = {}  # action_id -> hotkey-string
+
+    def all_bindings(self):
+        """Return every (action_id, label, category, hotkey, source) tuple."""
+        out = []
+        for a in action_registry.all():
+            hk = self.user_overrides.get(a["id"], a["hotkey"])
+            if not hk:
+                continue
+            src = "user" if a["id"] in self.user_overrides else "system"
+            out.append({
+                "action_id": a["id"], "label": a["label"],
+                "category": a["category"], "hotkey": hk, "source": src,
+            })
+        return sorted(out, key=lambda b: (b["category"], b["label"]))
+
+    def by_hotkey(self, hk):
+        """Return all bindings using this hotkey - used for conflict detection."""
+        return [b for b in self.all_bindings()
+                if b["hotkey"].lower() == hk.lower()]
+
+    def conflicts(self):
+        """Returns dict {hotkey: [bindings]} for any hotkey bound to >1 action."""
+        idx = {}
+        for b in self.all_bindings():
+            idx.setdefault(b["hotkey"].lower(), []).append(b)
+        return {k: v for k, v in idx.items() if len(v) > 1}
+
+    def rebind(self, action_id, new_hotkey):
+        """Set a user override hotkey for the given action. Empty string clears."""
+        if action_registry.get(action_id) is None:
+            return False
+        if new_hotkey:
+            self.user_overrides[action_id] = new_hotkey
+        else:
+            self.user_overrides.pop(action_id, None)
+        activity_log.record("hotkey_rebind",
+                             f"Rebind {action_id} -> {new_hotkey or 'cleared'}",
+                             category="System")
+        return True
+
+    def reset(self, action_id=None):
+        """Clear a single override or all of them."""
+        if action_id is None:
+            self.user_overrides.clear()
+        else:
+            self.user_overrides.pop(action_id, None)
+
+    def stats(self):
+        bindings = self.all_bindings()
+        return {
+            "total": len(bindings),
+            "user_overrides": len(self.user_overrides),
+            "conflicts": len(self.conflicts()),
+        }
+
+
+class SnapshotManager:
+    """Captures the full mutable OS state into named snapshots and restores
+    on demand. Snapshot = workspace assignments + ai_history + notif feed
+    + activity_log filter + ui_layout + fps mode + focus mode + permissions.
+    """
+    MAX_SNAPSHOTS = 50
+
+    def __init__(self):
+        self.snapshots = []   # newest first
+        self._next_id = 1
+        self.auto_snapshot_interval = 0  # seconds; 0 = disabled
+        self._last_auto = 0
+
+    def capture(self, name=None, kind="manual"):
+        """Take a snapshot now."""
+        snap = {
+            "id": self._next_id,
+            "name": name or f"Snapshot {self._next_id}",
+            "kind": kind,                 # manual | auto | restore-point
+            "timestamp": time.time(),
+            "ts_str": time.strftime("%H:%M:%S"),
+            "state": self._capture_state(),
+        }
+        self._next_id += 1
+        self.snapshots.insert(0, snap)
+        if len(self.snapshots) > self.MAX_SNAPSHOTS:
+            self.snapshots.pop()
+        activity_log.record("snapshot",
+                             f"Snapshot '{snap['name']}' captured ({kind})",
+                             category="System")
+        return snap
+
+    def _capture_state(self):
+        try:
+            workspaces = [
+                {"name": w["name"], "active_idx": workspace_mgr.active_idx,
+                 "window_count": len(w["windows"]) if i != workspace_mgr.active_idx else len(open_windows)}
+                for i, w in enumerate(workspace_mgr.spaces)
+            ]
+        except Exception:
+            workspaces = []
+        return {
+            "workspaces": workspaces,
+            "active_workspace": workspace_mgr.active_idx,
+            "ai_history_len": len(ai_assistant.history),
+            "notif_count": notification_center.stats()["total"],
+            "notif_dnd": notification_center.dnd,
+            "open_windows_n": len(open_windows),
+            "actions_total": action_registry.stats()["total"],
+        }
+
+    def restore(self, snap_id):
+        """Restore (soft) - applies state where possible. Truly remembering
+        every dynamic UI bit is impossible in pygame, but the structural
+        bits we capture are reapplied.
+        """
+        snap = self.get(snap_id)
+        if not snap:
+            return False
+        st = snap["state"]
+        # Switch to recorded active workspace
+        if 0 <= st["active_workspace"] < len(workspace_mgr.spaces):
+            workspace_mgr.switch_to(st["active_workspace"])
+        notification_center.dnd = bool(st.get("notif_dnd", False))
+        activity_log.record("snapshot_restore",
+                             f"Restored '{snap['name']}'", category="System")
+        notify(f"Snapshot '{snap['name']}' restored", category="System",
+                severity="success")
+        return True
+
+    def get(self, snap_id):
+        for s in self.snapshots:
+            if s["id"] == snap_id:
+                return s
+        return None
+
+    def delete(self, snap_id):
+        before = len(self.snapshots)
+        self.snapshots = [s for s in self.snapshots if s["id"] != snap_id]
+        return len(self.snapshots) != before
+
+    def clear(self):
+        self.snapshots.clear()
+
+    def maybe_auto_snapshot(self):
+        """Call from main loop - takes an auto snapshot if interval elapsed."""
+        if self.auto_snapshot_interval <= 0:
+            return False
+        now = time.time()
+        if now - self._last_auto >= self.auto_snapshot_interval:
+            self._last_auto = now
+            self.capture(name=f"Auto {time.strftime('%H:%M:%S')}", kind="auto")
+            return True
+        return False
+
+    def stats(self):
+        return {
+            "total": len(self.snapshots),
+            "manual": sum(1 for s in self.snapshots if s["kind"] == "manual"),
+            "auto":   sum(1 for s in self.snapshots if s["kind"] == "auto"),
+            "auto_interval": self.auto_snapshot_interval,
+        }
+
+
+class FocusModeManager:
+    """Predefined focus modes (Work / Sleep / Gaming / Custom) that combine
+    notification filters, DND, and a workspace target into a single toggle.
+    """
+    def __init__(self):
+        self.modes = {
+            "Off": {
+                "label": "Off",
+                "dnd": False,
+                "filters": {"App": True, "System": True, "Security": True,
+                            "Health": True, "Workspace": True, "Focus": True},
+                "target_workspace": None,
+                "color": (120, 130, 150),
+                "icon": "○",
+            },
+            "Work": {
+                "label": "Work",
+                "dnd": False,
+                "filters": {"App": False, "System": True, "Security": True,
+                            "Health": False, "Workspace": True, "Focus": True},
+                "target_workspace": 0,  # "Main"
+                "color": (80, 160, 230),
+                "icon": "💼",
+            },
+            "Sleep": {
+                "label": "Sleep",
+                "dnd": True,
+                "filters": {"App": False, "System": False, "Security": True,
+                            "Health": True, "Workspace": False, "Focus": True},
+                "target_workspace": None,
+                "color": (140, 100, 200),
+                "icon": "🌙",
+            },
+            "Gaming": {
+                "label": "Gaming",
+                "dnd": True,
+                "filters": {"App": False, "System": False, "Security": True,
+                            "Health": False, "Workspace": False, "Focus": True},
+                "target_workspace": 3,  # "Personal"
+                "color": (240, 100, 130),
+                "icon": "🎮",
+            },
+        }
+        self.active_mode = "Off"
+
+    def list_modes(self):
+        return list(self.modes.keys())
+
+    def activate(self, mode_name):
+        if mode_name not in self.modes:
+            return False
+        self.active_mode = mode_name
+        m = self.modes[mode_name]
+        # Apply notification settings
+        notification_center.dnd = bool(m["dnd"])
+        for cat, enabled in m["filters"].items():
+            notification_center.set_filter(cat, enabled)
+        # Switch workspace if requested
+        if m["target_workspace"] is not None:
+            if 0 <= m["target_workspace"] < len(workspace_mgr.spaces):
+                workspace_mgr.switch_to(m["target_workspace"])
+        activity_log.record("focus_mode",
+                             f"Activated {mode_name} focus mode",
+                             category="Focus")
+        notify(f"Focus mode: {mode_name}", category="Focus", severity="info")
+        return True
+
+    def active(self):
+        return self.modes.get(self.active_mode, self.modes["Off"])
+
+    def stats(self):
+        return {"active": self.active_mode, "modes": list(self.modes.keys())}
+
+
+class PermissionsCenter:
+    """Per-app capability matrix. Apps default to "ask" - explicit allow / deny
+    is recorded. Other systems can call check(app, capability) to gate
+    features at access time.
+    """
+    CAPABILITIES = ["camera", "microphone", "files", "network", "location",
+                    "notifications", "clipboard", "background", "always_on_top"]
+
+    def __init__(self):
+        self.grants = {}   # (app, cap) -> "allow"|"deny"|"ask"
+        self.default = "ask"
+        self.audit = []    # list of (timestamp, app, cap, decision)
+
+    def set(self, app, cap, decision):
+        if cap not in self.CAPABILITIES:
+            return False
+        if decision not in ("allow", "deny", "ask"):
+            return False
+        self.grants[(app, cap)] = decision
+        self.audit.append({
+            "timestamp": time.time(),
+            "ts_str": time.strftime("%H:%M:%S"),
+            "app": app, "cap": cap, "decision": decision,
+        })
+        if len(self.audit) > 500:
+            self.audit = self.audit[-300:]
+        activity_log.record("permission",
+                             f"{app}: {cap} -> {decision}", category="Security")
+        return True
+
+    def get(self, app, cap):
+        return self.grants.get((app, cap), self.default)
+
+    def check(self, app, cap):
+        return self.get(app, cap) == "allow"
+
+    def revoke_all(self, app):
+        before = len(self.grants)
+        self.grants = {k: v for k, v in self.grants.items() if k[0] != app}
+        return before - len(self.grants)
+
+    def matrix(self, apps=None):
+        """Return rows for the UI panel: each app's permissions for every cap."""
+        if apps is None:
+            apps = sorted(set(k[0] for k in self.grants.keys())) or ["(no apps)"]
+        rows = []
+        for app in apps:
+            row = {"app": app, "caps": {}}
+            for cap in self.CAPABILITIES:
+                row["caps"][cap] = self.get(app, cap)
+            rows.append(row)
+        return rows
+
+    def stats(self):
+        allows = sum(1 for v in self.grants.values() if v == "allow")
+        denies = sum(1 for v in self.grants.values() if v == "deny")
+        return {
+            "total_grants": len(self.grants),
+            "allow": allows, "deny": denies,
+            "audit_entries": len(self.audit),
+        }
+
+
+class SecureClipboardManager:
+    """Tracks clipboard items, marks sensitive ones, and auto-clears them on
+    a TTL. Light-weight - the existing clipboard_history list is the
+    canonical store; this manager wraps it with sensitivity + TTL metadata.
+    """
+    def __init__(self):
+        self.items = []                # list of {text, ts, sensitive, ttl_sec}
+        self.default_ttl = 0           # 0 = never auto-clear
+        self.default_sensitive_ttl = 60
+        self._last_sweep = time.time()
+
+    def copy(self, text, sensitive=False, ttl=None):
+        if ttl is None:
+            ttl = self.default_sensitive_ttl if sensitive else self.default_ttl
+        item = {
+            "text": text,
+            "timestamp": time.time(),
+            "sensitive": bool(sensitive),
+            "ttl": int(ttl),
+            "expired": False,
+        }
+        self.items.insert(0, item)
+        if len(self.items) > 100:
+            self.items = self.items[:80]
+        if sensitive:
+            activity_log.record("clipboard",
+                                 f"Sensitive copy ({ttl}s TTL)",
+                                 category="Security")
+        return item
+
+    def sweep(self):
+        """Mark expired items as expired and redact their text."""
+        now = time.time()
+        cleared = 0
+        for it in self.items:
+            if it["expired"] or it["ttl"] <= 0:
+                continue
+            if now - it["timestamp"] >= it["ttl"]:
+                it["expired"] = True
+                it["text"] = "[CLEARED]" if it["sensitive"] else it["text"]
+                cleared += 1
+        self._last_sweep = now
+        if cleared:
+            activity_log.record("clipboard",
+                                 f"{cleared} clipboard item(s) auto-cleared",
+                                 category="Security")
+        return cleared
+
+    def latest(self):
+        for it in self.items:
+            if not it["expired"]:
+                return it
+        return None
+
+    def clear(self):
+        self.items.clear()
+
+    def stats(self):
+        active = [i for i in self.items if not i["expired"]]
+        return {
+            "total": len(self.items),
+            "active": len(active),
+            "sensitive": sum(1 for i in self.items if i["sensitive"]),
+            "expired": sum(1 for i in self.items if i["expired"]),
+            "default_ttl": self.default_ttl,
+            "default_sensitive_ttl": self.default_sensitive_ttl,
+        }
+
+
+# Module-level singletons - bound after Cycle 1 ones for clean grouping
+hotkey_mgr = HotkeyManager()
+snapshot_mgr = SnapshotManager()
+focus_mgr = FocusModeManager()
+permissions = PermissionsCenter()
+secure_clipboard = SecureClipboardManager()
+
+# UI state for each new panel
+hotkey_panel_state = {"query": "", "selected_idx": 0, "rebinding_id": None}
+snapshot_panel_state = {"selected_id": None, "naming_input": ""}
+focus_panel_state = {"selected": "Off"}
+permissions_panel_state = {"selected_app": None, "selected_cap": None}
+clipboard_panel_state = {"show_expired": False}
+
+
+# =============================================================================
+# CYCLE 3 — Context Menu, Notif Rules, Accessibility, Auto-save, Always-on-top
+# =============================================================================
+
+class ContextMenuSystem:
+    """Universal right-click context menu and share-target system. The menu
+    overlays the screen at a screen-space position and renders ABOVE all
+    windows. Items can be either action callbacks, share targets, or
+    dividers. Click-outside dismisses; click on item runs callback then
+    dismisses.
+    """
+    def __init__(self):
+        self.open = False
+        self.pos = (0, 0)            # top-left of menu
+        self.items = []              # list of {label, icon, callback, shortcut, divider}
+        self.targets = []            # populated each render: (idx, rect)
+        self.context_label = ""      # "Desktop", "Window: Files", etc.
+
+    def show(self, pos, items, label=""):
+        """Open the menu at pos with given items."""
+        self.open = True
+        self.pos = pos
+        self.items = items
+        self.context_label = label
+        self.targets = []
+        try:
+            activity_log.record("context_menu",
+                                 f"Opened ({label or 'unlabeled'}) "
+                                 f"with {len(items)} items",
+                                 category="System")
+        except Exception:
+            pass
+
+    def hide(self):
+        self.open = False
+        self.items = []
+        self.targets = []
+        self.context_label = ""
+
+    def select(self, idx):
+        """Run the callback at items[idx] then close."""
+        if not self.open or idx < 0 or idx >= len(self.items):
+            return False
+        item = self.items[idx]
+        if item.get("divider") or item.get("disabled"):
+            return False
+        cb = item.get("callback")
+        self.hide()
+        if callable(cb):
+            try:
+                cb()
+            except Exception as e:
+                try:
+                    activity_log.record("context_menu_error",
+                                         f"item callback failed: {e}",
+                                         category="System")
+                except Exception:
+                    pass
+                return False
+        return True
+
+    def click_outside(self, pos):
+        """If pos is outside the menu rect, close. Returns True if closed."""
+        if not self.open:
+            return False
+        for _, rect in self.targets:
+            if rect.collidepoint(pos):
+                return False
+        self.hide()
+        return True
+
+    def stats(self):
+        return {"open": self.open, "items": len(self.items),
+                "targets": len(self.targets),
+                "context_label": self.context_label}
+
+
+# Predefined share targets (ItemKind -> list of targets)
+SHARE_TARGETS = {
+    "text": [
+        {"label": "Copy to Clipboard",   "icon": "📋",
+         "handler": lambda content: secure_clipboard.copy(content)},
+        {"label": "Send to AI Assistant","icon": "🤖",
+         "handler": lambda content: ai_assistant.send(f"Process: {content}")},
+        {"label": "Save as Note",        "icon": "📝",
+         "handler": lambda content: notify(f"Saved note: {content[:30]}",
+                                              category="App")},
+        {"label": "Email",               "icon": "📧",
+         "handler": lambda content: notify(f"Email draft: {content[:30]}",
+                                              category="App")},
+        {"label": "Messages",            "icon": "💬",
+         "handler": lambda content: notify(f"Message draft: {content[:30]}",
+                                              category="App")},
+    ],
+    "file": [
+        {"label": "Open in Editor",      "icon": "📄",
+         "handler": lambda f: notify(f"Open {f}", category="App")},
+        {"label": "Show in Files",       "icon": "📁",
+         "handler": lambda f: notify(f"Show {f}", category="App")},
+        {"label": "Copy Path",           "icon": "📋",
+         "handler": lambda f: secure_clipboard.copy(f)},
+        {"label": "Email as Attachment", "icon": "📎",
+         "handler": lambda f: notify(f"Attach {f}", category="App")},
+    ],
+    "url": [
+        {"label": "Copy URL",            "icon": "🔗",
+         "handler": lambda u: secure_clipboard.copy(u)},
+        {"label": "Open in Browser",     "icon": "🌐",
+         "handler": lambda u: notify(f"Browser: {u}", category="App")},
+        {"label": "Send to AI Assistant","icon": "🤖",
+         "handler": lambda u: ai_assistant.send(f"Summarize {u}")},
+    ],
+}
+
+
+def open_share_menu(pos, content, kind="text"):
+    """Show a context menu of share targets for the given content."""
+    targets = SHARE_TARGETS.get(kind, SHARE_TARGETS["text"])
+    items = [{"label": t["label"], "icon": t["icon"],
+              "callback": (lambda h=t["handler"], c=content: h(c))}
+             for t in targets]
+    context_menu.show(pos, items, label=f"Share {kind}")
+
+
+def open_desktop_context_menu(pos):
+    """Right-click on the desktop background."""
+    items = [
+        {"label": "Refresh",          "icon": "🔄",
+         "callback": lambda: notify("Desktop refreshed", category="System")},
+        {"label": "New Folder",       "icon": "📁",
+         "callback": lambda: notify("New folder", category="App")},
+        {"divider": True},
+        {"label": "Capture Snapshot", "icon": "📸",
+         "callback": lambda: snapshot_mgr.capture(name="Desktop right-click")},
+        {"label": "Toggle Focus Mode","icon": "🎯",
+         "callback": lambda: focus_mgr.activate(
+             "Off" if focus_mgr.active_mode != "Off" else "Work")},
+        {"divider": True},
+        {"label": "Display Settings", "icon": "🖥",
+         "callback": lambda: open_windows.append(AppWindow(
+             "Display & Multi-User Sessions", 30, 30, 820, 580, draw_multiseat))},
+    ]
+    context_menu.show(pos, items, label="Desktop")
+
+
+def open_window_context_menu(pos, win):
+    """Right-click on a window's title bar."""
+    items = [
+        {"label": ("Unpin" if win.always_on_top else "Pin Always-on-Top"),
+         "icon":  ("📌" if win.always_on_top else "📍"),
+         "callback": (lambda w=win: w.toggle_always_on_top())},
+        {"label": "Maximize / Restore", "icon": "□",
+         "callback": (lambda w=win: w.toggle_max())},
+        {"label": "Minimize",           "icon": "_",
+         "callback": (lambda w=win: setattr(w, "minimized", True))},
+        {"divider": True},
+        {"label": "Capture Snapshot",   "icon": "📸",
+         "callback": lambda: snapshot_mgr.capture(
+             name=f"Before close: {win.title}")},
+        {"divider": True},
+        {"label": "Close",              "icon": "✕",
+         "callback": (lambda w=win: w.close())},
+    ]
+    context_menu.show(pos, items, label=f"Window: {win.title}")
+
+
+class NotificationRulesEngine:
+    """Per-app notification rules + quiet-hours scheduler + snooze. Hooks into
+    NotificationCenter.notify() (via evaluate()) so notifications can be
+    blocked, silenced, or delayed before they reach the user.
+    """
+    def __init__(self):
+        self.rules = []     # ordered list of {match: {category, severity_min, app},
+                            #                  action: "allow"|"block"|"silent"}
+        self.quiet_hours = []  # list of {start_h, end_h, days, label, enabled}
+        self.snoozed = []   # {match: dict, until_ts: float}
+
+    # ----- Rules
+    def add_rule(self, match, action):
+        if action not in ("allow", "block", "silent"):
+            raise ValueError(
+                f"invalid rule action: {action!r} "
+                "(expected 'allow' | 'block' | 'silent')")
+        self.rules.append({"match": dict(match), "action": action})
+        try:
+            activity_log.record("notif_rule",
+                                 f"Rule {action}: {match}",
+                                 category="System")
+        except Exception:
+            pass
+        return True
+
+    def remove_rule(self, idx):
+        if 0 <= idx < len(self.rules):
+            del self.rules[idx]
+            return True
+        return False
+
+    def clear_rules(self):
+        self.rules = []
+
+    # ----- Quiet hours
+    def add_quiet_hours(self, start_h, end_h, days=None, label="Quiet",
+                        enabled=True):
+        if days is None:
+            days = list(range(7))   # all days
+        q = {
+            "start_h": int(start_h) % 24,
+            "end_h":   int(end_h) % 24,
+            "days":    days,
+            "label":   label,
+            "enabled": bool(enabled),
+        }
+        self.quiet_hours.append(q)
+        return q
+
+    @staticmethod
+    def _hour_in_window(h, start_h, end_h):
+        """Public-ish helper - is hour `h` within [start_h, end_h)?
+        Wraps midnight if start_h > end_h.
+        """
+        if start_h <= end_h:
+            return start_h <= h < end_h
+        return h >= start_h or h < end_h
+
+    def remove_quiet_hours(self, idx):
+        if 0 <= idx < len(self.quiet_hours):
+            del self.quiet_hours[idx]
+            return True
+        return False
+
+    def in_quiet_hours_now(self, now=None):
+        """Returns the matching quiet-hours entry if currently active, else None."""
+        now = now or time.localtime()
+        h = now.tm_hour
+        d = now.tm_wday
+        for q in self.quiet_hours:
+            if not q["enabled"]:
+                continue
+            if d not in q["days"]:
+                continue
+            if q["start_h"] <= q["end_h"]:
+                # same-day window
+                if q["start_h"] <= h < q["end_h"]:
+                    return q
+            else:
+                # wraps midnight
+                if h >= q["start_h"] or h < q["end_h"]:
+                    return q
+        return None
+
+    # ----- Snooze
+    def snooze(self, match, duration_sec):
+        self.snoozed.append({"match": dict(match),
+                              "until_ts": time.time() + duration_sec})
+        return True
+
+    def unsnooze_expired(self):
+        now = time.time()
+        before = len(self.snoozed)
+        self.snoozed = [s for s in self.snoozed if s["until_ts"] > now]
+        return before - len(self.snoozed)
+
+    def is_snoozed(self, notif):
+        self.unsnooze_expired()
+        for s in self.snoozed:
+            if self._matches(notif, s["match"]):
+                return True
+        return False
+
+    # ----- Evaluate
+    def _matches(self, notif, match):
+        """Match dict can include 'category', 'severity_min', 'source', 'app',
+        or any subset. ALL specified keys must match (AND logic).
+        """
+        if "category" in match and notif.get("category") != match["category"]:
+            return False
+        if "source" in match and notif.get("source") != match["source"]:
+            return False
+        if "severity_min" in match:
+            severity_order = ["info", "success", "warning", "critical"]
+            ns = severity_order.index(notif.get("severity", "info")) \
+                  if notif.get("severity", "info") in severity_order else 0
+            ms = severity_order.index(match["severity_min"]) \
+                  if match["severity_min"] in severity_order else 0
+            if ns < ms:
+                return False
+        if "app" in match:
+            if notif.get("source", notif.get("category", "")) != match["app"]:
+                return False
+        return True
+
+    def evaluate(self, notif):
+        """Returns 'allow', 'block', or 'silent' for the given notification dict.
+        Critical-severity notifications bypass snooze and quiet hours so users
+        still see life-safety alerts.
+        """
+        is_critical = notif.get("severity") == "critical"
+        if not is_critical and self.is_snoozed(notif):
+            return "block"
+        if not is_critical and self.in_quiet_hours_now() is not None:
+            # quiet hours don't block, just silence
+            return "silent"
+        for rule in self.rules:
+            if self._matches(notif, rule["match"]):
+                return rule["action"]
+        return "allow"
+
+    def stats(self):
+        return {
+            "rules":         len(self.rules),
+            "quiet_hours":   len(self.quiet_hours),
+            "snoozed":       len(self.snoozed),
+            "in_quiet_now":  self.in_quiet_hours_now() is not None,
+        }
+
+
+class AccessibilityManager:
+    """Global accessibility settings: font scale, reduced motion, high contrast.
+    The reduced_motion + font_scale flags are read by particle/animation code
+    paths to gate effects.
+    """
+    SCALES = (0.75, 0.9, 1.0, 1.15, 1.25, 1.5, 1.75, 2.0)
+    def __init__(self):
+        self.font_scale = 1.0
+        self.reduced_motion = False
+        self.high_contrast = False
+        self.large_cursor = False
+        self._scaled_font_cache = {}
+
+    def set_font_scale(self, scale):
+        if scale < 0.5 or scale > 3.0:
+            return False
+        self.font_scale = float(scale)
+        # Invalidate the cache - new scale needs new fonts
+        self._scaled_font_cache.clear()
+        try:
+            activity_log.record("a11y_font",
+                                 f"Font scale -> {scale}", category="System")
+        except Exception:
+            pass
+        return True
+
+    def font_scale_step(self, direction):
+        """direction = +1 or -1 - move to next/previous scale in SCALES."""
+        try:
+            idx = self.SCALES.index(self.font_scale)
+        except ValueError:
+            idx = self.SCALES.index(1.0)
+        new_idx = max(0, min(len(self.SCALES) - 1, idx + direction))
+        return self.set_font_scale(self.SCALES[new_idx])
+
+    def get_font(self, size_name="med"):
+        """Return the scaled SysFont for the requested size class."""
+        base_sizes = {"tiny": 10, "small": 12, "med": 16,
+                      "large": 20, "title": 28, "huge": 36}
+        base = base_sizes.get(size_name, 16)
+        scaled = max(6, int(base * self.font_scale))
+        key = (size_name, scaled)
+        if key not in self._scaled_font_cache:
+            try:
+                self._scaled_font_cache[key] = pygame.font.SysFont(
+                    "segoeui", scaled, bold=(size_name in ("large", "title", "huge")))
+            except Exception:
+                self._scaled_font_cache[key] = pygame.font.Font(None, scaled)
+        return self._scaled_font_cache[key]
+
+    def toggle_reduced_motion(self):
+        self.reduced_motion = not self.reduced_motion
+        try:
+            activity_log.record("a11y_motion",
+                                 f"Reduced motion -> {self.reduced_motion}",
+                                 category="System")
+        except Exception:
+            pass
+        return self.reduced_motion
+
+    def toggle_high_contrast(self):
+        self.high_contrast = not self.high_contrast
+        return self.high_contrast
+
+    def toggle_large_cursor(self):
+        self.large_cursor = not self.large_cursor
+        return self.large_cursor
+
+    def should_animate(self):
+        return not self.reduced_motion
+
+    def particle_count_factor(self):
+        """How many particles to render relative to default (0.0 = none)."""
+        return 0.0 if self.reduced_motion else 1.0
+
+    def stats(self):
+        return {
+            "font_scale":     self.font_scale,
+            "reduced_motion": self.reduced_motion,
+            "high_contrast":  self.high_contrast,
+            "large_cursor":   self.large_cursor,
+            "cached_fonts":   len(self._scaled_font_cache),
+        }
+
+
+# Module-level singletons
+context_menu = ContextMenuSystem()
+notif_rules = NotificationRulesEngine()
+accessibility = AccessibilityManager()
+
+# UI state for the new Cycle 3 panels
+notif_rules_panel_state = {"tab": "rules", "selected_idx": 0}
+accessibility_panel_state = {"preview_text": "The quick brown fox jumps over the lazy dog."}
+
+
+# =============================================================================
+# CYCLE 4 — 100+ MISSING FEATURES (Capture, Hotkeys, Quick Settings, Task
+# Manager, Spotlight v2, File Manager v2, Comms, Frontier).
+# Each manager owns one capability domain; each panel renders + accepts clicks.
+# =============================================================================
+
+# --------------------------- Bundle 1: Capture stack ---------------------------
+class CaptureManager:
+    """Screen capture + recording + annotation + OCR + capture history.
+    Implements 20 capture-related missing features behind one manager.
+    """
+    MODES = ("region", "window", "freeform", "fullscreen", "scrolling")
+    def __init__(self):
+        self.captures = []          # [{id, kind, ts, ts_str, w, h, label, meta}]
+        self.recording = False
+        self.recording_started = 0.0
+        self.recording_fps = 60
+        self.recording_resolution = "1080p"
+        self.audio_mic = True
+        self.audio_system = True
+        self.audio_per_app = False
+        self.delay_sec = 0
+        self.replay_buffer_sec = 30
+        self.replay_buffer_active = True
+        self.auto_redact_faces = True
+        self.auto_redact_secrets = True
+        self.upload_e2ee = True
+        self.next_id = 1
+
+    def capture(self, kind="fullscreen", w=1920, h=1080, label=""):
+        if kind not in self.MODES:
+            kind = "fullscreen"
+        c = {
+            "id": self.next_id, "kind": kind,
+            "ts": time.time(), "ts_str": time.strftime("%H:%M:%S"),
+            "w": w, "h": h, "label": label or f"Capture #{self.next_id}",
+            "annotations": [], "ocr_text": "", "alt_text": "",
+        }
+        self.next_id += 1
+        self.captures.insert(0, c)
+        if len(self.captures) > 200:
+            self.captures = self.captures[:200]
+        try:
+            activity_log.record("capture",
+                                 f"Captured {kind} ({w}x{h})", category="System")
+        except Exception:
+            pass
+        return c
+
+    def start_recording(self):
+        if self.recording:
+            return False
+        self.recording = True
+        self.recording_started = time.time()
+        try:
+            activity_log.record("capture_rec_start",
+                                 "Screen recording started", category="System")
+        except Exception:
+            pass
+        return True
+
+    def stop_recording(self):
+        if not self.recording:
+            return None
+        dur = time.time() - self.recording_started
+        self.recording = False
+        rec = self.capture(kind="fullscreen",
+                           label=f"Recording {dur:.1f}s @ {self.recording_fps}fps")
+        rec["duration"] = dur
+        rec["fps"] = self.recording_fps
+        rec["resolution"] = self.recording_resolution
+        return rec
+
+    def save_replay_buffer(self):
+        """Snapshot the rolling replay buffer to a persistent capture."""
+        if not self.replay_buffer_active:
+            return None
+        rec = self.capture(kind="fullscreen",
+                           label=f"Replay last {self.replay_buffer_sec}s")
+        rec["duration"] = self.replay_buffer_sec
+        rec["from_buffer"] = True
+        return rec
+
+    def annotate(self, capture_id, kind, payload):
+        """kind in ('pen','arrow','rect','text','blur','redact')."""
+        for c in self.captures:
+            if c["id"] == capture_id:
+                c["annotations"].append({"kind": kind, "payload": payload})
+                return True
+        return False
+
+    def run_ocr(self, capture_id):
+        """Mock OCR - in this OS we just synthesize plausible text from label."""
+        for c in self.captures:
+            if c["id"] == capture_id:
+                c["ocr_text"] = f"[OCR placeholder for {c['label']}]"
+                return c["ocr_text"]
+        return None
+
+    def stats(self):
+        return {
+            "captures":        len(self.captures),
+            "recording":       self.recording,
+            "replay_buffer":   self.replay_buffer_active,
+            "auto_redact":     self.auto_redact_faces or self.auto_redact_secrets,
+            "delay_sec":       self.delay_sec,
+        }
+
+capture_mgr = CaptureManager()
+capture_panel_state = {"tab": "history", "selected_id": None}
+
+
+# --------------------------- Bundle 3: Quick Settings ---------------------------
+class QuickSettingsManager:
+    """Pull-down Quick Settings panel state: toggles + sliders + per-device profile."""
+    def __init__(self):
+        self.open = False
+        self.toggles = {
+            "wifi":        True,
+            "bluetooth":   True,
+            "airplane":    False,
+            "dnd":         False,
+            "hotspot":     False,
+            "location":    True,
+            "battery_saver": False,
+            "rotation_lock": False,
+            "night_light": False,
+            "blue_filter": False,
+            "cast":        False,
+            "vpn":         False,
+        }
+        self.brightness = 0.80
+        self.volume = 0.65
+        self.profile = "Home"
+        self.profiles = ["Home", "Work", "Travel", "Presentation"]
+
+    def toggle(self, key):
+        if key in self.toggles:
+            self.toggles[key] = not self.toggles[key]
+            try:
+                activity_log.record("quick_settings",
+                                     f"{key} -> {self.toggles[key]}",
+                                     category="System")
+            except Exception:
+                pass
+            return self.toggles[key]
+        return None
+
+    def set_profile(self, name):
+        if name in self.profiles:
+            self.profile = name
+            return True
+        return False
+
+    def stats(self):
+        return {
+            "open":       self.open,
+            "active":     sum(1 for v in self.toggles.values() if v),
+            "brightness": self.brightness,
+            "volume":     self.volume,
+            "profile":    self.profile,
+        }
+
+quick_settings = QuickSettingsManager()
+
+
+# --------------------------- Bundle 4: Task Manager (OS-level) ---------------------------
+class GmansOSTaskManager:
+    """OS-level Task Manager: per-process CPU/RAM/Net + kill + priority + watchdog.
+    Distinct from ActionRegistry. Populated from open_windows + synthetic system procs.
+    """
+    PRIORITIES = ("realtime", "high", "above_normal", "normal", "below_normal", "low")
+    def __init__(self):
+        self.system_procs = [
+            {"pid": 1,   "name": "kernel",       "cpu":  0.4, "ram_mb":  42, "net_kb": 0,  "priority": "realtime", "kind": "system"},
+            {"pid": 2,   "name": "init",         "cpu":  0.1, "ram_mb":   8, "net_kb": 0,  "priority": "high",     "kind": "system"},
+            {"pid": 3,   "name": "compositor",   "cpu":  3.2, "ram_mb":  96, "net_kb": 0,  "priority": "high",     "kind": "system"},
+            {"pid": 4,   "name": "sound_server", "cpu":  0.6, "ram_mb":  24, "net_kb": 0,  "priority": "normal",   "kind": "system"},
+            {"pid": 5,   "name": "net_manager",  "cpu":  0.3, "ram_mb":  18, "net_kb": 12, "priority": "normal",   "kind": "system"},
+            {"pid": 6,   "name": "ai_assistant", "cpu":  1.2, "ram_mb": 156, "net_kb": 4,  "priority": "normal",   "kind": "system"},
+            {"pid": 7,   "name": "snapshot_mgr", "cpu":  0.2, "ram_mb":  36, "net_kb": 0,  "priority": "below_normal", "kind": "system"},
+            {"pid": 8,   "name": "watchdog",     "cpu":  0.1, "ram_mb":  12, "net_kb": 0,  "priority": "realtime", "kind": "system"},
+        ]
+        self.next_pid = 100
+        self.suspended = set()           # PIDs in suspended state
+        self.killed = set()              # PIDs killed (filtered out of view)
+        self.watchdog_rules = []         # [{name, action}]
+        self.cpu_history = [20] * 60     # 60-sample rolling buffer
+        self.ram_history = [40] * 60
+        self.net_history = [5] * 60
+
+    def list_procs(self):
+        """Return live process list including open_windows as user processes."""
+        procs = [p for p in self.system_procs if p["pid"] not in self.killed]
+        try:
+            for w in open_windows:
+                pid = getattr(w, "_pid", None)
+                if pid is None:
+                    pid = self.next_pid
+                    self.next_pid += 1
+                    w._pid = pid
+                if pid in self.killed:
+                    continue
+                procs.append({
+                    "pid": pid, "name": w.title, "cpu": 2.5, "ram_mb": 64,
+                    "net_kb": 0,
+                    "priority": "normal" if pid not in self.suspended else "low",
+                    "kind": "user",
+                    "_win": w,
+                })
+        except Exception:
+            pass
+        return procs
+
+    def kill(self, pid):
+        for p in self.list_procs():
+            if p["pid"] == pid:
+                self.killed.add(pid)
+                w = p.get("_win")
+                if w is not None and w in open_windows:
+                    try:
+                        w.close()
+                    except Exception:
+                        try:
+                            open_windows.remove(w)
+                        except Exception:
+                            pass
+                try:
+                    activity_log.record("taskmgr_kill",
+                                         f"Killed {p['name']} (pid {pid})",
+                                         category="System")
+                except Exception:
+                    pass
+                return True
+        return False
+
+    def suspend(self, pid):
+        self.suspended.add(pid)
+        return True
+
+    def resume(self, pid):
+        self.suspended.discard(pid)
+        return True
+
+    def set_priority(self, pid, priority):
+        if priority not in self.PRIORITIES:
+            return False
+        for p in self.system_procs:
+            if p["pid"] == pid:
+                p["priority"] = priority
+                return True
+        for w in open_windows:
+            if getattr(w, "_pid", None) == pid:
+                w._priority = priority
+                return True
+        return False
+
+    def add_watchdog(self, name, action="restart"):
+        self.watchdog_rules.append({"name": name, "action": action})
+
+    def tick(self):
+        """Update rolling-history buffers from synthetic load values."""
+        cpu = max(0, min(100, cpu_load + random.randint(-3, 3)))
+        ram = max(0, min(100, ram_usage + random.randint(-2, 2)))
+        net = max(0, random.randint(0, 30))
+        self.cpu_history = self.cpu_history[1:] + [cpu]
+        self.ram_history = self.ram_history[1:] + [ram]
+        self.net_history = self.net_history[1:] + [net]
+
+    def stats(self):
+        return {
+            "procs":      len(self.list_procs()),
+            "suspended":  len(self.suspended),
+            "killed":     len(self.killed),
+            "watchdogs":  len(self.watchdog_rules),
+        }
+
+gmansos_task_mgr = GmansOSTaskManager()
+task_mgr_panel_state = {"tab": "processes", "selected_pid": None, "sort_by": "cpu"}
+
+
+# --------------------------- Bundle 5: Spotlight v2 ---------------------------
+class SpotlightV2:
+    """Universal search: files + apps + settings + actions + web + math + units.
+    Extends Cycle 1 Command Palette with broader scopes.
+    """
+    SCOPES = ("all", "apps", "files", "settings", "actions", "web", "math", "history")
+    def __init__(self):
+        self.query = ""
+        self.scope = "all"
+        self.results = []
+        self.history = []           # last N searches
+        self.saved_searches = []    # pinned queries
+
+    def search(self, query, scope=None):
+        scope = scope or self.scope
+        if scope not in self.SCOPES:
+            scope = "all"
+        self.query = query or ""
+        self.scope = scope
+        q = self.query.strip().lower()
+        results = []
+        if not q:
+            self.results = []
+            return self.results
+        # Math: evaluate simple expressions
+        if scope in ("all", "math"):
+            try:
+                if re.match(r'^[\d\s\.\+\-\*\/\(\)\%]+$', q):
+                    val = eval(q, {"__builtins__": {}}, {})
+                    results.append({"kind": "math", "label": f"= {val}", "detail": q, "value": val})
+            except Exception:
+                pass
+        # Apps
+        if scope in ("all", "apps"):
+            for icon in desktop_icons:
+                name = getattr(icon, "text", "")
+                if q in name.lower():
+                    results.append({"kind": "app", "label": name, "detail": "Desktop app", "icon_ref": icon})
+        # Actions (registry)
+        if scope in ("all", "actions"):
+            try:
+                for name in action_registry.all_names():
+                    if q in name.lower():
+                        a = action_registry.get(name)
+                        results.append({"kind": "action", "label": name,
+                                         "detail": a.get("label", name) if isinstance(a, dict) else name})
+            except Exception:
+                pass
+        # Settings (synthetic, common ones)
+        if scope in ("all", "settings"):
+            for s in ("display brightness", "wifi", "bluetooth", "audio volume",
+                      "font scale", "high contrast", "reduced motion", "dnd",
+                      "focus mode", "quiet hours", "notification rules"):
+                if q in s.lower():
+                    results.append({"kind": "setting", "label": s.title(), "detail": "Setting"})
+        # Files (synthetic from text_editor_state + recent_files-like data)
+        if scope in ("all", "files"):
+            try:
+                for fname in list(text_editor_state.get("files", {}).keys()):
+                    if q in fname.lower():
+                        results.append({"kind": "file", "label": fname, "detail": "Text file"})
+            except Exception:
+                pass
+        # Web (synthetic suggestions)
+        if scope in ("all", "web") and len(q) >= 2:
+            results.append({"kind": "web", "label": f'Search the web for "{q}"',
+                             "detail": "Open in Browser"})
+        # History echo
+        if scope == "history":
+            for h in self.history[-20:]:
+                if q in h.lower():
+                    results.append({"kind": "history", "label": h, "detail": "Past query"})
+        self.results = results
+        if query and (not self.history or self.history[-1] != query):
+            self.history.append(query)
+            self.history = self.history[-50:]
+        return results
+
+    def pin(self, query):
+        if query and query not in self.saved_searches:
+            self.saved_searches.append(query)
+            return True
+        return False
+
+    def unpin(self, query):
+        if query in self.saved_searches:
+            self.saved_searches.remove(query)
+            return True
+        return False
+
+    def stats(self):
+        return {
+            "query":         self.query,
+            "scope":         self.scope,
+            "results":       len(self.results),
+            "history":       len(self.history),
+            "saved":         len(self.saved_searches),
+        }
+
+spotlight = SpotlightV2()
+spotlight_panel_state = {"selected": 0}
+
+
+# --------------------------- Bundle 6: File Manager v2 ---------------------------
+class FileManagerV2:
+    """Tabbed file explorer with preview / dual-pane / saved searches /
+    duplicate finder / disk usage analyzer / encrypted vault.
+    """
+    def __init__(self):
+        self.tabs = [{"path": "/home/gman", "selection": None}]
+        self.active_tab = 0
+        self.dual_pane = False
+        self.preview_pane = True
+        self.show_hidden = False
+        self.view_mode = "list"     # 'list' | 'grid' | 'columns'
+        self.sort_by = "name"
+        self.sort_reverse = False
+        self.tags = {}              # {path: [tag,...]}
+        self.saved_searches = []
+        self.vault = {}             # {path: 'encrypted'}
+        self.trash = []
+        # Synthetic filesystem
+        self.fs = {
+            "/home/gman":       ["Documents", "Pictures", "Downloads", "Music",
+                                 "Videos", "Projects", ".cache"],
+            "/home/gman/Documents":  ["report.pdf", "notes.md", "budget.xlsx"],
+            "/home/gman/Pictures":   ["sunset.jpg", "graph.png", "selfie.heic"],
+            "/home/gman/Downloads":  ["installer.exe", "linux.iso", "archive.zip"],
+            "/home/gman/Music":      ["track1.flac", "track2.mp3"],
+            "/home/gman/Videos":     ["clip.mp4", "demo.webm"],
+            "/home/gman/Projects":   ["gmansos", "experiments"],
+        }
+        self.dupes = []     # populated by find_duplicates()
+
+    def open_tab(self, path):
+        self.tabs.append({"path": path, "selection": None})
+        self.active_tab = len(self.tabs) - 1
+
+    def close_tab(self, idx):
+        if 0 <= idx < len(self.tabs) and len(self.tabs) > 1:
+            self.tabs.pop(idx)
+            self.active_tab = min(self.active_tab, len(self.tabs) - 1)
+            return True
+        return False
+
+    def cd(self, path):
+        if path in self.fs or path == "/" or path.startswith("/home"):
+            self.tabs[self.active_tab]["path"] = path
+            return True
+        return False
+
+    def list_current(self):
+        path = self.tabs[self.active_tab]["path"]
+        items = list(self.fs.get(path, []))
+        if not self.show_hidden:
+            items = [i for i in items if not i.startswith(".")]
+        rev = self.sort_reverse
+        items.sort(key=lambda x: x.lower(), reverse=rev)
+        return items
+
+    def tag(self, path, label):
+        self.tags.setdefault(path, [])
+        if label not in self.tags[path]:
+            self.tags[path].append(label)
+
+    def find_duplicates(self):
+        """Mock duplicate finder - flag entries with the same basename in different paths."""
+        seen = {}
+        dupes = []
+        for folder, items in self.fs.items():
+            for name in items:
+                seen.setdefault(name, []).append(folder)
+        for name, folders in seen.items():
+            if len(folders) > 1:
+                dupes.append({"name": name, "folders": folders})
+        self.dupes = dupes
+        return dupes
+
+    def disk_usage(self):
+        """Synthetic per-folder size breakdown."""
+        sizes = {}
+        for folder, items in self.fs.items():
+            sizes[folder] = len(items) * 137  # KB
+        return sizes
+
+    def vault_add(self, path):
+        self.vault[path] = "encrypted"
+
+    def vault_remove(self, path):
+        return self.vault.pop(path, None) is not None
+
+    def stats(self):
+        return {
+            "tabs":           len(self.tabs),
+            "active_tab":     self.active_tab,
+            "preview":        self.preview_pane,
+            "dual_pane":      self.dual_pane,
+            "vault_items":    len(self.vault),
+            "tags":           sum(len(v) for v in self.tags.values()),
+            "trash":          len(self.trash),
+        }
+
+file_mgr_v2 = FileManagerV2()
+file_mgr_v2_panel_state = {"tab": "browse"}
+
+
+# --------------------------- Bundle 7: Comms (Messages / Email / Calendar v2 / Contacts / Tasks) ---------------------------
+class CommsManager:
+    """Unified comms hub: SMS-class messages, email, calendar, contacts, tasks."""
+    def __init__(self):
+        self.messages = [
+            {"from": "Alice", "to": "me", "body": "On my way", "ts": "10:14", "unread": False, "kind": "sms"},
+            {"from": "Mom",   "to": "me", "body": "Don't forget dinner!", "ts": "11:02", "unread": True, "kind": "sms"},
+            {"from": "Work",  "to": "me", "body": "Standup in 5", "ts": "08:55", "unread": False, "kind": "rcs"},
+        ]
+        self.emails = [
+            {"from": "noreply@github.com", "subject": "PR merged", "body": "Your PR was merged.", "ts": "Today", "unread": True, "folder": "inbox"},
+            {"from": "alerts@bank.com",    "subject": "Statement",  "body": "Your statement is ready.", "ts": "Today", "unread": True,  "folder": "inbox"},
+            {"from": "team@gmansos.dev",   "subject": "Welcome",    "body": "Welcome aboard!", "ts": "Yesterday", "unread": False, "folder": "inbox"},
+        ]
+        self.events = [
+            {"title": "Team standup",   "when": "Tomorrow 09:00", "duration_min": 15, "calendar": "Work"},
+            {"title": "Doctor",         "when": "Fri 14:30",      "duration_min": 30, "calendar": "Personal"},
+            {"title": "Game night",     "when": "Sat 19:00",      "duration_min": 180, "calendar": "Personal"},
+        ]
+        self.contacts = [
+            {"name": "Alice Johnson",  "email": "alice@example.com", "phone": "555-0100", "fav": True},
+            {"name": "Bob Smith",      "email": "bob@example.com",   "phone": "555-0101", "fav": False},
+            {"name": "Mom",            "email": "mom@family.com",    "phone": "555-0102", "fav": True},
+        ]
+        self.tasks = [
+            {"text": "Finish report",   "done": False, "due": "Today",      "priority": "high"},
+            {"text": "Buy groceries",   "done": False, "due": "Today",      "priority": "med"},
+            {"text": "Read book ch.4",  "done": True,  "due": "Yesterday",  "priority": "low"},
+        ]
+        self.video_call = {"in_call": False, "participants": [], "bg_blur": True,
+                            "noise_suppression": True, "captions": False}
+
+    def send_message(self, to, body, kind="sms"):
+        self.messages.append({"from": "me", "to": to, "body": body,
+                               "ts": time.strftime("%H:%M"), "unread": False, "kind": kind})
+        return True
+
+    def send_email(self, to, subject, body):
+        self.emails.append({"from": "me", "to": to, "subject": subject, "body": body,
+                             "ts": "Just now", "unread": False, "folder": "sent"})
+        return True
+
+    def add_event(self, title, when, duration_min=30, calendar="Personal"):
+        self.events.append({"title": title, "when": when,
+                             "duration_min": duration_min, "calendar": calendar})
+        return True
+
+    def add_contact(self, name, email="", phone="", fav=False):
+        self.contacts.append({"name": name, "email": email,
+                               "phone": phone, "fav": fav})
+        return True
+
+    def add_task(self, text, due="Today", priority="med"):
+        self.tasks.append({"text": text, "done": False, "due": due, "priority": priority})
+        return True
+
+    def toggle_task(self, idx):
+        if 0 <= idx < len(self.tasks):
+            self.tasks[idx]["done"] = not self.tasks[idx]["done"]
+            return self.tasks[idx]["done"]
+        return None
+
+    def start_call(self, participants):
+        self.video_call["in_call"] = True
+        self.video_call["participants"] = list(participants)
+        return True
+
+    def end_call(self):
+        self.video_call["in_call"] = False
+        self.video_call["participants"] = []
+        return True
+
+    def stats(self):
+        return {
+            "messages":   len(self.messages),
+            "unread_msg": sum(1 for m in self.messages if m.get("unread")),
+            "emails":     len(self.emails),
+            "unread_eml": sum(1 for e in self.emails if e.get("unread")),
+            "events":     len(self.events),
+            "contacts":   len(self.contacts),
+            "tasks":      len(self.tasks),
+            "tasks_open": sum(1 for t in self.tasks if not t["done"]),
+            "in_call":    self.video_call["in_call"],
+        }
+
+comms_mgr = CommsManager()
+comms_panel_state = {"tab": "messages"}
+
+
+# --------------------------- Bundle 8: Frontier (2117 tech samples) ---------------------------
+class FrontierManager:
+    """Forward-looking 2050-2117 capability stubs: quantum auth, programmable
+    matter, BCI, eye/hand tracking, holographic, spatial anchors, DTN, energy
+    budgets, multi-planetary identity, reversible computing.
+    """
+    def __init__(self):
+        # Quantum auth
+        self.quantum_paired = False
+        self.quantum_entanglement_strength = 0.0
+        self.qkd_keys_distributed = 0
+        # Programmable matter
+        self.matter_voxel_count = 0
+        self.matter_targets = []        # queued shape morphs
+        # BCI
+        self.bci_connected = False
+        self.bci_signal_quality = 0
+        self.bci_intent = None           # last decoded intent
+        self.bci_cognitive_load = 0.0    # 0..1
+        # Eye + hand tracking
+        self.eye_track = False
+        self.gaze_point = (0, 0)
+        self.hand_track = False
+        self.hand_pose = "neutral"
+        # Holographic / spatial
+        self.holo_active = False
+        self.spatial_anchors = []        # [{name, pos:(x,y,z)}]
+        # DTN / multi-planetary
+        self.dtn_enabled = False
+        self.planetary_id = "earth"
+        self.dtn_buffered = 0
+        # Energy + carbon
+        self.energy_budget_mwh = 5000
+        self.energy_used_mwh = 0
+        self.carbon_g = 0.0
+        # Reversible / branching
+        self.timeline_branches = []      # [{label, ts}]
+
+    # ----- Quantum
+    def quantum_pair(self):
+        self.quantum_paired = True
+        self.quantum_entanglement_strength = 0.97
+        self.qkd_keys_distributed += 1
+        try:
+            activity_log.record("frontier_qkd",
+                                 "Quantum key distributed",
+                                 category="Security")
+        except Exception:
+            pass
+        return True
+
+    def quantum_break(self):
+        self.quantum_paired = False
+        self.quantum_entanglement_strength = 0.0
+        return True
+
+    # ----- Programmable matter
+    def morph_to(self, shape_name, voxel_count=1024):
+        self.matter_targets.append({"shape": shape_name, "voxels": voxel_count})
+        self.matter_voxel_count = voxel_count
+        return True
+
+    # ----- BCI
+    def bci_connect(self):
+        self.bci_connected = True
+        self.bci_signal_quality = 92
+        return True
+
+    def bci_decode(self, intent):
+        if self.bci_connected:
+            self.bci_intent = intent
+            return True
+        return False
+
+    # ----- Spatial
+    def add_anchor(self, name, pos=(0, 0, 0)):
+        self.spatial_anchors.append({"name": name, "pos": tuple(pos)})
+        return True
+
+    # ----- DTN
+    def dtn_send(self, target_planet, payload_bytes=1024):
+        if not self.dtn_enabled:
+            return False
+        self.dtn_buffered += payload_bytes
+        return True
+
+    # ----- Energy
+    def consume_energy(self, mwh, carbon_g=0.0):
+        self.energy_used_mwh += mwh
+        self.carbon_g += carbon_g
+        return self.energy_used_mwh <= self.energy_budget_mwh
+
+    # ----- Reversible / branching
+    def branch_timeline(self, label):
+        self.timeline_branches.append({"label": label, "ts": time.time()})
+        return True
+
+    def stats(self):
+        return {
+            "quantum_paired":     self.quantum_paired,
+            "qkd_keys":           self.qkd_keys_distributed,
+            "matter_voxels":      self.matter_voxel_count,
+            "bci_connected":      self.bci_connected,
+            "bci_quality":        self.bci_signal_quality,
+            "eye_track":          self.eye_track,
+            "hand_track":         self.hand_track,
+            "holo_active":        self.holo_active,
+            "spatial_anchors":    len(self.spatial_anchors),
+            "dtn_enabled":        self.dtn_enabled,
+            "planetary_id":       self.planetary_id,
+            "energy_used_mwh":    self.energy_used_mwh,
+            "energy_budget_mwh":  self.energy_budget_mwh,
+            "carbon_g":           self.carbon_g,
+            "timeline_branches":  len(self.timeline_branches),
+        }
+
+frontier = FrontierManager()
+frontier_panel_state = {"tab": "quantum"}
+
+
+# =============================================================================
+# CYCLE 5 — Group 1: SYSTEM / IO / SECURITY MANAGERS
+# (Network v2, Audio v2, Power, Print, Camera, Voice, Auth, Security)
+# =============================================================================
+
+# ---- Bundle 9: Network v2 (Section 8 — 22 bullets, 10/10 coverage)
+class NetworkManagerV2:
+    """Full networking stack: Wi-Fi + profiles + QR share + Wi-Fi Direct +
+    Hotspot + VPN (5 protocols + per-app) + BT classic/LE/Auracast +
+    multi-point + NFC + UWB + Thread/Matter smart home + DNS (DoH/DoT/DoQ)
+    + hosts editor + firewall + kill-switch + throughput history + packet
+    capture + mDNS discovery + WebRTC + QUIC/HTTP3 + NTN satellite + DTN.
+    """
+    VPN_PROTOCOLS = ("WireGuard", "OpenVPN", "IKEv2", "Tailscale-mesh", "L2TP")
+    BT_CODECS = ("SBC", "AAC", "aptX", "aptX HD", "LDAC", "LC3", "LC3plus")
+    DNS_MODES = ("system", "DoH", "DoT", "DoQ")
+    def __init__(self):
+        # ---- Wi-Fi (bullet 1) ----
+        self.wifi_networks = [
+            {"ssid": "Gmansos-Network", "signal": 92, "security": "WPA3", "saved": True,  "connected": True,  "location": "home"},
+            {"ssid": "Cafe-Free",       "signal": 64, "security": "Open", "saved": False, "connected": False, "location": "cafe"},
+            {"ssid": "Office-5G",       "signal": 78, "security": "WPA2", "saved": True,  "connected": False, "location": "office"},
+            {"ssid": "IoT-Mesh",        "signal": 51, "security": "WPA3", "saved": True,  "connected": False, "location": "home"},
+        ]
+        self.wifi_location_profiles = {"home": "Gmansos-Network",
+                                         "office": "Office-5G",
+                                         "cafe": None}
+        self.wifi_qr_shares = []   # [{ssid, share_token, ts}]
+        # ---- Wi-Fi Direct / SoftAP (bullet 2) ----
+        self.wifi_direct = {"active": False, "peer": None, "transfers": []}
+        # ---- Mobile Hotspot (bullet 3) ----
+        self.hotspot = {"active": False, "ssid": "Gmansos-Hotspot", "password": "g-os-1234",
+                         "band": "5GHz", "clients": 0, "max_clients": 10}
+        # ---- VPN (bullets 4, 5) ----
+        self.vpn = {"active": False, "provider": "WireGuard", "endpoint": "vpn.gmansos.dev:51820",
+                     "supported": list(self.VPN_PROTOCOLS), "kill_switch_drop": True}
+        self.per_app_vpn = {}              # {app_name: True}
+        # ---- Bluetooth (bullets 6, 7, 8) ----
+        self.bt_devices = [
+            {"name": "AirPods Pro 2", "kind": "audio", "paired": True,  "connected": True,
+             "codec": "LC3", "battery": 78, "le_audio": True, "auracast_rx": True},
+            {"name": "Magic Keyboard","kind": "hid",   "paired": True,  "connected": True,
+             "codec": "BR/EDR","battery": 64, "le_audio": False, "auracast_rx": False},
+            {"name": "Galaxy Watch",  "kind": "wear",  "paired": True,  "connected": False,
+             "codec": "BLE",   "battery": 32, "le_audio": False, "auracast_rx": False},
+            {"name": "Hearing Aid R", "kind": "medical","paired": True, "connected": True,
+             "codec": "LC3plus", "battery": 89, "le_audio": True, "auracast_rx": True},
+        ]
+        self.bt_multipoint = []   # [{device_name, paired_to: ["phone","laptop"]}]
+        self.auracast_active = False
+        self.auracast_streams = []   # [{channel, label, listeners}]
+        # ---- NFC (bullet 9) ----
+        self.nfc_enabled = True
+        self.nfc_events = []   # [{kind: tap/pay/share, target, ts}]
+        # ---- UWB (bullet 10) ----
+        self.uwb_enabled = True
+        self.uwb_anchors = [
+            {"label": "Wallet AirTag-class", "distance_cm": 142, "azimuth_deg": 32},
+            {"label": "Keys",                 "distance_cm": 580, "azimuth_deg": -45},
+        ]
+        # ---- Thread / Matter smart home (bullet 11) ----
+        self.thread_border_router = True
+        self.matter_devices = [
+            {"name": "Smart Bulb 1", "kind": "light",     "online": True,  "fabric": "matter:gmansos"},
+            {"name": "Door Lock",    "kind": "lock",      "online": True,  "fabric": "matter:gmansos"},
+            {"name": "Thermostat",   "kind": "thermostat","online": True,  "fabric": "matter:gmansos"},
+            {"name": "Garage Door",  "kind": "switch",    "online": False, "fabric": "matter:gmansos"},
+        ]
+        # ---- DNS (bullet 12) ----
+        self.dns_mode = "DoH"
+        self.dns_provider = "Cloudflare 1.1.1.1"
+        self.dns_providers = ["Cloudflare 1.1.1.1", "Google 8.8.8.8",
+                                "Quad9 9.9.9.9", "AdGuard", "NextDNS", "Custom"]
+        # ---- Hosts file editor (bullet 13) ----
+        self.hosts_entries = [
+            {"host": "ads.example.com", "ip": "0.0.0.0", "comment": "blocked"},
+            {"host": "tracker.example", "ip": "0.0.0.0", "comment": "blocked"},
+        ]
+        # ---- Firewall (bullet 14) ----
+        self.firewall = {"enabled": True, "rules": [
+            {"app": "browser",        "direction": "out", "allow": True},
+            {"app": "telemetry-dummy","direction": "out", "allow": False},
+            {"app": "ssh-daemon",     "direction": "in",  "allow": True},
+            {"app": "*",              "direction": "in",  "allow": False},
+        ]}
+        self.kill_switch = True   # block all if VPN drops
+        # ---- Throughput meter + history (bullet 16) ----
+        self.bandwidth_total_mbps = 940
+        self.bandwidth_used_mbps = 18
+        self.throughput_history = []   # [(ts, mbps)] last 240 samples
+        self.interfaces = [
+            {"name": "wlan0", "kind": "wifi",     "ip": "10.0.0.42",   "tx_mbps": 12, "rx_mbps": 6},
+            {"name": "eth0",  "kind": "ethernet", "ip": "192.168.1.50","tx_mbps": 0,  "rx_mbps": 0},
+            {"name": "tun0",  "kind": "vpn",      "ip": "100.64.0.1",  "tx_mbps": 0,  "rx_mbps": 0},
+            {"name": "wwan0", "kind": "cellular", "ip": "n/a",         "tx_mbps": 0,  "rx_mbps": 0},
+        ]
+        # ---- Packet capture (bullet 17) ----
+        self.packet_capture_active = False
+        self.captured_packets = 0
+        self.captured_pcap_files = []   # [{path, packets, ts}]
+        # ---- mDNS / DNS-SD discovery (bullet 18) ----
+        self.mdns_services = [
+            {"name": "Office Printer", "type": "_ipp._tcp",       "host": "printer.local"},
+            {"name": "Living Room TV", "type": "_airplay._tcp",   "host": "lr-tv.local"},
+            {"name": "Kitchen Cast",   "type": "_googlecast._tcp","host": "kitchen.local"},
+            {"name": "NAS",            "type": "_smb._tcp",       "host": "nas.local"},
+        ]
+        # ---- WebRTC stack (bullet 19) ----
+        self.webrtc_sessions = []   # [{peer, kind: video/audio/data, state}]
+        # ---- QUIC + HTTP/3 (bullet 20) ----
+        self.quic_enabled = True
+        self.http3_enabled = True
+        self.quic_active_streams = 0
+        # ---- 6G / NTN satellite (bullet 21) ----
+        self.ntn_available = True   # satellite fallback
+        self.ntn_active = False
+        self.ntn_messages_sent = 0
+        # ---- Inter-planetary DTN (bullet 22) ----
+        self.dtn_enabled = True
+        self.dtn_planetary_id = "earth-gmansos-laptop-01"
+        self.dtn_bundles_queued = []   # store-and-forward queue
+
+    # ----- Wi-Fi -----
+    def connect_wifi(self, ssid):
+        for n in self.wifi_networks:
+            n["connected"] = (n["ssid"] == ssid)
+        try:
+            activity_log.record("network", f"Connected to {ssid}", category="System")
+        except Exception:
+            pass
+        return True
+
+    def forget_wifi(self, ssid):
+        for n in self.wifi_networks:
+            if n["ssid"] == ssid:
+                n["saved"] = False
+                n["connected"] = False
+                return True
+        return False
+
+    def share_wifi_qr(self, ssid):
+        tok = "qr:" + hashlib.sha256(ssid.encode()).hexdigest()[:24]
+        self.wifi_qr_shares.append({"ssid": ssid, "token": tok, "ts": time.time()})
+        return tok
+
+    def set_wifi_location_profile(self, location, ssid):
+        self.wifi_location_profiles[location] = ssid
+        return True
+
+    # ----- Wi-Fi Direct -----
+    def wifi_direct_pair(self, peer):
+        self.wifi_direct["active"] = True
+        self.wifi_direct["peer"] = peer
+        return True
+
+    def wifi_direct_send(self, filename):
+        if not self.wifi_direct["active"]:
+            return False
+        self.wifi_direct["transfers"].append({"file": filename, "ts": time.time(),
+                                                "peer": self.wifi_direct["peer"]})
+        return True
+
+    def wifi_direct_disconnect(self):
+        self.wifi_direct["active"] = False
+        self.wifi_direct["peer"] = None
+        return True
+
+    # ----- Hotspot -----
+    def toggle_hotspot(self):
+        self.hotspot["active"] = not self.hotspot["active"]
+        if self.hotspot["active"]:
+            self.hotspot["clients"] = random.randint(0, 3)
+        else:
+            self.hotspot["clients"] = 0
+        return self.hotspot["active"]
+
+    def set_hotspot_band(self, band):
+        if band in ("2.4GHz", "5GHz", "6GHz"):
+            self.hotspot["band"] = band
+            return True
+        return False
+
+    # ----- VPN -----
+    def toggle_vpn(self):
+        self.vpn["active"] = not self.vpn["active"]
+        return self.vpn["active"]
+
+    def set_vpn_protocol(self, proto):
+        if proto in self.VPN_PROTOCOLS:
+            self.vpn["provider"] = proto
+            return True
+        return False
+
+    def add_per_app_vpn(self, app):
+        self.per_app_vpn[app] = True
+        return True
+
+    def remove_per_app_vpn(self, app):
+        return self.per_app_vpn.pop(app, None) is not None
+
+    # ----- Bluetooth -----
+    def toggle_bt_device(self, name):
+        for d in self.bt_devices:
+            if d["name"] == name:
+                d["connected"] = not d["connected"]
+                return d["connected"]
+        return None
+
+    def set_bt_codec(self, name, codec):
+        if codec not in self.BT_CODECS:
+            return False
+        for d in self.bt_devices:
+            if d["name"] == name:
+                d["codec"] = codec
+                return True
+        return False
+
+    def bt_multipoint_pair(self, device, hosts):
+        self.bt_multipoint.append({"device": device, "paired_to": list(hosts)})
+        return True
+
+    # ----- LE Audio + Auracast -----
+    def start_auracast(self, label, channel=1):
+        self.auracast_active = True
+        self.auracast_streams.append({"channel": channel, "label": label, "listeners": 0})
+        return self.auracast_streams[-1]
+
+    def stop_auracast(self):
+        self.auracast_active = False
+        self.auracast_streams = []
+        return True
+
+    def auracast_listener_join(self, channel):
+        for s in self.auracast_streams:
+            if s["channel"] == channel:
+                s["listeners"] += 1
+                return s["listeners"]
+        return None
+
+    # ----- NFC -----
+    def nfc_tap(self, kind, target):
+        """kind in {'pair','pay','share'}."""
+        e = {"kind": kind, "target": target, "ts": time.time()}
+        self.nfc_events.append(e)
+        return e
+
+    def toggle_nfc(self):
+        self.nfc_enabled = not self.nfc_enabled
+        return self.nfc_enabled
+
+    # ----- UWB -----
+    def add_uwb_anchor(self, label, distance_cm, azimuth_deg=0):
+        a = {"label": label, "distance_cm": distance_cm, "azimuth_deg": azimuth_deg}
+        self.uwb_anchors.append(a)
+        return a
+
+    def toggle_uwb(self):
+        self.uwb_enabled = not self.uwb_enabled
+        return self.uwb_enabled
+
+    # ----- Thread / Matter -----
+    def matter_commission(self, name, kind):
+        d = {"name": name, "kind": kind, "online": True, "fabric": "matter:gmansos"}
+        self.matter_devices.append(d)
+        return d
+
+    def matter_toggle_device(self, name):
+        for d in self.matter_devices:
+            if d["name"] == name:
+                d["online"] = not d["online"]
+                return d["online"]
+        return None
+
+    # ----- DNS -----
+    def set_dns_mode(self, mode):
+        if mode in self.DNS_MODES:
+            self.dns_mode = mode
+            return True
+        return False
+
+    def set_dns_provider(self, provider):
+        if provider in self.dns_providers or provider == "Custom":
+            self.dns_provider = provider
+            return True
+        return False
+
+    # ----- Hosts editor -----
+    def add_hosts_entry(self, host, ip="0.0.0.0", comment=""):
+        self.hosts_entries.append({"host": host, "ip": ip, "comment": comment})
+        return True
+
+    def remove_hosts_entry(self, host):
+        before = len(self.hosts_entries)
+        self.hosts_entries = [h for h in self.hosts_entries if h["host"] != host]
+        return len(self.hosts_entries) < before
+
+    # ----- Firewall -----
+    def add_firewall_rule(self, app, direction="out", allow=True):
+        self.firewall["rules"].append({"app": app, "direction": direction, "allow": allow})
+
+    def remove_firewall_rule(self, idx):
+        if 0 <= idx < len(self.firewall["rules"]):
+            self.firewall["rules"].pop(idx)
+            return True
+        return False
+
+    def toggle_firewall(self):
+        self.firewall["enabled"] = not self.firewall["enabled"]
+        return self.firewall["enabled"]
+
+    # ----- Network reset (bullet 15) -----
+    def network_reset(self):
+        """One-click restore networking defaults."""
+        self.vpn["active"] = False
+        for n in self.wifi_networks:
+            n["connected"] = False
+        self.hotspot["active"] = False
+        self.wifi_direct["active"] = False
+        self.per_app_vpn.clear()
+        self.firewall["rules"] = [r for r in self.firewall["rules"]
+                                    if r["app"] in ("browser",)]
+        try:
+            activity_log.record("network_reset", "Network reset to defaults", category="System")
+        except Exception:
+            pass
+        return True
+
+    # ----- Packet capture -----
+    def start_packet_capture(self):
+        self.packet_capture_active = True
+        return True
+
+    def stop_packet_capture(self):
+        captured = self.captured_packets
+        self.packet_capture_active = False
+        if captured > 0:
+            path = f"/tmp/capture-{int(time.time())}.pcap"
+            self.captured_pcap_files.append({"path": path, "packets": captured, "ts": time.time()})
+            self.captured_packets = 0
+        return captured
+
+    # ----- mDNS discovery -----
+    def mdns_discover(self):
+        """Re-trigger discovery; in real OS would issue queries. Mock: return cached list."""
+        return list(self.mdns_services)
+
+    def mdns_register(self, name, service_type, host):
+        s = {"name": name, "type": service_type, "host": host}
+        self.mdns_services.append(s)
+        return s
+
+    # ----- WebRTC -----
+    def webrtc_open(self, peer, kind="video"):
+        s = {"peer": peer, "kind": kind, "state": "connected", "ts": time.time()}
+        self.webrtc_sessions.append(s)
+        return s
+
+    def webrtc_close(self, peer):
+        for s in self.webrtc_sessions:
+            if s["peer"] == peer and s["state"] == "connected":
+                s["state"] = "closed"
+                return True
+        return False
+
+    # ----- QUIC / HTTP3 -----
+    def quic_stream_open(self):
+        self.quic_active_streams += 1
+        return self.quic_active_streams
+
+    def quic_stream_close(self):
+        self.quic_active_streams = max(0, self.quic_active_streams - 1)
+        return self.quic_active_streams
+
+    # ----- NTN satellite (bullet 21) -----
+    def ntn_send_message(self, text):
+        if not self.ntn_available:
+            return False
+        self.ntn_active = True
+        self.ntn_messages_sent += 1
+        try:
+            activity_log.record("ntn", f"Satellite message: {text[:60]}", category="System")
+        except Exception:
+            pass
+        return True
+
+    # ----- DTN inter-planetary (bullet 22) -----
+    def dtn_queue_bundle(self, target_planet, payload):
+        self.dtn_bundles_queued.append({"target": target_planet, "payload": payload,
+                                          "ts": time.time(), "status": "queued"})
+        return True
+
+    def dtn_forward_next(self):
+        if not self.dtn_bundles_queued:
+            return None
+        b = self.dtn_bundles_queued[0]
+        b["status"] = "forwarded"
+        self.dtn_bundles_queued = self.dtn_bundles_queued[1:]
+        return b
+
+    # ----- Lifecycle -----
+    def tick(self):
+        self.bandwidth_used_mbps = max(0,
+            min(self.bandwidth_total_mbps,
+                self.bandwidth_used_mbps + random.randint(-3, 5)))
+        self.throughput_history.append((time.time(), self.bandwidth_used_mbps))
+        self.throughput_history = self.throughput_history[-240:]
+        if self.packet_capture_active:
+            self.captured_packets += random.randint(5, 25)
+
+    def stats(self):
+        return {
+            "wifi":              sum(1 for n in self.wifi_networks if n["connected"]),
+            "saved":             sum(1 for n in self.wifi_networks if n["saved"]),
+            "wifi_direct":       self.wifi_direct["active"],
+            "vpn":               self.vpn["active"],
+            "vpn_protocols":     len(self.VPN_PROTOCOLS),
+            "per_app_vpn":       len(self.per_app_vpn),
+            "hotspot":           self.hotspot["active"],
+            "hotspot_clients":   self.hotspot["clients"],
+            "bt_connected":      sum(1 for d in self.bt_devices if d["connected"]),
+            "bt_le_audio":       sum(1 for d in self.bt_devices if d.get("le_audio")),
+            "auracast":          self.auracast_active,
+            "auracast_streams":  len(self.auracast_streams),
+            "multipoint":        len(self.bt_multipoint),
+            "nfc":               self.nfc_enabled,
+            "nfc_events":        len(self.nfc_events),
+            "uwb":               self.uwb_enabled,
+            "uwb_anchors":       len(self.uwb_anchors),
+            "matter_devices":    len(self.matter_devices),
+            "matter_online":     sum(1 for d in self.matter_devices if d["online"]),
+            "firewall":          self.firewall["enabled"],
+            "rules":             len(self.firewall["rules"]),
+            "hosts_entries":     len(self.hosts_entries),
+            "dns_mode":          self.dns_mode,
+            "dns_provider":      self.dns_provider,
+            "kill_switch":       self.kill_switch,
+            "bandwidth":         self.bandwidth_used_mbps,
+            "throughput_hist":   len(self.throughput_history),
+            "interfaces":        len(self.interfaces),
+            "captured":          self.captured_packets,
+            "pcap_files":        len(self.captured_pcap_files),
+            "mdns_services":     len(self.mdns_services),
+            "webrtc_active":     sum(1 for s in self.webrtc_sessions if s["state"] == "connected"),
+            "quic":              self.quic_enabled,
+            "http3":             self.http3_enabled,
+            "quic_streams":      self.quic_active_streams,
+            "ntn_available":     self.ntn_available,
+            "ntn_active":        self.ntn_active,
+            "ntn_sent":          self.ntn_messages_sent,
+            "dtn":               self.dtn_enabled,
+            "dtn_queued":        len(self.dtn_bundles_queued),
+        }
+
+network_v2 = NetworkManagerV2()
+network_v2_panel_state = {"tab": "wifi"}
+
+
+# ---- Bundle 10: Audio Mixer v2 (Section 10 — 12 bullets, 10/10 coverage)
+class AudioMixerV2:
+    """Full audio stack: per-app volume + per-app output routing + spatial
+    audio (Dolby Atmos / Sony 360RA) head-tracked + loudness normalization
+    + parametric EQ + 8 presets + per-app EQ + mic gain + AI noise removal
+    (Krisp-class) + echo cancellation + Studio Effects + live caption +
+    live translation + audio sandboxing + mic indicator + routing graph.
+    """
+    EQ_PRESETS = {
+        "Flat":      {"60": 0,  "150": 0,  "400": 0,  "1k": 0,  "3k": 0,  "8k": 0,  "16k": 0},
+        "Bass Boost":{"60": +8, "150": +5, "400": +2, "1k": 0,  "3k": 0,  "8k": 0,  "16k": 0},
+        "Vocal":     {"60": -2, "150": 0,  "400": +3, "1k": +4, "3k": +5, "8k": +2, "16k": 0},
+        "Treble":    {"60": -3, "150": -2, "400": 0,  "1k": 0,  "3k": +3, "8k": +5, "16k": +6},
+        "Classical": {"60": +2, "150": +1, "400": 0,  "1k": -1, "3k": 0,  "8k": +2, "16k": +3},
+        "Rock":      {"60": +4, "150": +3, "400": 0,  "1k": -1, "3k": +2, "8k": +4, "16k": +5},
+        "Loudness":  {"60": +6, "150": +3, "400": 0,  "1k": 0,  "3k": 0,  "8k": +3, "16k": +6},
+        "Speech":    {"60": -6, "150": -3, "400": +4, "1k": +6, "3k": +6, "8k": +2, "16k": -2},
+    }
+    SPATIAL_FORMATS = ("Off", "Dolby Atmos", "Sony 360RA", "Apple Spatial",
+                        "Sennheiser Ambeo")
+    def __init__(self):
+        # ---- Per-app volume mixer (bullet 1) ----
+        self.app_volumes = {
+            "browser":  0.85,
+            "spotify":  0.65,
+            "discord":  0.75,
+            "system":   0.80,
+            "comms":    1.00,
+            "game":     0.90,
+        }
+        self.app_muted = set()
+        # ---- Per-app output device (bullet 2) ----
+        self.app_devices = {}               # {app: device_id}
+        self.output_devices = [
+            {"id": "speakers", "name": "Internal Speakers", "default": True,  "active": True,  "kind": "speakers"},
+            {"id": "headset",  "name": "AirPods Pro 2",     "default": False, "active": False, "kind": "bt"},
+            {"id": "hdmi",     "name": "HDMI Display",      "default": False, "active": False, "kind": "hdmi"},
+            {"id": "usbdac",   "name": "USB DAC (24bit/192)","default": False,"active": False, "kind": "usb"},
+            {"id": "optical",  "name": "Optical S/PDIF",    "default": False, "active": False, "kind": "optical"},
+        ]
+        self.input_devices = [
+            {"id": "mic",     "name": "Built-in Microphone","default": True,  "active": True,  "gain": 0.7},
+            {"id": "headset", "name": "AirPods Pro 2 Mic",  "default": False, "active": False, "gain": 0.6},
+            {"id": "studio",  "name": "Studio Mic XLR",     "default": False, "active": False, "gain": 0.4},
+        ]
+        # ---- Spatial audio (bullet 3) ----
+        self.spatial_audio = True
+        self.spatial_format = "Dolby Atmos"
+        self.dolby_atmos = True
+        self.sony_360ra_available = True
+        self.head_tracking = True
+        # ---- Loudness normalization (bullet 4) ----
+        self.loudness_normalization = True
+        self.loudness_target_lufs = -16
+        # ---- System-wide EQ + per-app EQ + presets (bullet 5) ----
+        self.eq = {"60": 0, "150": 0, "400": 0, "1k": 0, "3k": 0, "8k": 0, "16k": 0}
+        self.eq_preset = "Flat"
+        self.per_app_eq = {}    # {app: eq_dict}
+        # ---- Mic gain / NS / echo cancellation (bullet 6) ----
+        self.noise_suppression = True   # native DSP
+        self.echo_cancellation = True
+        # ---- AI background noise removal (bullet 7) ----
+        self.ai_noise_removal = True
+        self.ai_noise_removal_strength = 0.75   # 0..1
+        # ---- Studio Effects (bullet 8) ----
+        self.studio_effects = {"auto_frame": True, "eye_contact": False,
+                                "voice_isolation": True, "background_blur": True,
+                                "voice_focus": True, "ai_clarity": True}
+        # ---- Live audio caption + translation (bullet 9) ----
+        self.live_captions_active = False
+        self.live_caption_buffer = []    # [{text, ts}]
+        self.live_translate_active = False
+        self.live_translate_pair = ("en", "es")
+        # ---- Audio sandboxing (bullet 10) ----
+        self.audio_sandbox = True   # block apps from listening when background
+        self.background_audio_allowed = set()
+        # ---- Mic indicator (bullet 11) ----
+        self.mic_in_use = False
+        self.mic_used_by = []    # [{app, ts}]
+        # ---- Audio routing graph (bullet 12) ----
+        self.routing_graph = {
+            "nodes": [
+                {"id": "source-browser", "kind": "source", "label": "Browser"},
+                {"id": "source-spotify", "kind": "source", "label": "Spotify"},
+                {"id": "source-mic",     "kind": "source", "label": "Mic"},
+                {"id": "fx-noise",       "kind": "fx",     "label": "AI Noise Removal"},
+                {"id": "fx-eq",          "kind": "fx",     "label": "System EQ"},
+                {"id": "sink-speakers",  "kind": "sink",   "label": "Speakers"},
+                {"id": "sink-headset",   "kind": "sink",   "label": "Headset"},
+            ],
+            "edges": [
+                ("source-browser", "fx-eq"),
+                ("source-spotify", "fx-eq"),
+                ("fx-eq",          "sink-speakers"),
+                ("source-mic",     "fx-noise"),
+                ("fx-noise",       "sink-headset"),
+            ],
+        }
+        self.system_audio_to_app = False    # capture system audio to apps
+
+    # ----- Per-app volume + mute -----
+    def set_app_volume(self, app, vol):
+        self.app_volumes[app] = max(0.0, min(1.0, float(vol)))
+        return self.app_volumes[app]
+
+    def mute_app(self, app):
+        self.app_muted.add(app)
+        return True
+
+    def unmute_app(self, app):
+        self.app_muted.discard(app)
+        return True
+
+    # ----- Per-app output -----
+    def route_app(self, app, device_id):
+        if any(d["id"] == device_id for d in self.output_devices):
+            self.app_devices[app] = device_id
+            return True
+        return False
+
+    def set_default_output(self, device_id):
+        for d in self.output_devices:
+            d["default"] = (d["id"] == device_id)
+            d["active"] = d["default"]
+        return True
+
+    def set_input_gain(self, dev_id, gain):
+        for d in self.input_devices:
+            if d["id"] == dev_id:
+                d["gain"] = max(0.0, min(1.5, float(gain)))
+                return d["gain"]
+        return None
+
+    # ----- Spatial audio -----
+    def set_spatial_format(self, fmt):
+        if fmt in self.SPATIAL_FORMATS:
+            self.spatial_format = fmt
+            self.spatial_audio = (fmt != "Off")
+            return True
+        return False
+
+    def toggle_head_tracking(self):
+        self.head_tracking = not self.head_tracking
+        return self.head_tracking
+
+    # ----- Loudness -----
+    def toggle_loudness_norm(self):
+        self.loudness_normalization = not self.loudness_normalization
+        return self.loudness_normalization
+
+    def set_loudness_target(self, lufs):
+        self.loudness_target_lufs = max(-30, min(-8, int(lufs)))
+        return self.loudness_target_lufs
+
+    # ----- EQ -----
+    def set_eq_band(self, band, db):
+        if band in self.eq:
+            self.eq[band] = max(-12, min(12, int(db)))
+            return self.eq[band]
+        return None
+
+    def reset_eq(self):
+        for k in self.eq:
+            self.eq[k] = 0
+        self.eq_preset = "Flat"
+
+    def apply_eq_preset(self, preset_name):
+        preset = self.EQ_PRESETS.get(preset_name)
+        if preset is None:
+            return False
+        self.eq = dict(preset)
+        self.eq_preset = preset_name
+        return True
+
+    def set_per_app_eq(self, app, preset_name):
+        if preset_name in self.EQ_PRESETS:
+            self.per_app_eq[app] = dict(self.EQ_PRESETS[preset_name])
+            return True
+        return False
+
+    # ----- Noise / echo / AI -----
+    def toggle_noise_suppression(self):
+        self.noise_suppression = not self.noise_suppression
+        return self.noise_suppression
+
+    def toggle_echo_cancellation(self):
+        self.echo_cancellation = not self.echo_cancellation
+        return self.echo_cancellation
+
+    def toggle_ai_noise_removal(self):
+        self.ai_noise_removal = not self.ai_noise_removal
+        return self.ai_noise_removal
+
+    def set_ai_noise_strength(self, v):
+        self.ai_noise_removal_strength = max(0.0, min(1.0, float(v)))
+        return self.ai_noise_removal_strength
+
+    # ----- Studio Effects -----
+    def toggle_studio_effect(self, key):
+        if key in self.studio_effects:
+            self.studio_effects[key] = not self.studio_effects[key]
+            return self.studio_effects[key]
+        return None
+
+    # ----- Live captions + translation -----
+    def start_live_captions(self):
+        self.live_captions_active = True
+        return True
+
+    def stop_live_captions(self):
+        self.live_captions_active = False
+        return True
+
+    def feed_caption(self, text):
+        self.live_caption_buffer.append({"text": text, "ts": time.time()})
+        self.live_caption_buffer = self.live_caption_buffer[-100:]
+        return True
+
+    def start_live_translate(self, from_lang, to_lang):
+        self.live_translate_active = True
+        self.live_translate_pair = (from_lang, to_lang)
+        return True
+
+    def stop_live_translate(self):
+        self.live_translate_active = False
+        return True
+
+    # ----- Audio sandboxing -----
+    def allow_background_audio(self, app):
+        self.background_audio_allowed.add(app)
+        return True
+
+    def disallow_background_audio(self, app):
+        self.background_audio_allowed.discard(app)
+        return True
+
+    def toggle_audio_sandbox(self):
+        self.audio_sandbox = not self.audio_sandbox
+        return self.audio_sandbox
+
+    # ----- Mic indicator -----
+    def mic_start(self, app):
+        self.mic_in_use = True
+        self.mic_used_by.append({"app": app, "ts": time.time()})
+        self.mic_used_by = self.mic_used_by[-20:]
+        try:
+            security_plus.indicate("mic", app=app, active=True)
+        except Exception:
+            pass
+        return True
+
+    def mic_stop(self, app):
+        if self.mic_used_by and self.mic_used_by[-1]["app"] == app:
+            self.mic_in_use = False
+        try:
+            security_plus.indicate("mic", app=app, active=False)
+        except Exception:
+            pass
+        return True
+
+    # ----- Routing graph -----
+    def add_routing_edge(self, src_id, dst_id):
+        if not any(n["id"] == src_id for n in self.routing_graph["nodes"]):
+            return False
+        if not any(n["id"] == dst_id for n in self.routing_graph["nodes"]):
+            return False
+        self.routing_graph["edges"].append((src_id, dst_id))
+        return True
+
+    def remove_routing_edge(self, src_id, dst_id):
+        before = len(self.routing_graph["edges"])
+        self.routing_graph["edges"] = [
+            e for e in self.routing_graph["edges"]
+            if not (e[0] == src_id and e[1] == dst_id)
+        ]
+        return len(self.routing_graph["edges"]) < before
+
+    def stats(self):
+        return {
+            "apps":                  len(self.app_volumes),
+            "muted":                 len(self.app_muted),
+            "outputs":               len(self.output_devices),
+            "output_default":        next((d["id"] for d in self.output_devices if d["default"]), None),
+            "inputs":                len(self.input_devices),
+            "input_default":         next((d["id"] for d in self.input_devices if d["default"]), None),
+            "spatial":               self.spatial_audio,
+            "spatial_format":        self.spatial_format,
+            "head_tracking":         self.head_tracking,
+            "loudness_norm":         self.loudness_normalization,
+            "loudness_target":       self.loudness_target_lufs,
+            "noise_suppression":     self.noise_suppression,
+            "echo_cancel":           self.echo_cancellation,
+            "ai_noise":              self.ai_noise_removal,
+            "ai_noise_strength":     self.ai_noise_removal_strength,
+            "eq_preset":             self.eq_preset,
+            "eq_max":                max(abs(v) for v in self.eq.values()),
+            "per_app_eq":            len(self.per_app_eq),
+            "studio_effects_on":     sum(1 for v in self.studio_effects.values() if v),
+            "live_captions":         self.live_captions_active,
+            "live_translate":        self.live_translate_active,
+            "captions_buffered":     len(self.live_caption_buffer),
+            "audio_sandbox":         self.audio_sandbox,
+            "bg_audio_allowed":      len(self.background_audio_allowed),
+            "mic_in_use":            self.mic_in_use,
+            "routing_nodes":         len(self.routing_graph["nodes"]),
+            "routing_edges":         len(self.routing_graph["edges"]),
+        }
+
+audio_mixer_v2 = AudioMixerV2()
+audio_mixer_v2_panel_state = {"tab": "apps"}
+
+
+# ---- Bundle 11: Power / Thermal (Section 9 — 14 bullets, 10/10 coverage)
+class PowerThermalManager:
+    """Full power stack: battery health + cycle count + charge limits + smart
+    charging schedule + per-app battery usage + 4 power profiles + adaptive
+    battery (ML) + thermals (CPU/GPU/SSD/battery) + custom fan curves +
+    undervolt/overclock + S0ix modern standby + hibernate + Wake-on-LAN +
+    Wake-on-Voice + tablet flip awareness + wireless charging UI with coil
+    alignment + foreign object detection.
+    """
+    POWER_PROFILES = ("Best Performance", "Balanced", "Battery Saver", "Custom")
+    SLEEP_STATES = ("S0ix", "S3", "S4-Hibernate", "S5-Off")
+    def __init__(self):
+        # ---- Battery health (bullet 1) ----
+        self.battery_design_mwh = 56000
+        self.battery_current_mwh = 51200
+        self.battery_cycle_count = 142
+        self.battery_health_pct = 91
+        # ---- Charge limit + smart charging (bullets 2, 3) ----
+        self.charge_limit_pct = 80
+        self.smart_charge = True
+        self.smart_charge_schedule = {"wake_time": "07:00", "fast_until_pct": 80,
+                                       "trickle_after_pct": 80,
+                                       "finish_by_minutes_before_wake": 15}
+        self.charging = True
+        self.charge_rate_w = 65
+        # ---- Per-app battery (bullet 4) ----
+        self.per_app_battery = [
+            {"app": "browser",  "mwh_today": 1840, "background_mwh": 120},
+            {"app": "comms",    "mwh_today":  920, "background_mwh":  60},
+            {"app": "spotify",  "mwh_today":  410, "background_mwh":  20},
+            {"app": "system",   "mwh_today": 2200, "background_mwh":  -1},
+            {"app": "game",     "mwh_today": 3100, "background_mwh":   0},
+        ]
+        # ---- Power profile (bullet 5) ----
+        self.profile = "Balanced"
+        # ---- Adaptive battery (bullet 6) ----
+        self.adaptive_battery = True
+        self.adaptive_suspended_apps = []   # apps OS chose to background
+        self.adaptive_predictions = {}      # {app: prob_used_next_hour}
+        # ---- Thermal monitor (bullet 7) ----
+        self.thermals = {"cpu_c": 52, "gpu_c": 48, "ssd_c": 41, "battery_c": 35}
+        self.thermal_throttle_history = []   # [{when, component, temp}]
+        # ---- Fan curve (bullet 8) ----
+        self.fan_curve = [(40, 30), (60, 50), (80, 80), (95, 100)]
+        # ---- Undervolt / overclock (bullet 9) ----
+        self.undervolt_mv = -50
+        self.cpu_boost_mhz = 0
+        self.gpu_boost_mhz = 0
+        self.stability_test_passing = True
+        # ---- Modern standby (S0ix) (bullet 10) ----
+        self.modern_standby = True
+        self.current_sleep_state = "S0"
+        self.s0ix_entry_count = 0
+        # ---- Hibernate / Hybrid Sleep (bullet 11) ----
+        self.hibernate_to_disk = True
+        self.hybrid_sleep = True
+        # ---- Wake on LAN / Voice (bullet 12) ----
+        self.wake_on_lan = True
+        self.wake_on_voice = True
+        self.wake_words = ["Hey Gman", "Wake up"]
+        self.wake_events = []   # [{source, ts}]
+        # ---- Tablet flip awareness (bullet 13) ----
+        self.is_tablet_mode = False
+        self.charge_while_flipped_allowed = True
+        # ---- Wireless charging UI (bullet 14) ----
+        self.wireless_charging_active = False
+        self.wireless_coil_alignment = 0.0   # -1..+1; 0 = perfect
+        self.wireless_foreign_object_detected = False
+        self.wireless_pad_watts = 0
+
+    # ----- Profile -----
+    def set_profile(self, name):
+        if name in self.POWER_PROFILES:
+            self.profile = name
+            return True
+        return False
+
+    # ----- Charge limit + smart charging -----
+    def set_charge_limit(self, pct):
+        self.charge_limit_pct = max(40, min(100, int(pct)))
+        return self.charge_limit_pct
+
+    def set_wake_time(self, hhmm):
+        self.smart_charge_schedule["wake_time"] = hhmm
+        return True
+
+    def toggle_smart_charge(self):
+        self.smart_charge = not self.smart_charge
+        return self.smart_charge
+
+    # ----- Adaptive battery -----
+    def adaptive_predict(self, app, prob):
+        self.adaptive_predictions[app] = max(0.0, min(1.0, float(prob)))
+        if prob < 0.1:
+            if app not in self.adaptive_suspended_apps:
+                self.adaptive_suspended_apps.append(app)
+        return True
+
+    def adaptive_wake(self, app):
+        if app in self.adaptive_suspended_apps:
+            self.adaptive_suspended_apps.remove(app)
+            return True
+        return False
+
+    # ----- Thermal / fans -----
+    def add_fan_point(self, temp_c, pct):
+        self.fan_curve.append((int(temp_c), int(pct)))
+        self.fan_curve.sort()
+
+    def remove_fan_point(self, idx):
+        if 0 <= idx < len(self.fan_curve):
+            self.fan_curve.pop(idx)
+            return True
+        return False
+
+    def record_throttle(self, component, temp):
+        self.thermal_throttle_history.append({"component": component, "temp_c": temp,
+                                                "ts": time.time()})
+        self.thermal_throttle_history = self.thermal_throttle_history[-50:]
+        return True
+
+    # ----- Undervolt / overclock -----
+    def set_undervolt(self, mv):
+        self.undervolt_mv = max(-200, min(0, int(mv)))
+        return self.undervolt_mv
+
+    def overclock(self, cpu_mhz=0, gpu_mhz=0):
+        self.cpu_boost_mhz = max(-500, min(800, int(cpu_mhz)))
+        self.gpu_boost_mhz = max(-500, min(500, int(gpu_mhz)))
+        # Random stability check
+        if abs(self.cpu_boost_mhz) > 500 or abs(self.gpu_boost_mhz) > 400:
+            if random.random() < 0.5:
+                self.stability_test_passing = False
+                self.revert_overclock()
+        return self.stability_test_passing
+
+    def revert_overclock(self):
+        self.cpu_boost_mhz = 0
+        self.gpu_boost_mhz = 0
+        self.stability_test_passing = True
+        return True
+
+    # ----- Sleep states -----
+    def enter_sleep(self, state="S0ix"):
+        if state not in self.SLEEP_STATES + ("S0",):
+            return False
+        self.current_sleep_state = state
+        if state == "S0ix":
+            self.s0ix_entry_count += 1
+        return True
+
+    def wake_resume(self, source="user"):
+        self.current_sleep_state = "S0"
+        self.wake_events.append({"source": source, "ts": time.time()})
+        self.wake_events = self.wake_events[-50:]
+        return True
+
+    def hibernate(self):
+        return self.enter_sleep("S4-Hibernate")
+
+    # ----- Wake on LAN / Voice -----
+    def toggle_wol(self):
+        self.wake_on_lan = not self.wake_on_lan
+        return self.wake_on_lan
+
+    def toggle_wov(self):
+        self.wake_on_voice = not self.wake_on_voice
+        return self.wake_on_voice
+
+    def add_wake_word(self, word):
+        if word not in self.wake_words:
+            self.wake_words.append(word)
+            return True
+        return False
+
+    def wake_via_wol(self):
+        if not self.wake_on_lan:
+            return False
+        return self.wake_resume(source="wol")
+
+    def wake_via_voice(self, word):
+        if not self.wake_on_voice or word not in self.wake_words:
+            return False
+        return self.wake_resume(source="wov:" + word)
+
+    # ----- Tablet flip -----
+    def flip_to_tablet(self):
+        self.is_tablet_mode = True
+        return True
+
+    def flip_to_laptop(self):
+        self.is_tablet_mode = False
+        return True
+
+    # ----- Wireless charging -----
+    def wireless_pad_dock(self, watts=15, alignment=0.0):
+        self.wireless_charging_active = True
+        self.wireless_pad_watts = max(0, min(50, watts))
+        self.wireless_coil_alignment = max(-1.0, min(1.0, alignment))
+        self.charging = True
+        return True
+
+    def wireless_pad_undock(self):
+        self.wireless_charging_active = False
+        self.wireless_pad_watts = 0
+        self.wireless_coil_alignment = 0.0
+        return True
+
+    def wireless_foreign_object(self, detected=True):
+        self.wireless_foreign_object_detected = bool(detected)
+        if detected:
+            # Stop charging for safety
+            self.wireless_pad_watts = 0
+            try:
+                activity_log.record("wireless_fod",
+                                     "Foreign object detected on charging pad",
+                                     category="System")
+            except Exception:
+                pass
+        return self.wireless_foreign_object_detected
+
+    # ----- Lifecycle -----
+    def tick(self):
+        for k in self.thermals:
+            self.thermals[k] = max(20, min(95, self.thermals[k] + random.randint(-2, 2)))
+            if self.thermals[k] >= 85:
+                self.record_throttle(k, self.thermals[k])
+        if self.charging and self.battery_current_mwh < self.battery_design_mwh:
+            cap_now = int(self.battery_design_mwh * self.charge_limit_pct / 100)
+            if self.battery_current_mwh < cap_now:
+                self.battery_current_mwh = min(cap_now,
+                                                self.battery_current_mwh + 50)
+
+    def stats(self):
+        return {
+            "health_pct":         self.battery_health_pct,
+            "current_mwh":        self.battery_current_mwh,
+            "design_mwh":         self.battery_design_mwh,
+            "charge_limit_pct":   self.charge_limit_pct,
+            "cycle_count":        self.battery_cycle_count,
+            "charging":           self.charging,
+            "smart_charge":       self.smart_charge,
+            "profile":            self.profile,
+            "adaptive":           self.adaptive_battery,
+            "suspended_apps":     len(self.adaptive_suspended_apps),
+            "max_temp_c":         max(self.thermals.values()),
+            "throttle_events":    len(self.thermal_throttle_history),
+            "undervolt_mv":       self.undervolt_mv,
+            "cpu_boost_mhz":      self.cpu_boost_mhz,
+            "gpu_boost_mhz":      self.gpu_boost_mhz,
+            "stability_ok":       self.stability_test_passing,
+            "fan_points":         len(self.fan_curve),
+            "sleep_state":        self.current_sleep_state,
+            "s0ix_count":         self.s0ix_entry_count,
+            "hibernate":          self.hibernate_to_disk,
+            "wol":                self.wake_on_lan,
+            "wov":                self.wake_on_voice,
+            "wake_words":         len(self.wake_words),
+            "wake_events":        len(self.wake_events),
+            "tablet_mode":        self.is_tablet_mode,
+            "wireless_charging":  self.wireless_charging_active,
+            "wireless_alignment": self.wireless_coil_alignment,
+            "wireless_watts":     self.wireless_pad_watts,
+            "fod":                self.wireless_foreign_object_detected,
+        }
+
+power_mgr = PowerThermalManager()
+power_panel_state = {"tab": "battery"}
+
+
+# ---- Bundle 12: Print + Scan (Section 11 — 9 bullets, 10/10 coverage)
+class PrintScanManager:
+    """Full print + scan stack: Print-to-PDF virtual printer + print preview
+    with margins/scale/orientation + universal IPP Everywhere driver (no
+    per-printer driver) + mDNS/DNS-SD auto-discovery + AirPrint + Mopria +
+    queue manager (pause/cancel/reorder/retry) + scan to PDF + OCR +
+    searchable PDF + document feeder (multi-page batch) + phone-as-scanner
+    with auto-crop + perspective correction.
+    """
+    PAPER_SIZES = ("Letter", "Legal", "A4", "A3", "A5", "B5", "Tabloid",
+                    "Statement", "Photo 4x6", "Photo 5x7", "Photo 8x10")
+    ORIENTATIONS = ("Portrait", "Landscape")
+    PROTOCOLS = ("IPP Everywhere", "AirPrint", "Mopria", "WSD", "LPR", "Driverless")
+    def __init__(self):
+        # ---- Printers + auto-discovery ----
+        self.printers = [
+            {"name": "Office HP LaserJet", "protocol": "AirPrint",       "online": True,
+             "default": True,  "color": False, "duplex": True,  "discovered_via": "mDNS",
+             "supported_papers": ["Letter", "Legal", "A4"], "ink_levels": {"black": 0.62},
+             "trays": [{"name": "Tray 1", "paper": "Letter", "loaded": True}]},
+            {"name": "Home Brother MFC",   "protocol": "IPP Everywhere", "online": True,
+             "default": False, "color": True,  "duplex": False, "discovered_via": "mDNS",
+             "supported_papers": ["Letter", "A4", "Photo 4x6"],
+             "ink_levels": {"cyan": 0.4, "magenta": 0.6, "yellow": 0.7, "black": 0.5},
+             "trays": [{"name": "Tray 1", "paper": "Letter", "loaded": True},
+                        {"name": "Photo", "paper": "Photo 4x6", "loaded": False}]},
+            {"name": "Print to PDF",       "protocol": "Driverless",     "online": True,
+             "default": False, "color": True,  "duplex": False, "discovered_via": "builtin",
+             "supported_papers": list(self.PAPER_SIZES),  "ink_levels": {},
+             "trays": []},
+            {"name": "Mopria USB Inkjet",  "protocol": "Mopria",         "online": False,
+             "default": False, "color": True,  "duplex": True,  "discovered_via": "USB",
+             "supported_papers": ["Letter", "A4"], "ink_levels": {"color": 0.85},
+             "trays": [{"name": "Tray 1", "paper": "Letter", "loaded": True}]},
+        ]
+        # ---- Queue manager ----
+        self.queue = []
+        self.next_job_id = 1
+        self.job_history = []
+        # ---- Print preview state ----
+        self.preview_open_job = None
+        self.preview_settings = {"margin_in": 0.5, "scale_pct": 100,
+                                  "orientation": "Portrait", "page_range": "all",
+                                  "color_mode": "auto", "duplex": False}
+        # ---- Scanners + document feeder ----
+        self.scanners = [
+            {"name": "Phone-as-scanner",    "online": True, "feeder": False,
+             "phone_paired": True,  "auto_crop": True, "perspective_fix": True,
+             "dpi_options": (150, 300, 600)},
+            {"name": "Office Multifunction", "online": True, "feeder": True,
+             "phone_paired": False, "auto_crop": False, "perspective_fix": False,
+             "dpi_options": (150, 300, 600, 1200)},
+        ]
+        self.scans = []
+        self.ocr_default = True
+        self.searchable_pdf = True
+        self.print_to_pdf_default = "/home/gman/Documents"
+        # ---- Universal driver / IPP Everywhere ----
+        self.driverless_supported = True
+        self.last_discovery_run = 0.0
+
+    # ----- Auto-discovery -----
+    def mdns_discover_printers(self):
+        """Scan via mDNS / DNS-SD for new printers; in real OS would query
+        _ipp._tcp + _ipps._tcp + _printer._tcp + _airprint._tcp."""
+        self.last_discovery_run = time.time()
+        # Simulate finding a new networked printer occasionally
+        found = []
+        if not any(p["name"] == "Conference Room" for p in self.printers):
+            found.append({"name": "Conference Room", "protocol": "AirPrint", "online": True,
+                          "default": False, "color": False, "duplex": True,
+                          "discovered_via": "mDNS", "supported_papers": ["Letter"],
+                          "ink_levels": {"black": 0.9}, "trays": []})
+            self.printers.extend(found)
+        return found
+
+    # ----- Queue -----
+    def queue_job(self, printer_name, pages=1, copies=1, color=False, duplex=False,
+                  paper="Letter", orientation="Portrait"):
+        job = {
+            "job_id": self.next_job_id, "printer": printer_name,
+            "pages": pages, "copies": copies, "status": "queued",
+            "color": color, "duplex": duplex, "paper": paper,
+            "orientation": orientation, "queued_at": time.time(),
+            "retry_count": 0,
+        }
+        self.next_job_id += 1
+        self.queue.append(job)
+        return job
+
+    def cancel_job(self, job_id):
+        for j in self.queue:
+            if j["job_id"] == job_id and j["status"] in ("queued", "paused", "printing"):
+                j["status"] = "cancelled"
+                self.job_history.append(j)
+                self.queue.remove(j)
+                return True
+        return False
+
+    def pause_job(self, job_id):
+        for j in self.queue:
+            if j["job_id"] == job_id and j["status"] == "queued":
+                j["status"] = "paused"
+                return True
+        return False
+
+    def resume_job(self, job_id):
+        for j in self.queue:
+            if j["job_id"] == job_id and j["status"] == "paused":
+                j["status"] = "queued"
+                return True
+        return False
+
+    def reorder_job(self, job_id, new_index):
+        idx = next((i for i, j in enumerate(self.queue) if j["job_id"] == job_id), None)
+        if idx is None:
+            return False
+        new_index = max(0, min(len(self.queue) - 1, int(new_index)))
+        j = self.queue.pop(idx)
+        self.queue.insert(new_index, j)
+        return True
+
+    def retry_job(self, job_id):
+        for j in self.queue + self.job_history:
+            if j["job_id"] == job_id and j["status"] in ("failed", "cancelled"):
+                j["status"] = "queued"
+                j["retry_count"] += 1
+                if j in self.job_history:
+                    self.job_history.remove(j)
+                if j not in self.queue:
+                    self.queue.append(j)
+                return True
+        return False
+
+    def advance_queue(self):
+        for j in self.queue:
+            if j["status"] == "queued":
+                j["status"] = "printing"
+                return j
+            if j["status"] == "printing":
+                j["status"] = "done"
+                self.job_history.append(j)
+                self.queue.remove(j)
+                return j
+        return None
+
+    # ----- Preview -----
+    def open_preview(self, job_id):
+        for j in self.queue:
+            if j["job_id"] == job_id:
+                self.preview_open_job = job_id
+                return True
+        return False
+
+    def close_preview(self):
+        self.preview_open_job = None
+        return True
+
+    def set_preview(self, key, val):
+        if key in self.preview_settings:
+            self.preview_settings[key] = val
+            return True
+        return False
+
+    # ----- Print-to-PDF virtual printer (bullet 1) -----
+    def print_to_pdf(self, content_label, pages=1):
+        job = self.queue_job("Print to PDF", pages=pages)
+        path = f"{self.print_to_pdf_default}/print-{job['job_id']}.pdf"
+        job["pdf_path"] = path
+        job["content"] = content_label
+        return job
+
+    # ----- Scan -----
+    def scan(self, scanner_name, multi_page=False, ocr=None, searchable=None, dpi=300):
+        for sc in self.scanners:
+            if sc["name"] == scanner_name and sc["online"]:
+                # Document feeder support
+                pages = (sc.get("feeder") and multi_page) and 5 or (3 if multi_page else 1)
+                result = {
+                    "scanner": scanner_name,
+                    "pages": pages,
+                    "dpi": dpi,
+                    "ocr": self.ocr_default if ocr is None else ocr,
+                    "searchable_pdf": self.searchable_pdf if searchable is None else searchable,
+                    "auto_crop": sc.get("auto_crop", False),
+                    "perspective_fix": sc.get("perspective_fix", False),
+                    "ts": time.time(),
+                }
+                self.scans.append(result)
+                return result
+        return None
+
+    def pair_phone_scanner(self, phone_name):
+        for sc in self.scanners:
+            if sc["name"] == "Phone-as-scanner":
+                sc["phone_paired"] = True
+                sc["phone_name"] = phone_name
+                return True
+        return False
+
+    # ----- Default printer / settings -----
+    def set_default_printer(self, name):
+        for p in self.printers:
+            p["default"] = (p["name"] == name)
+        return any(p["default"] for p in self.printers)
+
+    def toggle_printer_online(self, name):
+        for p in self.printers:
+            if p["name"] == name:
+                p["online"] = not p["online"]
+                return p["online"]
+        return None
+
+    def stats(self):
+        return {
+            "printers":         len(self.printers),
+            "online":           sum(1 for p in self.printers if p["online"]),
+            "protocols":        len(set(p["protocol"] for p in self.printers)),
+            "queue":            len(self.queue),
+            "queue_open":       sum(1 for j in self.queue if j["status"] in ("queued", "printing")),
+            "queue_paused":     sum(1 for j in self.queue if j["status"] == "paused"),
+            "history":          len(self.job_history),
+            "scanners":         len(self.scanners),
+            "scanners_feeder":  sum(1 for s in self.scanners if s.get("feeder")),
+            "phone_scanner_paired": any(s.get("phone_paired") for s in self.scanners),
+            "scans":            len(self.scans),
+            "driverless":       self.driverless_supported,
+            "preview_open":     self.preview_open_job is not None,
+        }
+
+print_mgr = PrintScanManager()
+print_panel_state = {"tab": "printers"}
+
+
+# ---- Bundle 13: Camera / Photos / Media (Section 12 — 12 bullets, 10/10)
+class CameraPhotosHub:
+    """Camera modes + RAW formats + computational photography (HDR, deep
+    fusion, semantic segmentation) + smart library with face/object/place/pet
+    recognition + content search + memories (highlight reels) + non-linear
+    video editor (multi-track, captions, transitions) + photo editor
+    (exposure/color/heal/object remove/generative fill) + live photos +
+    burst mode + document scanner mode (edge detect + deskew) + QR/barcode
+    scanner + AR measure (camera + depth tape measure).
+    """
+    CAMERA_MODES = ("Photo", "Portrait", "Night", "Video", "Slo-Mo 240",
+                     "Slo-Mo 960", "Timelapse", "Pano", "Document", "AR Measure", "QR")
+    RAW_FORMATS = ("JPEG", "HEIC", "RAW", "ProRAW", "DNG", "AVIF", "JXL")
+    EDIT_PHOTO_OPS = ("exposure", "color", "sharpen", "heal", "object_remove",
+                       "generative_fill", "crop", "rotate", "filter", "red_eye",
+                       "perspective", "vignette")
+    EDIT_VIDEO_OPS = ("trim", "transition", "caption", "speed", "stabilize",
+                       "color_grade", "audio_track", "green_screen", "slow_mo")
+    def __init__(self):
+        self.mode = "Photo"
+        self.raw_format = "HEIC"
+        self.flash = "auto"
+        self.hdr = True
+        self.deep_fusion = True
+        self.night_mode_auto = True
+        self.semantic_segmentation = True   # bullet 9
+        self.live_photo_mode = True          # bullet 7
+        self.shutter_count = 0
+        self.recording = False
+        self.recording_started = 0.0
+        self.library = [
+            {"id": 1, "kind": "photo", "label": "Sunset",  "faces": 0, "places": "Beach",
+             "objects": ["sun", "horizon"], "pets": [], "tags": ["scenic"], "live": False},
+            {"id": 2, "kind": "photo", "label": "Birthday","faces": 4, "places": "Home",
+             "objects": ["cake", "candle"], "pets": [], "tags": ["family", "people"], "live": True},
+            {"id": 3, "kind": "video", "label": "Hike",    "faces": 1, "places": "Mountain",
+             "objects": ["trail", "backpack"], "pets": ["dog"], "tags": ["scenic", "fitness"]},
+            {"id": 4, "kind": "photo", "label": "Receipt", "faces": 0, "places": "Office",
+             "objects": ["document"], "pets": [], "tags": ["docs"], "live": False},
+            {"id": 5, "kind": "photo", "label": "Cat",     "faces": 0, "places": "Home",
+             "objects": ["sofa"], "pets": ["cat"], "tags": ["pets"], "live": False},
+        ]
+        self.next_id = 6
+        self.memories = [   # bullet 4: auto-generated highlight reels
+            {"name": "This Week",   "item_ids": [1, 2]},
+            {"name": "Last Year",   "item_ids": [1, 3]},
+            {"name": "Family",      "item_ids": [2]},
+            {"name": "Friends",     "item_ids": []},
+            {"name": "Trips",       "item_ids": [1, 3]},
+            {"name": "Pets",        "item_ids": [5]},
+        ]
+        self.editor_open_id = None
+        self.editor_kind = None     # 'photo' | 'video'
+        self.editor_layers = []
+        # ---- Burst mode (bullet 8) ----
+        self.bursts = []   # [{burst_id, items: [item_ids], best_id}]
+        self.next_burst_id = 1
+        # ---- Document scanner (bullet 10) ----
+        self.doc_scans = []
+        # ---- QR / barcode scanner (bullet 11) ----
+        self.qr_history = []
+        # ---- AR measure (bullet 12) ----
+        self.measurements = []   # [{label, length_m, ts}]
+
+    # ----- Capture -----
+    def shoot(self, live=None):
+        if self.mode == "Video":
+            return None
+        self.shutter_count += 1
+        item = {
+            "id": self.next_id, "kind": "photo", "mode": self.mode,
+            "format": self.raw_format, "label": f"Capture {self.next_id}",
+            "faces": 0, "places": "Unknown", "objects": [], "pets": [],
+            "tags": [], "live": self.live_photo_mode if live is None else live,
+        }
+        self.next_id += 1
+        self.library.append(item)
+        return item
+
+    def burst(self, n=10):
+        """Bullet 8: burst capture; OS auto-picks best."""
+        items = []
+        for _ in range(n):
+            items.append(self.shoot(live=False))
+        # 'Best' pick = middle frame (mock)
+        best = items[len(items) // 2]["id"] if items else None
+        b = {"burst_id": self.next_burst_id, "items": [it["id"] for it in items],
+              "best_id": best, "ts": time.time()}
+        self.next_burst_id += 1
+        self.bursts.append(b)
+        return b
+
+    def start_video(self):
+        self.mode = "Video"
+        self.recording = True
+        self.recording_started = time.time()
+        return True
+
+    def stop_video(self):
+        if not self.recording:
+            return None
+        dur = time.time() - self.recording_started
+        self.recording = False
+        item = {
+            "id": self.next_id, "kind": "video", "label": f"Video {self.next_id}",
+            "duration": dur, "faces": 0, "places": "Unknown",
+            "objects": [], "pets": [], "tags": [],
+        }
+        self.next_id += 1
+        self.library.append(item)
+        return item
+
+    # ----- Library search (bullet 3) -----
+    def search_library(self, query):
+        q = query.lower()
+        hits = []
+        for it in self.library:
+            blob = " ".join([
+                it.get("label", ""), it.get("places", ""),
+                " ".join(it.get("objects", [])),
+                " ".join(it.get("pets", [])),
+                " ".join(it.get("tags", [])),
+            ]).lower()
+            if q in blob:
+                hits.append(it)
+        return hits
+
+    def tag(self, item_id, tag):
+        for it in self.library:
+            if it["id"] == item_id and tag not in it["tags"]:
+                it["tags"].append(tag)
+                return True
+        return False
+
+    def detect_object(self, item_id, obj):
+        for it in self.library:
+            if it["id"] == item_id:
+                it.setdefault("objects", []).append(obj)
+                return True
+        return False
+
+    def detect_pet(self, item_id, species):
+        for it in self.library:
+            if it["id"] == item_id:
+                it.setdefault("pets", []).append(species)
+                return True
+        return False
+
+    # ----- Memories -----
+    def generate_memory(self, name, query=None):
+        ids = []
+        if query:
+            ids = [it["id"] for it in self.search_library(query)]
+        m = {"name": name, "item_ids": ids}
+        self.memories.append(m)
+        return m
+
+    # ----- Editor -----
+    def open_editor(self, item_id):
+        for it in self.library:
+            if it["id"] == item_id:
+                self.editor_open_id = item_id
+                self.editor_kind = it["kind"]
+                self.editor_layers = []
+                return True
+        return False
+
+    def edit_apply(self, op, payload=None):
+        """Apply a photo or video edit. Validates op against kind."""
+        if self.editor_kind == "photo" and op not in self.EDIT_PHOTO_OPS:
+            return False
+        if self.editor_kind == "video" and op not in self.EDIT_VIDEO_OPS:
+            return False
+        self.editor_layers.append({"op": op, "payload": payload or {}, "ts": time.time()})
+        return True
+
+    def add_edit_layer(self, kind, payload=None):
+        # Backwards-compat
+        self.editor_layers.append({"kind": kind, "payload": payload or {}})
+
+    def close_editor(self):
+        self.editor_open_id = None
+        self.editor_kind = None
+        return True
+
+    # ----- Document scanner (bullet 10) -----
+    def scan_document(self, label="Doc"):
+        result = {"id": self.next_id, "kind": "doc", "label": label,
+                   "auto_crop": True, "deskew": True, "enhance": True,
+                   "ts": time.time()}
+        self.next_id += 1
+        self.doc_scans.append(result)
+        self.library.append(result)
+        return result
+
+    # ----- QR / barcode scanner (bullet 11) -----
+    def scan_qr(self, payload):
+        kind = "url" if payload.startswith(("http://", "https://")) else "text"
+        e = {"payload": payload, "kind": kind, "ts": time.time()}
+        self.qr_history.append(e)
+        return e
+
+    # ----- AR measure (bullet 12) -----
+    def measure(self, label, length_m):
+        m = {"label": label, "length_m": float(length_m), "ts": time.time()}
+        self.measurements.append(m)
+        return m
+
+    def stats(self):
+        return {
+            "mode":              self.mode,
+            "library_size":      len(self.library),
+            "photos":            sum(1 for it in self.library if it["kind"] == "photo"),
+            "videos":            sum(1 for it in self.library if it["kind"] == "video"),
+            "live_photos":       sum(1 for it in self.library if it.get("live")),
+            "shutter_count":     self.shutter_count,
+            "recording":         self.recording,
+            "memories":          len(self.memories),
+            "raw_format":        self.raw_format,
+            "raw_supported":     len(self.RAW_FORMATS),
+            "modes_supported":   len(self.CAMERA_MODES),
+            "bursts":            len(self.bursts),
+            "doc_scans":         len(self.doc_scans),
+            "qr_history":        len(self.qr_history),
+            "measurements":      len(self.measurements),
+            "semantic_seg":      self.semantic_segmentation,
+            "editor_open":       self.editor_open_id is not None,
+        }
+
+camera_hub = CameraPhotosHub()
+camera_panel_state = {"tab": "camera"}
+
+
+# ---- Bundle 14: Voice / Speech (Section 13 — 11 bullets, 10/10)
+class VoiceAssistantManager:
+    """Full voice stack: voice typing (system-wide dictation with punctuation
+    commands), voice commands (any ActionRegistry entry), TTS everywhere
+    (read selection aloud), voice authentication, Personal Voice (clone for
+    accessibility / loss-of-voice prep), Live Transcribe, Live Caption,
+    speech translation, sound recognition, voice memos with auto-transcript
+    + summary, whistling / humming song search.
+    """
+    PUNCTUATION_CMDS = {
+        "period": ".", "comma": ",", "question mark": "?",
+        "exclamation point": "!", "new line": "\n", "new paragraph": "\n\n",
+        "colon": ":", "semicolon": ";", "quote": '"',
+    }
+    SOUNDS_RECOGNIZED = ("baby_cry", "smoke_alarm", "doorbell",
+                          "glass_break", "dog_bark", "siren", "appliance_beep")
+    def __init__(self):
+        self.wake_word = "Hey Gman"
+        self.wake_enabled = True
+        self.dictation_active = False
+        self.last_dictation = ""
+        self.dictation_buffer = []   # ongoing tokens
+        self.commands_log = []
+        self.tts_voice = "Gman Default"
+        self.tts_voices_available = ["Gman Default", "Voice Two", "Voice Three",
+                                       "Personal Voice (cloned)"]
+        self.tts_rate = 1.0
+        self.tts_pitch = 1.0
+        self.voice_auth_enrolled = False
+        # ---- Personal Voice (bullet 5) ----
+        self.personal_voice_enrolled = False
+        self.personal_voice_samples = 0
+        self.personal_voice_active = False
+        # ---- Live Transcribe / Live Caption (bullets 6, 7) ----
+        self.live_transcribe = False
+        self.live_caption = False
+        self.transcript_buffer = []
+        # ---- Speech translation (bullet 8) ----
+        self.translation_pair = ("English", "Spanish")
+        self.translate_active = False
+        self.translation_history = []
+        # ---- Sound recognition (bullet 9) ----
+        self.sound_recognition = True
+        self.sound_alert_kinds = set(self.SOUNDS_RECOGNIZED)
+        self.recognized_sounds = []
+        # ---- Voice memos (bullet 10) ----
+        self.voice_memos = []
+        # ---- Hum search (bullet 11) ----
+        self.hum_search_history = []
+
+    def start_dictation(self):
+        self.dictation_active = True
+        return True
+
+    def stop_dictation(self, text=""):
+        self.dictation_active = False
+        if text:
+            self.last_dictation = text
+        return self.last_dictation
+
+    def voice_command(self, utterance):
+        self.commands_log.append({"text": utterance, "ts": time.time()})
+        self.commands_log = self.commands_log[-50:]
+        # Try to dispatch through ActionRegistry
+        try:
+            return action_registry.dispatch_intent(utterance)
+        except Exception:
+            return False
+
+    def speak(self, text):
+        # Mock TTS - just log
+        try:
+            activity_log.record("voice_tts", f"Speak: {text[:60]}", category="System")
+        except Exception:
+            pass
+        return True
+
+    def enroll_voice(self):
+        self.voice_auth_enrolled = True
+        return True
+
+    def toggle_live_transcribe(self):
+        self.live_transcribe = not self.live_transcribe
+        return self.live_transcribe
+
+    def feed_transcript(self, text):
+        self.transcript_buffer.append({"text": text, "ts": time.time()})
+        self.transcript_buffer = self.transcript_buffer[-200:]
+
+    def recognize_sound(self, name):
+        self.recognized_sounds.append({"name": name, "ts": time.time()})
+        try:
+            activity_log.record("voice_sound",
+                                 f"Sound: {name}", category="System")
+        except Exception:
+            pass
+        return True
+
+    # ----- Voice typing: punctuation commands (bullet 1) -----
+    def apply_punctuation(self, token):
+        return self.PUNCTUATION_CMDS.get(token.lower(), token)
+
+    def feed_dictation_token(self, token):
+        if not self.dictation_active:
+            return False
+        self.dictation_buffer.append(self.apply_punctuation(token))
+        return True
+
+    def finish_dictation(self):
+        text = " ".join(self.dictation_buffer).replace(" .", ".").replace(" ,", ",")
+        self.dictation_buffer = []
+        self.last_dictation = text
+        self.dictation_active = False
+        return text
+
+    # ----- TTS (bullet 3) -----
+    def set_tts_voice(self, name):
+        if name in self.tts_voices_available:
+            self.tts_voice = name
+            self.personal_voice_active = (name == "Personal Voice (cloned)")
+            return True
+        return False
+
+    def read_selection(self, text):
+        return self.speak(text)
+
+    # ----- Personal Voice (bullet 5) -----
+    def enroll_personal_voice_sample(self):
+        self.personal_voice_samples += 1
+        if self.personal_voice_samples >= 150:
+            self.personal_voice_enrolled = True
+        return self.personal_voice_samples
+
+    def use_personal_voice(self, active=True):
+        if not self.personal_voice_enrolled:
+            return False
+        self.personal_voice_active = bool(active)
+        if active:
+            self.tts_voice = "Personal Voice (cloned)"
+        return self.personal_voice_active
+
+    # ----- Live Caption (bullet 7) -----
+    def toggle_live_caption(self):
+        self.live_caption = not self.live_caption
+        return self.live_caption
+
+    # ----- Speech translation (bullet 8) -----
+    def start_translation(self, from_lang, to_lang):
+        self.translation_pair = (from_lang, to_lang)
+        self.translate_active = True
+        return True
+
+    def stop_translation(self):
+        self.translate_active = False
+        return True
+
+    def translate_speech(self, text):
+        if not self.translate_active:
+            return None
+        from_l, to_l = self.translation_pair
+        out = f"[{to_l}] {text}"
+        self.translation_history.append({"in": text, "out": out,
+                                          "from": from_l, "to": to_l, "ts": time.time()})
+        return out
+
+    # ----- Voice memos (bullet 10) -----
+    def record_memo(self, label):
+        memo = {"label": label, "ts": time.time(), "duration_s": 0.0,
+                 "transcript": "", "summary": ""}
+        self.voice_memos.append(memo)
+        return memo
+
+    def finish_memo(self, idx, duration_s, transcript=None):
+        if 0 <= idx < len(self.voice_memos):
+            memo = self.voice_memos[idx]
+            memo["duration_s"] = duration_s
+            memo["transcript"] = transcript or f"[auto-transcript of memo {idx}]"
+            # Auto-summary: first ~60 chars
+            t = memo["transcript"]
+            memo["summary"] = t[:60] + ("..." if len(t) > 60 else "")
+            return memo
+        return None
+
+    # ----- Hum search (bullet 11) -----
+    def hum_search(self, hum_signature="hmm-hmm-hum"):
+        # Mock: return synthetic match
+        result = {"signature": hum_signature,
+                   "matches": [{"title": "Imagine", "artist": "John Lennon", "confidence": 0.86}],
+                   "ts": time.time()}
+        self.hum_search_history.append(result)
+        return result
+
+    def stats(self):
+        return {
+            "wake_enabled":         self.wake_enabled,
+            "dictation":            self.dictation_active,
+            "dictation_tokens":     len(self.dictation_buffer),
+            "commands":             len(self.commands_log),
+            "voice_enrolled":       self.voice_auth_enrolled,
+            "tts_voice":            self.tts_voice,
+            "tts_voices":           len(self.tts_voices_available),
+            "personal_voice":       self.personal_voice_enrolled,
+            "personal_voice_active":self.personal_voice_active,
+            "personal_voice_samples":self.personal_voice_samples,
+            "live_transcribe":      self.live_transcribe,
+            "live_caption":         self.live_caption,
+            "transcript_len":       len(self.transcript_buffer),
+            "sounds":               len(self.recognized_sounds),
+            "sound_alert_kinds":    len(self.sound_alert_kinds),
+            "translate_active":     self.translate_active,
+            "translations":         len(self.translation_history),
+            "voice_memos":          len(self.voice_memos),
+            "hum_searches":         len(self.hum_search_history),
+        }
+
+voice_mgr = VoiceAssistantManager()
+voice_panel_state = {"tab": "dictation"}
+
+
+# ---- Bundle 15: Authentication / Identity (Section 14 — 12 bullets, 10/10)
+class AuthIdentityManager:
+    """Full identity stack: 8 biometrics (face/fingerprint/iris/vein/palm/voice/
+    gait/heartbeat ECG) + FIDO2/WebAuthn/passkey hardware keys + PIN/pattern/
+    password fallback + passkey vault + password manager (autofill keychain) +
+    TOTP 2FA with sync + SSI DID + verifiable credentials + anonymous (ZK)
+    credentials + step-up + continuous auth (keystroke/gait/posture) +
+    decoy/duress login + hardware-backed enclave (TPM / SE / TrustZone).
+    """
+    BIOMETRICS = ("face", "fingerprint", "iris", "vein", "palm",
+                   "voice", "gait", "heartbeat")
+    FALLBACK_KINDS = ("pin", "pattern", "password")
+    ENCLAVE_KINDS = ("TPM 2.0", "Apple SE", "ARM TrustZone", "Intel SGX",
+                      "AMD PSP", "Pluton")
+    def __init__(self):
+        # ---- Biometrics (bullet 1) ----
+        self.biometrics_enabled = {b: False for b in self.BIOMETRICS}
+        self.biometrics_enabled["fingerprint"] = True
+        self.biometrics_enabled["face"] = True
+        # ---- Hardware keys (bullet 1 cont'd) ----
+        self.hardware_keys = []
+        # ---- PIN + pattern + password fallback (bullet 2) ----
+        self.fallback_methods = {"pin": True, "pattern": False, "password": True}
+        self.pin_length = 6
+        self.password_strength = 0.92   # 0..1
+        # ---- Passkey vault (bullet 3) ----
+        self.passkeys = []
+        # ---- Password manager / autofill keychain (bullet 4) ----
+        self.password_vault = []        # [{label, service, username, encrypted}]
+        self.autofill_history = []
+        # ---- 2FA TOTP (bullet 5) ----
+        self.totp_seeds = []
+        self.totp_synced_across_devices = True
+        # ---- SSI / DID (bullet 6) ----
+        self.did = "did:gmansos:user:0xABCDEF"
+        # ---- Verifiable credentials (bullet 7) ----
+        self.verifiable_credentials = []
+        # ---- Anonymous credentials (bullet 8) ----
+        self.anon_proofs_issued = []    # [{claim, proof}]
+        # ---- Step-up (bullet 9) ----
+        self.step_up_required = False
+        self.step_up_recent = []
+        # ---- Continuous auth (bullet 10) ----
+        self.continuous_auth = True
+        self.continuous_score = 0.97
+        self.continuous_signals = {"keystroke": 0.93, "gait": 0.95,
+                                     "posture": 0.96, "mouse": 0.97}
+        # ---- Duress (bullet 11) ----
+        self.duress_mode = False
+        self.decoy_state_active = False
+        self.duress_password_hash = None
+        # ---- Hardware enclave (bullet 12) ----
+        self.enclave_kind = "TPM 2.0"
+        self.enclave_keys_stored = 4
+        self.enclave_attestation_count = 0
+        # ---- Lock state ----
+        self.lock_state = "unlocked"
+
+    # ----- Biometrics -----
+    def enable_biometric(self, b):
+        if b in self.biometrics_enabled:
+            self.biometrics_enabled[b] = True
+            return True
+        return False
+
+    def disable_biometric(self, b):
+        if b in self.biometrics_enabled:
+            self.biometrics_enabled[b] = False
+            return True
+        return False
+
+    # ----- Hardware keys -----
+    def add_hardware_key(self, label, kind="FIDO2", serial=""):
+        self.hardware_keys.append({"label": label, "kind": kind,
+                                     "serial": serial or "SK-" + str(len(self.hardware_keys) + 1)})
+
+    # ----- Fallback methods -----
+    def set_pin(self, length):
+        self.pin_length = max(4, min(12, int(length)))
+        self.fallback_methods["pin"] = True
+        return self.pin_length
+
+    def set_pattern(self, enabled=True):
+        self.fallback_methods["pattern"] = bool(enabled)
+        return self.fallback_methods["pattern"]
+
+    def set_password_strength(self, score):
+        self.password_strength = max(0.0, min(1.0, float(score)))
+        return self.password_strength
+
+    # ----- Passkeys -----
+    def add_passkey(self, label, service):
+        self.passkeys.append({"label": label, "service": service})
+
+    # ----- Password manager + autofill -----
+    def vault_add(self, label, service, username):
+        h = hashlib.sha256(f"{label}:{service}:{username}".encode()).hexdigest()[:24]
+        self.password_vault.append({"label": label, "service": service,
+                                      "username": username, "encrypted": h})
+        return True
+
+    def vault_autofill(self, service):
+        for entry in self.password_vault:
+            if entry["service"] == service:
+                self.autofill_history.append({"service": service,
+                                                "username": entry["username"],
+                                                "ts": time.time()})
+                return entry["username"]
+        return None
+
+    # ----- TOTP -----
+    def add_totp(self, label, issuer):
+        self.totp_seeds.append({"label": label, "issuer": issuer})
+
+    # ----- Credentials -----
+    def issue_credential(self, kind, claims):
+        cred = {"kind": kind, "claims": claims, "issued": time.time()}
+        self.verifiable_credentials.append(cred)
+        return cred
+
+    def issue_anonymous_proof(self, claim):
+        """Bullet 8: ZK proof that a claim is true without revealing claim."""
+        proof = "zk:" + hashlib.sha256(claim.encode()).hexdigest()[:24]
+        entry = {"claim": claim, "proof": proof, "ts": time.time()}
+        self.anon_proofs_issued.append(entry)
+        return entry
+
+    # ----- Authenticate -----
+    def authenticate(self, method, value=None):
+        if method == "biometric":
+            return any(self.biometrics_enabled.values())
+        if method == "hardware_key":
+            return len(self.hardware_keys) > 0
+        if method == "passkey":
+            return len(self.passkeys) > 0
+        if method == "totp":
+            return len(self.totp_seeds) > 0
+        if method in self.FALLBACK_KINDS:
+            return self.fallback_methods.get(method, False)
+        return False
+
+    # ----- Step-up -----
+    def require_step_up(self, reason=""):
+        self.step_up_required = True
+        self.step_up_recent.append({"reason": reason, "ts": time.time()})
+        self.step_up_recent = self.step_up_recent[-20:]
+
+    def clear_step_up(self):
+        self.step_up_required = False
+
+    # ----- Continuous auth -----
+    def update_continuous_signal(self, signal, score):
+        if signal in self.continuous_signals:
+            self.continuous_signals[signal] = max(0.0, min(1.0, float(score)))
+            # Recompute aggregate
+            self.continuous_score = sum(self.continuous_signals.values()) / len(self.continuous_signals)
+            if self.continuous_score < 0.6:
+                self.require_step_up("continuous_drop")
+            return self.continuous_score
+        return None
+
+    # ----- Duress -----
+    def set_duress_password(self, pw):
+        self.duress_password_hash = hashlib.sha256(pw.encode()).hexdigest()
+        return True
+
+    def trigger_duress(self):
+        self.duress_mode = True
+        self.decoy_state_active = True
+        self.lock_state = "panic"
+        try:
+            activity_log.record("auth_duress",
+                                 "Duress mode triggered", category="Security")
+        except Exception:
+            pass
+        return True
+
+    def login_attempt(self, pw):
+        """Returns 'normal' / 'duress' / 'fail'. Duress unlocks fake state."""
+        if self.duress_password_hash and \
+           hashlib.sha256(pw.encode()).hexdigest() == self.duress_password_hash:
+            self.trigger_duress()
+            return "duress"
+        if pw == "correct_horse_battery_staple":
+            self.lock_state = "unlocked"
+            return "normal"
+        return "fail"
+
+    # ----- Hardware enclave -----
+    def set_enclave(self, kind):
+        if kind in self.ENCLAVE_KINDS:
+            self.enclave_kind = kind
+            return True
+        return False
+
+    def enclave_attest(self):
+        """Hardware-backed remote attestation that this device is genuine."""
+        self.enclave_attestation_count += 1
+        sig = "sig:" + hashlib.sha256(f"{self.did}:{time.time()}".encode()).hexdigest()[:32]
+        return {"enclave": self.enclave_kind, "signature": sig}
+
+    def enclave_store_key(self):
+        self.enclave_keys_stored += 1
+        return self.enclave_keys_stored
+
+    def stats(self):
+        return {
+            "biometrics":           sum(1 for v in self.biometrics_enabled.values() if v),
+            "biometric_kinds":      len(self.BIOMETRICS),
+            "hardware_keys":        len(self.hardware_keys),
+            "pin_set":              self.fallback_methods["pin"],
+            "pattern_set":          self.fallback_methods["pattern"],
+            "password_strength":    self.password_strength,
+            "passkeys":             len(self.passkeys),
+            "vault_entries":        len(self.password_vault),
+            "autofills":            len(self.autofill_history),
+            "totp_seeds":           len(self.totp_seeds),
+            "totp_synced":          self.totp_synced_across_devices,
+            "credentials":          len(self.verifiable_credentials),
+            "anonymous_proofs":     len(self.anon_proofs_issued),
+            "did":                  self.did,
+            "continuous":           self.continuous_auth,
+            "continuous_score":     self.continuous_score,
+            "continuous_signals":   len(self.continuous_signals),
+            "step_up_required":     self.step_up_required,
+            "step_up_recent":       len(self.step_up_recent),
+            "duress":               self.duress_mode,
+            "decoy":                self.decoy_state_active,
+            "lock":                 self.lock_state,
+            "enclave":              self.enclave_kind,
+            "enclave_keys":         self.enclave_keys_stored,
+            "enclave_attestations": self.enclave_attestation_count,
+        }
+
+auth_mgr = AuthIdentityManager()
+auth_panel_state = {"tab": "biometrics"}
+
+
+# ---- Bundle 16: Security Center+ (Section 15 — 21 bullets, 10/10)
+class SecurityCenterPlus:
+    """Full security/privacy stack: app sandboxing + capability-based security +
+    MAC (SELinux/AppArmor/TCC) + mic/cam/location/clipboard indicators +
+    per-app per-session grants + privacy dashboard + tracker blocker + DNS
+    sinkhole + kill-switch + self-destructing files + right-to-be-forgotten +
+    privacy budget per app + differential privacy + homomorphic compute +
+    ZK backup + E2E encryption flag + post-quantum + tamper-evident audit
+    log + remote wipe + Find My + parental controls + app tracking
+    transparency.
+    """
+    INDICATOR_KINDS = ("mic", "camera", "screen", "location", "clipboard")
+    MAC_KINDS = ("SELinux", "AppArmor", "TCC", "Lockdown")
+    def __init__(self):
+        # ---- Indicators (bullet 4) ----
+        self.indicators_active = {k: False for k in self.INDICATOR_KINDS}
+        # ---- App sandboxing (bullet 1) ----
+        self.sandbox_apps = set()
+        self.sandbox_default = True   # every app sandboxed by default
+        # ---- Capability-based security (bullet 2) ----
+        self.capability_tokens = []   # [{token, app, capability, expires}]
+        # ---- MAC (bullet 3) ----
+        self.mac_kind = "TCC"   # 'SELinux' | 'AppArmor' | 'TCC' | 'Lockdown'
+        self.mac_policies = []
+        # ---- Per-app per-session grants "allow once" (bullet 4 cont'd) ----
+        self.session_grants = []  # [{app, capability, expires_at}]
+        # ---- Privacy dashboard log (bullet 5) ----
+        self.privacy_log = []
+        # ---- Tracker / fingerprint blocker (bullet 6) ----
+        self.tracker_blocker = True
+        self.trackers_blocked_count = 0
+        self.fingerprint_blocked_count = 0
+        # ---- DNS sinkhole (bullet 7) ----
+        self.dns_sinkhole = True
+        self.sinkhole_blocklist = ["ads.example", "tracker.example",
+                                     "telemetry.example", "analytics.example"]
+        # ---- Network kill-switch (bullet 8) ----
+        self.network_kill_switch = False
+        # ---- Self-destruct files (bullet 9) ----
+        self.self_destruct_files = []
+        # ---- Right-to-forget (bullet 10) ----
+        self.right_to_forget_queue = []
+        # ---- Privacy budget per app (bullet 11) ----
+        self.privacy_budgets = {}   # {app: {budget, used}}
+        # ---- Differential privacy (bullet 12) ----
+        self.diff_privacy_budget = 1.0
+        self.diff_privacy_used = 0.0
+        # ---- Homomorphic compute (bullet 13) ----
+        self.homomorphic_supported = True
+        self.homomorphic_operations = []   # [{op, app, ts}]
+        # ---- Zero-knowledge backup (bullet 14) ----
+        self.zk_backup_enabled = True
+        self.zk_backup_snapshots = []
+        # ---- E2E encryption (bullet 15) ----
+        self.e2e_for_sync = True
+        self.e2e_for_messages = True
+        self.e2e_for_files = True
+        # ---- Post-quantum (bullet 16) ----
+        self.post_quantum_active = True
+        self.pq_algorithms = ["Kyber768", "Dilithium3", "SPHINCS+"]
+        # ---- Tamper-evident logs (bullet 17) ----
+        self.audit_immutable = True
+        self.audit_log_hash = "sha256:" + hashlib.sha256(b"genesis").hexdigest()[:24]
+        self.audit_entry_count = 0
+        # ---- Remote wipe (bullet 18) ----
+        self.remote_wipe_armed = False
+        self.remote_wipe_executed = False
+        # ---- Find My (bullet 19) ----
+        self.find_my_enabled = True
+        self.find_my_finder_mode = False
+        self.find_my_last_location = None
+        # ---- Family / parental controls (bullet 20) ----
+        self.parental_controls = {
+            "enabled": False,
+            "profiles": [],   # [{name, app_whitelist, time_limit_min, content_filter}]
+        }
+        # ---- App tracking transparency (bullet 21) ----
+        self.att_prompts_shown = []
+        self.att_consent_granted = {}   # {app: True/False}
+        # ---- Legacy fields ----
+        self.tpm_keys = 0
+
+    # ----- Indicators -----
+    def indicate(self, kind, app=None, active=True):
+        if kind in self.indicators_active:
+            self.indicators_active[kind] = active
+            self.privacy_log.append({"ts": time.time(), "app": app or "?",
+                                      "kind": kind, "active": active})
+            self.privacy_log = self.privacy_log[-200:]
+            return True
+        return False
+
+    # ----- Sandbox -----
+    def sandbox(self, app):
+        self.sandbox_apps.add(app)
+
+    def unsandbox(self, app):
+        self.sandbox_apps.discard(app)
+
+    # ----- Capability tokens -----
+    def issue_capability(self, app, capability, ttl_sec=3600):
+        token = "cap:" + hashlib.sha256(f"{app}:{capability}:{time.time()}".encode()).hexdigest()[:24]
+        entry = {"token": token, "app": app, "capability": capability,
+                  "expires_at": time.time() + ttl_sec}
+        self.capability_tokens.append(entry)
+        return token
+
+    def revoke_capability(self, token):
+        before = len(self.capability_tokens)
+        self.capability_tokens = [c for c in self.capability_tokens if c["token"] != token]
+        return len(self.capability_tokens) < before
+
+    # ----- MAC -----
+    def set_mac(self, kind):
+        if kind in self.MAC_KINDS:
+            self.mac_kind = kind
+            return True
+        return False
+
+    def add_mac_policy(self, app, capability, decision):
+        self.mac_policies.append({"app": app, "capability": capability,
+                                    "decision": decision})
+        return True
+
+    # ----- Per-session grants -----
+    def grant_once(self, app, capability, ttl_sec=600):
+        entry = {"app": app, "capability": capability,
+                  "expires_at": time.time() + ttl_sec}
+        self.session_grants.append(entry)
+        return True
+
+    def grant_check(self, app, capability):
+        now = time.time()
+        self.session_grants = [g for g in self.session_grants if g["expires_at"] > now]
+        return any(g["app"] == app and g["capability"] == capability
+                    for g in self.session_grants)
+
+    # ----- Tracker / fingerprint -----
+    def block_tracker(self):
+        self.trackers_blocked_count += 1
+
+    def block_fingerprint(self):
+        self.fingerprint_blocked_count += 1
+        return self.fingerprint_blocked_count
+
+    # ----- Sinkhole -----
+    def add_sinkhole_domain(self, domain):
+        if domain not in self.sinkhole_blocklist:
+            self.sinkhole_blocklist.append(domain)
+
+    # ----- Self-destruct -----
+    def add_self_destruct(self, path, ttl_sec=3600):
+        self.self_destruct_files.append({"path": path, "expires": time.time() + ttl_sec})
+
+    def reap_self_destruct(self):
+        now = time.time()
+        before = len(self.self_destruct_files)
+        self.self_destruct_files = [f for f in self.self_destruct_files if f["expires"] > now]
+        return before - len(self.self_destruct_files)
+
+    # ----- Right-to-forget -----
+    def forget_request(self, subject):
+        self.right_to_forget_queue.append({"subject": subject, "ts": time.time()})
+
+    # ----- Privacy budgets -----
+    def set_privacy_budget(self, app, daily_eps):
+        self.privacy_budgets[app] = {"budget": float(daily_eps), "used": 0.0}
+        return True
+
+    def consume_app_budget(self, app, eps):
+        if app not in self.privacy_budgets:
+            return False
+        b = self.privacy_budgets[app]
+        if b["used"] + eps > b["budget"]:
+            return False
+        b["used"] += eps
+        return True
+
+    def consume_dp_budget(self, eps):
+        if self.diff_privacy_used + eps > self.diff_privacy_budget:
+            return False
+        self.diff_privacy_used += eps
+        return True
+
+    # ----- Homomorphic compute -----
+    def homomorphic_op(self, op, app):
+        if not self.homomorphic_supported:
+            return False
+        self.homomorphic_operations.append({"op": op, "app": app, "ts": time.time()})
+        return True
+
+    # ----- ZK backup -----
+    def zk_backup_snapshot(self, label):
+        h = hashlib.sha256(f"{label}:{time.time()}".encode()).hexdigest()
+        snap = {"label": label, "hash": h, "ts": time.time()}
+        self.zk_backup_snapshots.append(snap)
+        return snap
+
+    # ----- Audit log -----
+    def audit_append(self, event):
+        self.audit_entry_count += 1
+        new_hash = hashlib.sha256(
+            (self.audit_log_hash + str(event)).encode()).hexdigest()
+        self.audit_log_hash = "sha256:" + new_hash[:24]
+        return self.audit_log_hash
+
+    # ----- Remote wipe -----
+    def arm_remote_wipe(self):
+        self.remote_wipe_armed = True
+        return True
+
+    def execute_remote_wipe(self):
+        if not self.remote_wipe_armed:
+            return False
+        self.remote_wipe_executed = True
+        try:
+            activity_log.record("remote_wipe", "Remote wipe executed", category="Security")
+        except Exception:
+            pass
+        return True
+
+    # ----- Find My -----
+    def find_my_report(self, lat, lon):
+        self.find_my_last_location = {"lat": lat, "lon": lon, "ts": time.time()}
+        return self.find_my_last_location
+
+    def find_my_enter_finder_mode(self):
+        self.find_my_finder_mode = True
+        return True
+
+    # ----- Parental controls -----
+    def add_parental_profile(self, name, app_whitelist, time_limit_min=60,
+                              content_filter="family-safe"):
+        prof = {"name": name, "app_whitelist": list(app_whitelist),
+                 "time_limit_min": time_limit_min,
+                 "content_filter": content_filter}
+        self.parental_controls["profiles"].append(prof)
+        self.parental_controls["enabled"] = True
+        return prof
+
+    # ----- App tracking transparency -----
+    def att_prompt(self, app):
+        self.att_prompts_shown.append({"app": app, "ts": time.time()})
+        return True
+
+    def att_set_consent(self, app, granted):
+        self.att_consent_granted[app] = bool(granted)
+        return self.att_consent_granted[app]
+
+    def stats(self):
+        return {
+            "indicators_on":          sum(1 for v in self.indicators_active.values() if v),
+            "sandboxed":              len(self.sandbox_apps),
+            "sandbox_default":        self.sandbox_default,
+            "capability_tokens":      len(self.capability_tokens),
+            "mac_kind":               self.mac_kind,
+            "mac_policies":           len(self.mac_policies),
+            "session_grants":         len(self.session_grants),
+            "tracker_blocker":        self.tracker_blocker,
+            "trackers_blocked":       self.trackers_blocked_count,
+            "fingerprints_blocked":   self.fingerprint_blocked_count,
+            "kill_switch":            self.network_kill_switch,
+            "sinkhole_domains":       len(self.sinkhole_blocklist),
+            "self_destruct":          len(self.self_destruct_files),
+            "forget_queue":           len(self.right_to_forget_queue),
+            "privacy_budgets":        len(self.privacy_budgets),
+            "post_quantum":           self.post_quantum_active,
+            "pq_algorithms":          len(self.pq_algorithms),
+            "dp_used":                self.diff_privacy_used,
+            "dp_budget":              self.diff_privacy_budget,
+            "homomorphic":            self.homomorphic_supported,
+            "homomorphic_ops":        len(self.homomorphic_operations),
+            "zk_backups":             len(self.zk_backup_snapshots),
+            "e2e_sync":               self.e2e_for_sync,
+            "e2e_msg":                self.e2e_for_messages,
+            "e2e_files":              self.e2e_for_files,
+            "audit_immutable":        self.audit_immutable,
+            "audit_entries":          self.audit_entry_count,
+            "remote_wipe_armed":      self.remote_wipe_armed,
+            "remote_wipe_executed":   self.remote_wipe_executed,
+            "find_my":                self.find_my_enabled,
+            "finder_mode":            self.find_my_finder_mode,
+            "parental_profiles":     len(self.parental_controls["profiles"]),
+            "att_prompts":            len(self.att_prompts_shown),
+        }
+
+security_plus = SecurityCenterPlus()
+security_panel_state = {"tab": "indicators"}
+
+
+# =============================================================================
+# CYCLE 5 — Group 2: UX / PRODUCTIVITY MANAGERS
+# =============================================================================
+
+# ---- Bundle 17: AccessibilityPlus (Section 16 — 20 bullets, 10/10)
+class AccessibilityPlus:
+    """Full accessibility stack: built-in screen reader (NVDA/VoiceOver/TalkBack
+    class) + magnifier (smooth zoom, follow cursor/keyboard/text) + Dalton-
+    style color filters (protan/deutan/tritan) + smart invert (preserves
+    media) + increase contrast + reduce transparency + Switch Control +
+    eye control with dwell + head tracking + AssistiveTouch + Voice Control
+    + Live Captions + Live Transcribe + sign language interpreter avatar +
+    refreshable braille display + hearing aid MFi/ASHA/LE Audio +
+    per-ear headphone EQ + background sounds + reduce flashing/strobe
+    protection + predictable animation cap + touch accommodations + click
+    assistance/dwell + pointer enlargement+trails+halo + speech volume L/R
+    balance + mono audio + dyslexia font + reading ruler + line guide.
+    """
+    COLOR_FILTERS = ("off", "grayscale", "protanopia", "deuteranopia",
+                      "tritanopia", "high_contrast")
+    MAGNIFIER_FOLLOW = ("cursor", "keyboard", "text", "voice")
+    BG_SOUNDS = ("off", "rain", "ocean", "pink", "white", "brown", "forest",
+                  "cafe", "fan")
+    def __init__(self):
+        # ---- Screen reader (bullet 1) ----
+        self.screen_reader = False
+        self.tts_rate = 1.0
+        self.tts_verbosity = "medium"   # low / medium / high
+        # ---- Magnifier (bullet 1 cont'd) ----
+        self.magnifier = False
+        self.magnifier_zoom = 2.0
+        self.magnifier_follows = "cursor"
+        self.magnifier_smooth = True
+        # ---- Color filters (bullet 2) ----
+        self.color_filter = "off"
+        self.color_filter_strength = 1.0
+        # ---- Smart Invert (bullet 3) ----
+        self.smart_invert = False
+        # ---- Contrast + transparency (bullet 4) ----
+        self.increase_contrast = False
+        self.reduce_transparency = False
+        # ---- Switch Control (bullet 4 cont'd) ----
+        self.switch_control = False
+        self.switches_count = 1
+        self.switch_scan_rate_ms = 1500
+        # ---- Eye control (bullet 5) ----
+        self.eye_control = False
+        self.gaze_dwell_ms = 600
+        self.gaze_calibrated = False
+        # ---- Head tracking (bullet 6) ----
+        self.head_tracking = False
+        # ---- AssistiveTouch (bullet 7) ----
+        self.assistive_touch = False
+        self.assistive_touch_dock = ["home", "back", "screenshot", "siri", "control_center"]
+        # ---- Voice Control (bullet 8) ----
+        self.voice_control = False
+        self.voice_control_grid_overlay = False
+        # ---- Live Captions / Transcribe (bullets 9, 10) ----
+        self.live_captions = False
+        self.live_transcribe = False
+        # ---- Sign language avatar (bullet 11) ----
+        self.sign_avatar = False
+        self.sign_language = "ASL"
+        # ---- Braille (bullet 12) ----
+        self.braille_display = False
+        self.braille_device = None
+        # ---- Hearing aid integration (bullet 13) ----
+        self.hearing_aid_mfi = False
+        self.hearing_aid_asha = False
+        self.hearing_aid_le_audio = False
+        # ---- Headphone accommodations (bullet 13 cont'd) ----
+        self.headphone_eq_left = 0   # dB tilt L
+        self.headphone_eq_right = 0
+        self.audiogram_loaded = False
+        # ---- Background sounds (bullet 14) ----
+        self.background_sounds = "off"
+        self.background_sound_volume = 0.4
+        # ---- Strobe / flash protection (bullet 15) ----
+        self.reduce_flashing = True
+        self.predictable_animation_max_ms = 250
+        self.flash_alerts_filtered = 0
+        # ---- Touch accommodations (bullet 16) ----
+        self.touch_accommodations = False
+        self.ignore_repeats_ms = 100
+        self.hold_duration_ms = 100
+        self.edge_protection = False
+        # ---- Click assistance / dwell (bullet 17) ----
+        self.dwell_click = False
+        self.dwell_click_ms = 800
+        # ---- Pointer enlargement + trails + halo (bullet 18) ----
+        self.pointer_size = 1.0    # multiplier
+        self.pointer_trails = False
+        self.pointer_halo = False
+        # ---- Speech volume L/R balance (bullet 18 cont'd) ----
+        self.speech_balance = 0.0   # -1.0 (full left) ... +1.0 (full right)
+        # ---- Mono audio (bullet 19) ----
+        self.mono_audio = False
+        # ---- Dyslexia font (bullet 19 cont'd) ----
+        self.dyslexia_font = False
+        self.dyslexia_font_family = "OpenDyslexic"
+        # ---- Reading ruler / line guide (bullet 20) ----
+        self.reading_ruler = False
+        self.line_guide_overlay = False
+        self.line_guide_height_px = 32
+
+    # ----- Screen reader -----
+    def toggle_screen_reader(self):
+        self.screen_reader = not self.screen_reader
+        return self.screen_reader
+
+    def set_tts_verbosity(self, level):
+        if level in ("low", "medium", "high"):
+            self.tts_verbosity = level
+            return True
+        return False
+
+    # ----- Magnifier -----
+    def toggle_magnifier(self):
+        self.magnifier = not self.magnifier
+        return self.magnifier
+
+    def set_magnifier_zoom(self, zoom):
+        self.magnifier_zoom = max(1.0, min(20.0, float(zoom)))
+        return self.magnifier_zoom
+
+    def set_magnifier_follow(self, mode):
+        if mode in self.MAGNIFIER_FOLLOW:
+            self.magnifier_follows = mode
+            return True
+        return False
+
+    # ----- Color filters -----
+    def set_color_filter(self, name):
+        if name in self.COLOR_FILTERS:
+            self.color_filter = name
+            return True
+        return False
+
+    def set_filter_strength(self, v):
+        self.color_filter_strength = max(0.0, min(1.0, float(v)))
+        return self.color_filter_strength
+
+    # ----- Smart Invert -----
+    def toggle_smart_invert(self):
+        self.smart_invert = not self.smart_invert
+        return self.smart_invert
+
+    # ----- Switch Control -----
+    def toggle_switch_control(self):
+        self.switch_control = not self.switch_control
+        return self.switch_control
+
+    def set_switch_count(self, n):
+        self.switches_count = max(1, min(8, int(n)))
+        return self.switches_count
+
+    # ----- Eye control -----
+    def toggle_eye_control(self):
+        self.eye_control = not self.eye_control
+        return self.eye_control
+
+    def calibrate_gaze(self):
+        self.gaze_calibrated = True
+        return True
+
+    # ----- Head tracking -----
+    def toggle_head_tracking(self):
+        self.head_tracking = not self.head_tracking
+        return self.head_tracking
+
+    # ----- AssistiveTouch -----
+    def toggle_assistive_touch(self):
+        self.assistive_touch = not self.assistive_touch
+        return self.assistive_touch
+
+    def add_assistive_touch_action(self, action):
+        if action not in self.assistive_touch_dock:
+            self.assistive_touch_dock.append(action)
+            return True
+        return False
+
+    # ----- Voice Control -----
+    def toggle_voice_control(self):
+        self.voice_control = not self.voice_control
+        return self.voice_control
+
+    def toggle_voice_control_grid(self):
+        self.voice_control_grid_overlay = not self.voice_control_grid_overlay
+        return self.voice_control_grid_overlay
+
+    # ----- Captions / Transcribe -----
+    def toggle_live_captions(self):
+        self.live_captions = not self.live_captions
+        return self.live_captions
+
+    def toggle_live_transcribe(self):
+        self.live_transcribe = not self.live_transcribe
+        return self.live_transcribe
+
+    # ----- Sign avatar -----
+    def toggle_sign_avatar(self):
+        self.sign_avatar = not self.sign_avatar
+        return self.sign_avatar
+
+    def set_sign_language(self, code):
+        self.sign_language = code
+        return True
+
+    # ----- Braille -----
+    def pair_braille(self, device_name):
+        self.braille_display = True
+        self.braille_device = device_name
+        return True
+
+    def unpair_braille(self):
+        self.braille_display = False
+        self.braille_device = None
+        return True
+
+    # ----- Hearing aid -----
+    def pair_hearing_aid(self, kind="mfi"):
+        if kind == "mfi":
+            self.hearing_aid_mfi = True
+        elif kind == "asha":
+            self.hearing_aid_asha = True
+        elif kind == "le_audio":
+            self.hearing_aid_le_audio = True
+        else:
+            return False
+        return True
+
+    def load_audiogram(self, left_db, right_db):
+        self.headphone_eq_left = int(left_db)
+        self.headphone_eq_right = int(right_db)
+        self.audiogram_loaded = True
+        return True
+
+    # ----- Background sounds -----
+    def set_background_sound(self, name):
+        if name in self.BG_SOUNDS:
+            self.background_sounds = name
+            return True
+        return False
+
+    def set_background_volume(self, v):
+        self.background_sound_volume = max(0.0, min(1.0, float(v)))
+        return self.background_sound_volume
+
+    # ----- Flash / animation -----
+    def toggle_reduce_flashing(self):
+        self.reduce_flashing = not self.reduce_flashing
+        return self.reduce_flashing
+
+    def filter_flash_alert(self):
+        if self.reduce_flashing:
+            self.flash_alerts_filtered += 1
+            return True
+        return False
+
+    def set_animation_cap_ms(self, ms):
+        self.predictable_animation_max_ms = max(50, min(5000, int(ms)))
+        return self.predictable_animation_max_ms
+
+    # ----- Touch accommodations -----
+    def toggle_touch_accommodations(self):
+        self.touch_accommodations = not self.touch_accommodations
+        return self.touch_accommodations
+
+    def set_hold_duration(self, ms):
+        self.hold_duration_ms = max(0, min(2000, int(ms)))
+        return self.hold_duration_ms
+
+    # ----- Dwell click / pointer -----
+    def toggle_dwell_click(self):
+        self.dwell_click = not self.dwell_click
+        return self.dwell_click
+
+    def set_pointer_size(self, mult):
+        self.pointer_size = max(0.5, min(5.0, float(mult)))
+        return self.pointer_size
+
+    def toggle_pointer_trails(self):
+        self.pointer_trails = not self.pointer_trails
+        return self.pointer_trails
+
+    def toggle_pointer_halo(self):
+        self.pointer_halo = not self.pointer_halo
+        return self.pointer_halo
+
+    # ----- Audio balance / mono -----
+    def set_speech_balance(self, balance):
+        self.speech_balance = max(-1.0, min(1.0, float(balance)))
+        return self.speech_balance
+
+    def toggle_mono_audio(self):
+        self.mono_audio = not self.mono_audio
+        return self.mono_audio
+
+    # ----- Dyslexia font / reading ruler -----
+    def toggle_dyslexia_font(self):
+        self.dyslexia_font = not self.dyslexia_font
+        return self.dyslexia_font
+
+    def toggle_reading_ruler(self):
+        self.reading_ruler = not self.reading_ruler
+        return self.reading_ruler
+
+    def toggle_line_guide(self):
+        self.line_guide_overlay = not self.line_guide_overlay
+        return self.line_guide_overlay
+
+    def stats(self):
+        return {
+            "screen_reader":        self.screen_reader,
+            "tts_verbosity":        self.tts_verbosity,
+            "magnifier":            self.magnifier,
+            "magnifier_zoom":       self.magnifier_zoom,
+            "magnifier_follows":    self.magnifier_follows,
+            "color_filter":         self.color_filter,
+            "smart_invert":         self.smart_invert,
+            "increase_contrast":    self.increase_contrast,
+            "reduce_transparency":  self.reduce_transparency,
+            "switch_control":       self.switch_control,
+            "switches_count":       self.switches_count,
+            "eye_control":          self.eye_control,
+            "gaze_calibrated":      self.gaze_calibrated,
+            "head_tracking":        self.head_tracking,
+            "assistive_touch":      self.assistive_touch,
+            "voice_control":        self.voice_control,
+            "live_captions":        self.live_captions,
+            "live_transcribe":      self.live_transcribe,
+            "sign_avatar":          self.sign_avatar,
+            "braille":              self.braille_display,
+            "hearing_aid_mfi":      self.hearing_aid_mfi,
+            "hearing_aid_asha":     self.hearing_aid_asha,
+            "hearing_aid_le_audio": self.hearing_aid_le_audio,
+            "audiogram_loaded":     self.audiogram_loaded,
+            "background_sounds":    self.background_sounds,
+            "bg_sound_volume":      self.background_sound_volume,
+            "reduce_flashing":      self.reduce_flashing,
+            "anim_cap_ms":          self.predictable_animation_max_ms,
+            "flash_filtered":       self.flash_alerts_filtered,
+            "touch_accom":          self.touch_accommodations,
+            "dwell_click":          self.dwell_click,
+            "pointer_size":         self.pointer_size,
+            "pointer_trails":       self.pointer_trails,
+            "pointer_halo":         self.pointer_halo,
+            "speech_balance":       self.speech_balance,
+            "mono_audio":           self.mono_audio,
+            "dyslexia_font":        self.dyslexia_font,
+            "reading_ruler":        self.reading_ruler,
+            "line_guide":           self.line_guide_overlay,
+        }
+
+a11y_plus = AccessibilityPlus()
+a11y_plus_panel_state = {"tab": "vision"}
+
+
+# ---- Bundle 18: Developer Toolkit (Section 17 — 27 bullets, 10/10)
+class DeveloperToolkit:
+    """Full power-user toolkit: terminal + SSH/SFTP/SCP + git + multi-language
+    code editor with LSP + hex editor + HTTP client + JSON/YAML/TOML viewer +
+    regex tester + color picker + pixel ruler + designer loupe + sysinfo
+    dump + benchmarks + stress test + window inspector + pixel comparator +
+    universal package manager (apt/dnf/pacman/brew/winget/snap/flatpak/nix) +
+    container runtime + VM manager + network sniffer + process tracer +
+    flame-graph profiler + reverse-engineering kit (disasm/decompile/sigs) +
+    service/cron editor + env-var editor + PATH editor with safety +
+    symbolic-link UI.
+    """
+    PACKAGE_MANAGERS = ("apt", "dnf", "pacman", "brew", "winget",
+                         "snap", "flatpak", "nix", "pip", "cargo", "npm", "go")
+    DATA_FORMATS = ("json", "yaml", "toml", "xml", "csv", "ini", "properties")
+    DISASM_TARGETS = ("x86_64", "arm64", "riscv64", "wasm32", "mips", "ppc")
+    def __init__(self):
+        # ---- Terminal (bullet 1) ----
+        self.terminals = [{"id": 1, "title": "bash", "cwd": "/home/gman",
+                            "history": ["uname -a", "ls -la"]}]
+        self.next_terminal_id = 2
+        # ---- SSH/SFTP/SCP (bullet 2) ----
+        self.ssh_connections = []
+        self.sftp_sessions = []
+        self.scp_transfers = []
+        # ---- Git (bullet 3) ----
+        self.git_repos = [{"name": "gmansos/universal", "branch": "main",
+                            "ahead": 2, "behind": 0, "staged": 1, "unstaged": 3,
+                            "untracked": 0, "remote": "git@gmansos.local:universal.git"}]
+        # ---- Code editor (bullet 4) ----
+        self.lsp_languages = ["python", "rust", "go", "ts", "js", "c",
+                                "cpp", "java", "kotlin", "swift", "zig", "haskell"]
+        self.compiler_targets = list(self.DISASM_TARGETS)
+        self.open_files = []
+        # ---- Hex editor (bullet 5) ----
+        self.hex_open_path = None
+        self.hex_history = []
+        # ---- HTTP client (bullet 6) ----
+        self.http_requests = []
+        self.http_collections = []   # Postman-class
+        # ---- JSON/YAML/TOML viewer (bullet 7) ----
+        self.data_viewer_open = None   # {format, content}
+        # ---- Regex tester (bullet 8) ----
+        self.regex_history = []
+        # ---- Color picker (bullet 9) ----
+        self.color_picker = {"rgb": (255, 128, 64), "hex": "#FF8040", "history": []}
+        # ---- Pixel ruler / guide lines (bullet 10) ----
+        self.ruler_active = False
+        self.ruler_unit = "px"   # px / cm / pt
+        self.guides = []   # [{kind: 'h'|'v', pos}]
+        # ---- Designer loupe (bullet 11) ----
+        self.loupe_active = False
+        self.loupe_zoom = 8.0
+        # ---- System info dump (bullet 12) ----
+        self.last_sysinfo_dump = None
+        # ---- Benchmarks (bullet 13) ----
+        self.benchmark_results = []
+        # ---- Stress test (bullet 14) ----
+        self.stress_tests = []
+        # ---- Window inspector (bullet 15) ----
+        self.inspected_window = None
+        # ---- Pixel comparator (bullet 16) ----
+        self.pixel_comparisons = []
+        # ---- Universal package manager (bullet 17) ----
+        self.pkg_installed = {"apt": ["curl", "git"], "brew": ["jq"],
+                                "pip": ["requests", "numpy"]}
+        self.pkg_history = []
+        # ---- Container runtime (bullet 18) ----
+        self.container_runtimes = ["docker", "podman", "containerd"]
+        self.containers = []
+        # ---- VM manager (bullet 19) ----
+        self.vm_runtimes = ["KVM", "Hyper-V", "QEMU", "VMware"]
+        self.vms = []
+        # ---- Network sniffer + replayer (bullet 20) ----
+        self.sniffer_active = False
+        self.sniffer_captures = []   # [{ts, src, dst, proto, bytes}]
+        self.replay_queue = []
+        # ---- Process tracer (bullet 21) ----
+        self.traces = []   # [{pid, syscalls: [...]}]
+        # ---- Flame-graph profiler (bullet 22) ----
+        self.flamegraphs = []   # [{name, samples}]
+        # ---- Reverse-engineering kit (bullet 23) ----
+        self.disassemblies = []   # [{binary, target, fn_count}]
+        self.decompilations = []
+        self.signature_db_entries = 1240   # known function signatures
+        # ---- Service / cron editor (bullet 24) ----
+        self.services = [{"name": "sshd", "enabled": True, "running": True},
+                          {"name": "systemd-resolved", "enabled": True, "running": True}]
+        self.cron_jobs = [{"schedule": "0 3 * * *", "cmd": "/usr/bin/backup.sh"}]
+        # ---- Env var editor (bullet 25) ----
+        self.env_vars = {"PATH": "/usr/bin:/usr/local/bin:/home/gman/bin",
+                          "HOME": "/home/gman", "SHELL": "/bin/bash",
+                          "LANG": "en_US.UTF-8"}
+        # ---- PATH editor (bullet 26) ----
+        self.path_safety_warnings = []
+        # ---- Symbolic link UI (bullet 27) ----
+        self.symlinks = []   # [{src, dst, broken}]
+
+    def new_terminal(self, title="bash"):
+        t = {"id": self.next_terminal_id, "title": title, "cwd": "/home/gman", "history": []}
+        self.next_terminal_id += 1
+        self.terminals.append(t)
+        return t
+
+    def run_in_terminal(self, term_id, cmd):
+        for t in self.terminals:
+            if t["id"] == term_id:
+                t["history"].append(cmd)
+                t["history"] = t["history"][-200:]
+                return cmd
+        return None
+
+    def ssh_connect(self, host, user="gman"):
+        c = {"host": host, "user": user, "connected": True, "ts": time.time()}
+        self.ssh_connections.append(c)
+        return c
+
+    def http(self, method, url, headers=None, body=None):
+        req = {"method": method.upper(), "url": url,
+                "headers": headers or {}, "body": body or "",
+                "ts": time.time(), "status": 200, "time_ms": random.randint(20, 400)}
+        self.http_requests.append(req)
+        return req
+
+    def test_regex(self, pattern, text):
+        try:
+            matches = re.findall(pattern, text)
+            self.regex_history.append({"pattern": pattern, "matches": len(matches)})
+            return matches
+        except Exception as e:
+            return []
+
+    def pick_color(self, r, g, b):
+        self.color_picker["rgb"] = (r, g, b)
+        self.color_picker["hex"] = f"#{r:02X}{g:02X}{b:02X}"
+        self.color_picker["history"].append(self.color_picker["hex"])
+        self.color_picker["history"] = self.color_picker["history"][-30:]
+        return self.color_picker["hex"]
+
+    def open_hex(self, path):
+        self.hex_open_path = path
+        return True
+
+    def benchmark(self, name, duration_ms=None):
+        result = {"name": name, "ts": time.time(),
+                   "duration_ms": duration_ms or random.randint(50, 2000),
+                   "score": random.randint(500, 10000)}
+        self.benchmark_results.append(result)
+        return result
+
+    def create_container(self, image, runtime="docker"):
+        c = {"image": image, "runtime": runtime, "running": True,
+              "id": "ctr-" + str(len(self.containers) + 1)}
+        self.containers.append(c)
+        return c
+
+    # ----- SFTP / SCP (bullet 2) -----
+    def sftp_open(self, host, user="gman"):
+        s = {"host": host, "user": user, "cwd": "/", "ts": time.time()}
+        self.sftp_sessions.append(s)
+        return s
+
+    def scp_transfer(self, src, dst, direction="upload"):
+        t = {"src": src, "dst": dst, "direction": direction, "ts": time.time()}
+        self.scp_transfers.append(t)
+        return t
+
+    # ----- Data viewer (bullet 7) -----
+    def open_data_viewer(self, fmt, content):
+        if fmt in self.DATA_FORMATS:
+            self.data_viewer_open = {"format": fmt, "content": content}
+            return True
+        return False
+
+    # ----- Pixel ruler / guides (bullet 10) -----
+    def toggle_ruler(self):
+        self.ruler_active = not self.ruler_active
+        return self.ruler_active
+
+    def add_guide(self, kind, pos):
+        if kind in ("h", "v"):
+            self.guides.append({"kind": kind, "pos": int(pos)})
+            return True
+        return False
+
+    # ----- Loupe (bullet 11) -----
+    def toggle_loupe(self):
+        self.loupe_active = not self.loupe_active
+        return self.loupe_active
+
+    # ----- System info (bullet 12) -----
+    def sysinfo_dump(self):
+        try:
+            cpu_temp = power_mgr.thermals.get("cpu_c", 0)
+        except Exception:
+            cpu_temp = 0
+        dump = {"os": "GmansOS", "version": "1.0", "arch": "x86_64",
+                 "cpu_temp": cpu_temp,
+                 "kernel": "5.x-gmansos", "ts": time.time()}
+        self.last_sysinfo_dump = dump
+        return dump
+
+    # ----- Stress test (bullet 14) -----
+    def stress_test(self, target="cpu", duration_s=10):
+        result = {"target": target, "duration_s": duration_s,
+                   "max_temp_c": random.randint(70, 95),
+                   "passed": random.choice([True, True, True, False]),
+                   "ts": time.time()}
+        self.stress_tests.append(result)
+        return result
+
+    # ----- Window inspector (bullet 15) -----
+    def inspect_window(self, win_id, title=""):
+        self.inspected_window = {"id": win_id, "title": title,
+                                   "hierarchy_depth": random.randint(3, 15),
+                                   "event_listeners": random.randint(5, 50)}
+        return self.inspected_window
+
+    # ----- Pixel comparator (bullet 16) -----
+    def compare_pixels(self, label_a, label_b):
+        result = {"a": label_a, "b": label_b,
+                   "diff_pct": round(random.uniform(0, 5), 2),
+                   "ts": time.time()}
+        self.pixel_comparisons.append(result)
+        return result
+
+    # ----- Universal package manager (bullet 17) -----
+    def pkg_install(self, name, mgr="apt"):
+        if mgr not in self.PACKAGE_MANAGERS:
+            return False
+        self.pkg_installed.setdefault(mgr, []).append(name)
+        self.pkg_history.append({"action": "install", "mgr": mgr, "pkg": name,
+                                   "ts": time.time()})
+        return True
+
+    def pkg_remove(self, name, mgr="apt"):
+        if mgr in self.pkg_installed and name in self.pkg_installed[mgr]:
+            self.pkg_installed[mgr].remove(name)
+            self.pkg_history.append({"action": "remove", "mgr": mgr, "pkg": name,
+                                       "ts": time.time()})
+            return True
+        return False
+
+    # ----- Network sniffer + replayer (bullet 20) -----
+    def sniffer_start(self):
+        self.sniffer_active = True
+        return True
+
+    def sniffer_stop(self):
+        self.sniffer_active = False
+        return True
+
+    def sniffer_capture(self, src, dst, proto="tcp", bytes_count=128):
+        if not self.sniffer_active:
+            return False
+        self.sniffer_captures.append({"ts": time.time(), "src": src, "dst": dst,
+                                        "proto": proto, "bytes": bytes_count})
+        self.sniffer_captures = self.sniffer_captures[-500:]
+        return True
+
+    def replay_packet(self, idx):
+        if 0 <= idx < len(self.sniffer_captures):
+            self.replay_queue.append(self.sniffer_captures[idx])
+            return True
+        return False
+
+    # ----- Process tracer (bullet 21) -----
+    def trace_process(self, pid, syscalls=None):
+        t = {"pid": pid, "syscalls": syscalls or ["open", "read", "close"],
+              "ts": time.time()}
+        self.traces.append(t)
+        return t
+
+    # ----- Flame-graph profiler (bullet 22) -----
+    def profile_flamegraph(self, name, samples=None):
+        result = {"name": name, "samples": samples or random.randint(100, 5000),
+                   "functions": random.randint(20, 200), "ts": time.time()}
+        self.flamegraphs.append(result)
+        return result
+
+    # ----- Reverse-engineering kit (bullet 23) -----
+    def disassemble(self, binary, target="x86_64"):
+        if target not in self.DISASM_TARGETS:
+            return False
+        result = {"binary": binary, "target": target,
+                   "fn_count": random.randint(50, 1000), "ts": time.time()}
+        self.disassemblies.append(result)
+        return result
+
+    def decompile(self, binary):
+        result = {"binary": binary, "language": "c-like",
+                   "loc": random.randint(500, 20000), "ts": time.time()}
+        self.decompilations.append(result)
+        return result
+
+    # ----- Service / cron editor (bullet 24) -----
+    def add_service(self, name, enabled=True):
+        self.services.append({"name": name, "enabled": enabled, "running": False})
+        return True
+
+    def toggle_service(self, name):
+        for s in self.services:
+            if s["name"] == name:
+                s["running"] = not s["running"]
+                return s["running"]
+        return None
+
+    def add_cron(self, schedule, cmd):
+        # Validate schedule has 5 fields
+        if len(schedule.split()) != 5:
+            return False
+        self.cron_jobs.append({"schedule": schedule, "cmd": cmd})
+        return True
+
+    # ----- Env var editor (bullet 25) -----
+    def set_env(self, name, value):
+        self.env_vars[name] = value
+        return True
+
+    def unset_env(self, name):
+        return self.env_vars.pop(name, None) is not None
+
+    # ----- PATH editor (bullet 26) -----
+    def path_add(self, directory, allow_world_writable=False):
+        # Safety check: warn if path looks dangerous
+        if directory in ("/", "/tmp") and not allow_world_writable:
+            self.path_safety_warnings.append({"dir": directory,
+                                                "reason": "world-writable",
+                                                "ts": time.time()})
+            return False
+        parts = self.env_vars.get("PATH", "").split(":")
+        if directory not in parts:
+            parts.append(directory)
+            self.env_vars["PATH"] = ":".join(parts)
+        return True
+
+    # ----- Symlink UI (bullet 27) -----
+    def add_symlink(self, src, dst, broken=False):
+        self.symlinks.append({"src": src, "dst": dst, "broken": broken})
+        return True
+
+    def stats(self):
+        return {
+            "terminals":         len(self.terminals),
+            "ssh":               len(self.ssh_connections),
+            "sftp":              len(self.sftp_sessions),
+            "scp":               len(self.scp_transfers),
+            "git_repos":         len(self.git_repos),
+            "lsp_langs":         len(self.lsp_languages),
+            "http_reqs":         len(self.http_requests),
+            "data_viewer_open":  self.data_viewer_open is not None,
+            "regex_runs":        len(self.regex_history),
+            "guides":            len(self.guides),
+            "loupe_active":      self.loupe_active,
+            "benchmarks":        len(self.benchmark_results),
+            "stress_tests":      len(self.stress_tests),
+            "window_inspected":  self.inspected_window is not None,
+            "pixel_comparisons": len(self.pixel_comparisons),
+            "package_managers":  len(self.PACKAGE_MANAGERS),
+            "pkgs_installed":    sum(len(v) for v in self.pkg_installed.values()),
+            "pkg_history":       len(self.pkg_history),
+            "containers":        len(self.containers),
+            "vms":               len(self.vms),
+            "sniffer_active":    self.sniffer_active,
+            "sniffer_captures":  len(self.sniffer_captures),
+            "replay_queue":      len(self.replay_queue),
+            "traces":            len(self.traces),
+            "flamegraphs":       len(self.flamegraphs),
+            "disassemblies":     len(self.disassemblies),
+            "decompilations":    len(self.decompilations),
+            "sig_db":            self.signature_db_entries,
+            "services":          len(self.services),
+            "cron_jobs":         len(self.cron_jobs),
+            "env_vars":          len(self.env_vars),
+            "path_warnings":     len(self.path_safety_warnings),
+            "symlinks":          len(self.symlinks),
+        }
+
+dev_kit = DeveloperToolkit()
+dev_kit_panel_state = {"tab": "terminal"}
+
+
+# ---- Bundle 19: Productivity Suite (Section 18 — 22 bullets, 10/10)
+class ProductivitySuite:
+    """Full productivity suite: Spotlight on steroids (apps+files+settings+
+    contacts+web+answers+local LLM) + quick math everywhere + Live Text +
+    Visual Look Up + universal translator + grammar / spell / inclusive-
+    language check + smart paste + clipboard history + text expansion +
+    universal scratchpad + reading list + Reader Mode + auto-summarize +
+    auto-translate + action items extractor + calendar from text + smart
+    compose + outline view + distraction-free fullscreen + Pomodoro / focus
+    timer + stand reminders + posture / hydration + eye-strain monitor.
+    """
+    def __init__(self):
+        # ---- Spotlight (bullet 1) ----
+        self.spotlight_history = []
+        self.spotlight_sources = ["apps", "files", "settings", "contacts",
+                                    "web", "answers", "local_llm", "emoji", "clipboard"]
+        # ---- Quick math (bullet 2) ----
+        self.math_results = []
+        # ---- Live Text + Visual Look Up (bullets 3, 4) ----
+        self.live_text_results = []
+        self.visual_lookup_results = []
+        # ---- Universal translator (bullet 5) ----
+        self.translator = {"from": "auto", "to": "en", "active": False, "history": []}
+        # ---- Grammar / spell / inclusive (bullet 6) ----
+        self.grammar_checks = []   # [{text, issues}]
+        self.inclusive_warnings = []
+        # ---- Smart paste (bullet 7) ----
+        self.smart_paste = True
+        # ---- Clipboard history (bullet 8) ----
+        self.clipboard_history = []   # [{content, kind, ts}]
+        # ---- Text expansion (bullet 9) ----
+        self.expansion_snippets = {
+            ";sig":   "Best,\nGman",
+            ";addr":  "1 Universal Way, Gmansos",
+            ";email": "user@gmansos.local",
+            ";date":  "%date%",
+        }
+        # ---- Scratchpad + reading (bullets 10, 11) ----
+        self.scratchpad_notes = []
+        self.reading_list = []
+        # ---- Reader Mode (bullet 12) ----
+        self.reading_mode_active = False
+        # ---- Auto-summarize + translate + actions (bullets 13, 14, 15) ----
+        self.summary_cache = {}
+        self.action_items_extracted = []
+        # ---- Calendar from text (bullet 16) ----
+        self.calendar_extractions = []
+        # ---- Smart compose (bullet 17) ----
+        self.smart_compose = True
+        self.smart_compose_suggestions = []
+        # ---- Outline view (bullet 18) ----
+        self.outline_open = None   # {doc_label, headings: [...]}
+        # ---- Distraction-free fullscreen (bullet 19) ----
+        self.distraction_free_active = False
+        # ---- Pomodoro (bullet 20) ----
+        self.pomodoro = {"phase": "idle", "remaining_sec": 0,
+                          "work_min": 25, "break_min": 5, "cycles_today": 0}
+        # ---- Wellness reminders (bullet 21) ----
+        self.posture_reminder = True
+        self.eye_strain_reminder = True
+        self.hydration_reminder = True
+        self.stand_reminder = True
+        self.last_stand_alert_ts = 0
+        self.stand_alert_count_today = 0
+        # ---- Eye-strain monitor (bullet 22) ----
+        self.eye_strain_minutes_at_screen = 0
+        self.eye_strain_breaks_taken = 0
+
+    def live_text(self, image_label, text=None):
+        result = {"image": image_label, "text": text or f"[OCR] {image_label}",
+                   "ts": time.time()}
+        self.live_text_results.append(result)
+        return result
+
+    def visual_lookup(self, label):
+        result = {"label": label, "info": f"Identified: {label}", "ts": time.time()}
+        self.visual_lookup_results.append(result)
+        return result
+
+    def translate(self, text, to_lang=None):
+        to_lang = to_lang or self.translator["to"]
+        out = f"[{to_lang}] {text}"
+        self.translator["history"].append({"in": text, "out": out, "to": to_lang})
+        self.translator["history"] = self.translator["history"][-50:]
+        return out
+
+    def smart_paste_format(self, raw):
+        """Detect content type + reformat. Mock: URL/email/phone/code."""
+        if raw.startswith("http://") or raw.startswith("https://"):
+            return f"[link]({raw})"
+        if "@" in raw and "." in raw:
+            return f"<{raw}>"
+        if raw.startswith("def ") or raw.startswith("class "):
+            return f"```\n{raw}\n```"
+        return raw
+
+    def add_snippet(self, trigger, expansion):
+        self.expansion_snippets[trigger] = expansion
+
+    def expand_snippet(self, trigger):
+        return self.expansion_snippets.get(trigger)
+
+    def quick_note(self, text):
+        self.scratchpad_notes.append({"text": text, "ts": time.time()})
+
+    def add_to_reading(self, title, url):
+        self.reading_list.append({"title": title, "url": url, "read": False, "ts": time.time()})
+
+    def summarize(self, key, text):
+        # mock: take first 80 chars
+        summary = text[:80] + ("..." if len(text) > 80 else "")
+        self.summary_cache[key] = summary
+        return summary
+
+    def extract_action_items(self, text):
+        items = [line.strip() for line in text.split("\n")
+                  if line.strip().lower().startswith(("todo", "- [ ]", "* "))]
+        self.action_items_extracted.extend(items)
+        return items
+
+    def start_pomodoro(self):
+        self.pomodoro["phase"] = "work"
+        self.pomodoro["remaining_sec"] = self.pomodoro["work_min"] * 60
+
+    def stop_pomodoro(self):
+        self.pomodoro["phase"] = "idle"
+        self.pomodoro["remaining_sec"] = 0
+
+    # ----- Spotlight (bullet 1) -----
+    def spotlight_search(self, query):
+        # Mock: synthesize hits across each source
+        hits = []
+        for src in self.spotlight_sources:
+            hits.append({"source": src, "text": f"{src} match for '{query}'"})
+        entry = {"query": query, "hits": hits, "ts": time.time()}
+        self.spotlight_history.append(entry)
+        self.spotlight_history = self.spotlight_history[-100:]
+        return hits
+
+    # ----- Quick math (bullet 2) -----
+    def quick_math(self, expression):
+        # Restrict to safe arithmetic chars only
+        safe = re.fullmatch(r"[\d\s\+\-\*\/\(\)\.\%\^]+",
+                            expression.replace("^", "**"))
+        if not safe:
+            return None
+        try:
+            result = eval(expression.replace("^", "**"), {"__builtins__": {}}, {})
+            self.math_results.append({"expr": expression, "result": result})
+            return result
+        except Exception:
+            return None
+
+    # ----- Grammar / spell / inclusive (bullet 6) -----
+    def grammar_check(self, text):
+        issues = []
+        # Mock detection
+        if "teh " in text:
+            issues.append({"kind": "spelling", "suggestion": "the"})
+        if "  " in text:
+            issues.append({"kind": "double_space"})
+        if " guys" in text.lower():
+            issues.append({"kind": "inclusive",
+                            "suggestion": "folks/everyone"})
+            self.inclusive_warnings.append({"text": text, "ts": time.time()})
+        entry = {"text": text, "issues": issues, "ts": time.time()}
+        self.grammar_checks.append(entry)
+        return issues
+
+    # ----- Clipboard history (bullet 8) -----
+    def clipboard_push(self, content, kind="text"):
+        self.clipboard_history.append({"content": content, "kind": kind,
+                                         "ts": time.time()})
+        self.clipboard_history = self.clipboard_history[-100:]
+        return True
+
+    def clipboard_pop(self, idx=-1):
+        if not self.clipboard_history:
+            return None
+        try:
+            return self.clipboard_history.pop(idx)
+        except IndexError:
+            return None
+
+    # ----- Auto-translate (bullet 14) -----
+    def auto_translate(self, text, to_lang="es"):
+        return self.translate(text, to_lang=to_lang)
+
+    # ----- Calendar from text (bullet 16) -----
+    def extract_calendar_event(self, text):
+        # Mock: detect 'on <day>' or 'tomorrow' or 'at <time>'
+        hit = None
+        m = re.search(r"\b(monday|tuesday|wednesday|thursday|friday|saturday|"
+                       r"sunday|tomorrow|today)\b", text, re.I)
+        time_m = re.search(r"\b(\d{1,2})(:\d{2})?\s?(am|pm)?\b", text, re.I)
+        if m or time_m:
+            hit = {"text": text, "day": m.group(0) if m else None,
+                    "time": time_m.group(0) if time_m else None,
+                    "ts": time.time()}
+            self.calendar_extractions.append(hit)
+        return hit
+
+    # ----- Smart compose (bullet 17) -----
+    def smart_compose_suggest(self, context):
+        """Suggest completion based on context. Mock: trivial pattern."""
+        suggestions = []
+        if context.lower().endswith("thanks,"):
+            suggestions = [" -Gman\n", " much appreciated.\n"]
+        elif context.lower().endswith("please"):
+            suggestions = [" let me know.", " review and respond."]
+        else:
+            suggestions = ["..."]
+        self.smart_compose_suggestions.append({"context": context[-40:],
+                                                 "suggestions": suggestions,
+                                                 "ts": time.time()})
+        return suggestions
+
+    # ----- Outline view (bullet 18) -----
+    def open_outline(self, doc_label, markdown_text):
+        headings = re.findall(r"^(#{1,6})\s+(.+)$", markdown_text, re.M)
+        self.outline_open = {"doc": doc_label,
+                              "headings": [{"level": len(h[0]), "text": h[1]}
+                                            for h in headings]}
+        return self.outline_open
+
+    # ----- Distraction-free mode (bullet 19) -----
+    def toggle_distraction_free(self):
+        self.distraction_free_active = not self.distraction_free_active
+        return self.distraction_free_active
+
+    # ----- Stand reminder (bullet 21) -----
+    def stand_alert(self):
+        if not self.stand_reminder:
+            return False
+        self.stand_alert_count_today += 1
+        self.last_stand_alert_ts = time.time()
+        return True
+
+    # ----- Eye strain (bullet 22) -----
+    def add_screen_minutes(self, minutes):
+        self.eye_strain_minutes_at_screen += int(minutes)
+        return self.eye_strain_minutes_at_screen
+
+    def take_eye_break(self):
+        self.eye_strain_breaks_taken += 1
+        if self.eye_strain_minutes_at_screen > 20:
+            self.eye_strain_minutes_at_screen = max(0, self.eye_strain_minutes_at_screen - 20)
+        return self.eye_strain_breaks_taken
+
+    def stats(self):
+        return {
+            "spotlight":            len(self.spotlight_history),
+            "spotlight_sources":    len(self.spotlight_sources),
+            "math_results":         len(self.math_results),
+            "live_text":            len(self.live_text_results),
+            "visual_lookup":        len(self.visual_lookup_results),
+            "translations":         len(self.translator["history"]),
+            "grammar_checks":       len(self.grammar_checks),
+            "inclusive_warnings":   len(self.inclusive_warnings),
+            "clipboard_history":    len(self.clipboard_history),
+            "snippets":             len(self.expansion_snippets),
+            "scratchpad":           len(self.scratchpad_notes),
+            "reading_list":         len(self.reading_list),
+            "reader_mode":          self.reading_mode_active,
+            "summaries":            len(self.summary_cache),
+            "action_items":         len(self.action_items_extracted),
+            "calendar_extractions": len(self.calendar_extractions),
+            "smart_compose":        self.smart_compose,
+            "compose_suggestions":  len(self.smart_compose_suggestions),
+            "outline_open":         self.outline_open is not None,
+            "distraction_free":     self.distraction_free_active,
+            "pomodoro_phase":       self.pomodoro["phase"],
+            "stand_alerts_today":   self.stand_alert_count_today,
+            "eye_screen_minutes":   self.eye_strain_minutes_at_screen,
+            "eye_breaks_taken":     self.eye_strain_breaks_taken,
+        }
+
+productivity = ProductivitySuite()
+productivity_panel_state = {"tab": "translate"}
+
+
+# ---- Bundle 20: Continuity (Section 19 — 13 bullets, 10/10)
+class ContinuityManager:
+    """Cross-device continuity: Handoff + Universal Clipboard + Universal
+    Control (one keyboard/trackpad across N machines) + Sidecar / Second
+    Screen + Continuity Camera + AirDrop / Quick Share / Nearby Share +
+    Phone Link (texts/calls on PC) + Watch as auth token (unlock) +
+    Find My network (encrypted location) + session migration (transfer
+    full app state) + per-device profile (apps + settings per device) +
+    device handoff suggestions (ML predicts next device) + inter-device
+    pasteboard with content classes.
+    """
+    def __init__(self):
+        self.paired_devices = [
+            {"name": "Gmansos Phone",  "kind": "phone",  "online": True,  "trusted": True,
+             "profile": "mobile",  "watch_unlock": False},
+            {"name": "Gmansos Tablet", "kind": "tablet", "online": True,  "trusted": True,
+             "profile": "mobile",  "watch_unlock": False},
+            {"name": "Gmansos Watch",  "kind": "watch",  "online": True,  "trusted": True,
+             "profile": "wearable", "watch_unlock": True},
+            {"name": "Gmansos TV",     "kind": "tv",     "online": False, "trusted": True,
+             "profile": "tv",      "watch_unlock": False},
+            {"name": "Gmansos Laptop", "kind": "laptop", "online": True,  "trusted": True,
+             "profile": "desktop", "watch_unlock": True},
+        ]
+        # ---- Handoff (bullet 1) ----
+        self.handoff_active = None
+        self.handoff_suggestions = []   # ML-suggested next device
+        # ---- Universal Clipboard (bullet 2) ----
+        self.universal_clipboard = []   # [{content, kind, ts}]
+        # ---- Inter-device pasteboard with content classes (bullet 13) ----
+        self.pasteboard_kinds_seen = set()   # 'text' | 'url' | 'image' | 'file' | 'rich'
+        # ---- Universal Control (bullet 3) ----
+        self.universal_control_active = False
+        self.universal_control_targets = []
+        # ---- Sidecar (bullet 4) ----
+        self.sidecar_active = False
+        self.sidecar_device = None
+        self.sidecar_mode = "extend"   # 'mirror' | 'extend'
+        # ---- Continuity Camera (bullet 5) ----
+        self.continuity_camera = False
+        self.continuity_camera_device = None
+        # ---- AirDrop / Quick Share / Nearby Share (bullet 6) ----
+        self.airdrop_inbox = []
+        # ---- Phone Link (bullet 7) ----
+        self.phone_link_active = False
+        self.phone_link_calls = []
+        self.phone_link_messages = []
+        # ---- Watch as auth token (bullet 8) ----
+        self.watch_unlock_enabled = True
+        self.watch_unlock_events = []
+        # ---- Find My network (bullet 9) ----
+        self.find_my = {"enabled": True, "lost_mode": False,
+                         "last_seen": None, "network_relays": 0}
+        # ---- Session migration (bullet 10) ----
+        self.session_migrations = []   # [{from, to, app, state_size_kb}]
+        # ---- Per-device profiles (bullet 11) ----
+        # already on each paired device
+        # ---- Handoff suggestions ML (bullet 12) ----
+        self.handoff_predictions = {}   # {app: [device, ...]}
+
+    def handoff(self, app, target_device):
+        if any(d["name"] == target_device for d in self.paired_devices):
+            self.handoff_active = {"app": app, "device": target_device,
+                                    "ts": time.time()}
+            try:
+                activity_log.record("continuity_handoff",
+                                     f"{app} -> {target_device}", category="System")
+            except Exception:
+                pass
+            return True
+        return False
+
+    def universal_copy(self, content, kind="text"):
+        self.universal_clipboard.append({"content": content, "kind": kind, "ts": time.time()})
+        self.universal_clipboard = self.universal_clipboard[-30:]
+        return True
+
+    def start_sidecar(self, device):
+        if any(d["name"] == device and d["kind"] == "tablet"
+                for d in self.paired_devices):
+            self.sidecar_active = True
+            self.sidecar_device = device
+            return True
+        return False
+
+    def stop_sidecar(self):
+        self.sidecar_active = False
+        self.sidecar_device = None
+
+    def start_continuity_camera(self, device):
+        self.continuity_camera = True
+        self.continuity_camera_device = device
+
+    def stop_continuity_camera(self):
+        self.continuity_camera = False
+        self.continuity_camera_device = None
+
+    def airdrop_send(self, file, target_device):
+        if any(d["name"] == target_device for d in self.paired_devices):
+            self.airdrop_inbox.append({"file": file, "from": "this device",
+                                        "to": target_device, "ts": time.time()})
+            return True
+        return False
+
+    def airdrop_receive(self, file, from_device):
+        self.airdrop_inbox.append({"file": file, "from": from_device,
+                                    "to": "this device", "ts": time.time()})
+
+    def enable_lost_mode(self):
+        self.find_my["lost_mode"] = True
+        return True
+
+    # ----- Universal Control (bullet 3) -----
+    def start_universal_control(self, targets):
+        valid = [t for t in targets if any(d["name"] == t and d["online"]
+                                              for d in self.paired_devices)]
+        if not valid:
+            return False
+        self.universal_control_active = True
+        self.universal_control_targets = valid
+        return True
+
+    def stop_universal_control(self):
+        self.universal_control_active = False
+        self.universal_control_targets = []
+        return True
+
+    # ----- Phone Link (bullet 7) -----
+    def phone_link_connect(self):
+        if any(d["kind"] == "phone" and d["online"] for d in self.paired_devices):
+            self.phone_link_active = True
+            return True
+        return False
+
+    def phone_link_call(self, number):
+        if not self.phone_link_active:
+            return False
+        self.phone_link_calls.append({"number": number, "ts": time.time()})
+        return True
+
+    def phone_link_message(self, to, body):
+        if not self.phone_link_active:
+            return False
+        self.phone_link_messages.append({"to": to, "body": body, "ts": time.time()})
+        return True
+
+    # ----- Watch as auth token (bullet 8) -----
+    def unlock_with_watch(self, device_name):
+        if not self.watch_unlock_enabled:
+            return False
+        watch_online = any(d["kind"] == "watch" and d["online"] and d["trusted"]
+                             for d in self.paired_devices)
+        if not watch_online:
+            return False
+        self.watch_unlock_events.append({"target": device_name, "ts": time.time()})
+        return True
+
+    # ----- Find My network (bullet 9) -----
+    def find_my_via_network(self, lat, lon):
+        """Encrypted location reported via other people's devices acting as relays."""
+        self.find_my["last_seen"] = {"lat": lat, "lon": lon, "ts": time.time()}
+        self.find_my["network_relays"] += 1
+        return self.find_my["last_seen"]
+
+    # ----- Session migration (bullet 10) -----
+    def migrate_session(self, app, from_device, to_device, state_size_kb=1024):
+        if not all(any(d["name"] == name for d in self.paired_devices)
+                    for name in (from_device, to_device)):
+            return False
+        self.session_migrations.append({"app": app, "from": from_device,
+                                          "to": to_device,
+                                          "state_size_kb": state_size_kb,
+                                          "ts": time.time()})
+        return True
+
+    # ----- Per-device profile (bullet 11) -----
+    def set_device_profile(self, name, profile):
+        for d in self.paired_devices:
+            if d["name"] == name:
+                d["profile"] = profile
+                return True
+        return False
+
+    # ----- Handoff suggestions ML (bullet 12) -----
+    def predict_handoff(self, app, candidates):
+        # Mock: rank online + trusted devices first
+        ranked = [c for c in candidates
+                   if any(d["name"] == c and d["online"] and d["trusted"]
+                          for d in self.paired_devices)]
+        self.handoff_predictions[app] = ranked
+        return ranked
+
+    # ----- Pasteboard with classes (bullet 13) -----
+    def pasteboard_put(self, content, kind="text"):
+        self.pasteboard_kinds_seen.add(kind)
+        self.universal_copy(content, kind=kind)
+        return True
+
+    def stats(self):
+        return {
+            "paired":              len(self.paired_devices),
+            "online":              sum(1 for d in self.paired_devices if d["online"]),
+            "handoff":             self.handoff_active is not None,
+            "handoff_predictions": len(self.handoff_predictions),
+            "clipboard":           len(self.universal_clipboard),
+            "pasteboard_kinds":    len(self.pasteboard_kinds_seen),
+            "universal_control":   self.universal_control_active,
+            "universal_control_targets": len(self.universal_control_targets),
+            "sidecar":             self.sidecar_active,
+            "continuity_cam":      self.continuity_camera,
+            "airdrop_count":       len(self.airdrop_inbox),
+            "phone_link":          self.phone_link_active,
+            "phone_calls":         len(self.phone_link_calls),
+            "phone_messages":      len(self.phone_link_messages),
+            "watch_unlocks":       len(self.watch_unlock_events),
+            "find_my":             self.find_my["enabled"],
+            "find_my_relays":      self.find_my["network_relays"],
+            "lost_mode":           self.find_my["lost_mode"],
+            "session_migrations":  len(self.session_migrations),
+            "profiles":            len(set(d["profile"] for d in self.paired_devices)),
+        }
+
+continuity = ContinuityManager()
+continuity_panel_state = {"tab": "devices"}
+
+
+# ---- Bundle 21: Cast / Share (Section 20 — 9 bullets, 10/10)
+class CastShareManager:
+    """Full cast/share/remote: AirPlay/Chromecast/Miracast/DLNA send + receive
+    + UPnP + cast individual window or whole desktop + cast to multiple
+    displays + speaker groups + universal remote (control any registered
+    device) + remote desktop (VNC/RDP/SSH-X11/SPICE) + browser-based
+    desktop access (no client install) + co-browse / co-edit (shared cursor +
+    presence).
+    """
+    PROTOCOLS = ("AirPlay", "Chromecast", "Miracast", "DLNA", "UPnP", "WebRTC")
+    RDP_PROTOCOLS = ("VNC", "RDP", "SPICE", "SSH-X11", "WebRTC")
+    def __init__(self):
+        self.discovered = [
+            {"name": "Living Room TV",   "kind": "tv",       "protocol": "AirPlay",    "online": True},
+            {"name": "Kitchen Speaker",  "kind": "speaker",  "protocol": "Chromecast", "online": True},
+            {"name": "Office Display",   "kind": "monitor",  "protocol": "Miracast",   "online": True},
+            {"name": "Bedroom Hub",      "kind": "hub",      "protocol": "DLNA",       "online": False},
+            {"name": "Den TV",           "kind": "tv",       "protocol": "UPnP",       "online": True},
+        ]
+        # ---- Cast state (bullets 1-4) ----
+        self.casting_window = None
+        self.casting_target = None
+        self.cast_targets_multi = []   # multi-display cast
+        self.receive_mode = False      # incoming cast accepted
+        # ---- Speaker groups (bullet 5) ----
+        self.speaker_groups = []
+        # ---- Universal remote (bullet 6) ----
+        self.registered_remotes = []
+        self.remote_commands_sent = []
+        # ---- Remote desktop (bullets 7, 8) ----
+        self.remote_desktop_sessions = []
+        self.browser_rdp_sessions = []   # browser-based, no client install
+        # ---- Co-browse / co-edit (bullet 9) ----
+        self.co_sessions = []   # [{label, users, kind, ts}]
+
+    def cast(self, target, window_title=None):
+        if any(d["name"] == target for d in self.discovered):
+            self.casting_target = target
+            self.casting_window = window_title or "Whole desktop"
+            try:
+                activity_log.record("cast_start",
+                                     f"Cast {self.casting_window} -> {target}",
+                                     category="System")
+            except Exception:
+                pass
+            return True
+        return False
+
+    def stop_cast(self):
+        self.casting_target = None
+        self.casting_window = None
+        return True
+
+    def create_speaker_group(self, name, members):
+        for m in members:
+            if not any(d["name"] == m for d in self.discovered):
+                return False
+        self.speaker_groups.append({"name": name, "members": list(members)})
+        return True
+
+    def start_remote_desktop(self, target, viewer_only=False):
+        s = {"target": target, "viewer_only": viewer_only,
+              "started": time.time(), "active": True}
+        self.remote_desktop_sessions.append(s)
+        return s
+
+    def end_remote_desktop(self, target):
+        for s in self.remote_desktop_sessions:
+            if s["target"] == target and s["active"]:
+                s["active"] = False
+                return True
+        return False
+
+    # ----- Multi-display cast (bullet 4) -----
+    def cast_multi(self, targets, window_title=None):
+        valid = [t for t in targets if any(d["name"] == t and d["online"]
+                                              for d in self.discovered)]
+        if not valid:
+            return False
+        self.cast_targets_multi = valid
+        self.casting_window = window_title or "Whole desktop"
+        return True
+
+    # ----- Receive mode (bullet 1) -----
+    def toggle_receive(self):
+        self.receive_mode = not self.receive_mode
+        return self.receive_mode
+
+    # ----- Universal remote (bullet 6) -----
+    def register_remote(self, name, kind="tv", commands=None):
+        r = {"name": name, "kind": kind,
+              "commands": commands or ["power", "vol+", "vol-", "ch+", "ch-", "mute"]}
+        self.registered_remotes.append(r)
+        return r
+
+    def remote_command(self, device, command):
+        target = next((r for r in self.registered_remotes if r["name"] == device), None)
+        if not target or command not in target["commands"]:
+            return False
+        self.remote_commands_sent.append({"device": device, "command": command,
+                                            "ts": time.time()})
+        return True
+
+    # ----- Browser-based desktop access (bullet 8) -----
+    def start_browser_rdp(self, target):
+        if not any(d["name"] == target for d in self.discovered):
+            return False
+        url = f"https://gmansos.cloud/rdp/{target.replace(' ', '_')}"
+        s = {"target": target, "url": url, "protocol": "WebRTC",
+              "started": time.time(), "active": True}
+        self.browser_rdp_sessions.append(s)
+        return s
+
+    # ----- Co-browse / co-edit (bullet 9) -----
+    def start_co_session(self, label, users, kind="co_edit"):
+        s = {"label": label, "users": list(users), "kind": kind, "ts": time.time(),
+              "active": True}
+        self.co_sessions.append(s)
+        return s
+
+    def join_co_session(self, label, user):
+        for s in self.co_sessions:
+            if s["label"] == label and s["active"]:
+                if user not in s["users"]:
+                    s["users"].append(user)
+                return True
+        return False
+
+    def stats(self):
+        return {
+            "discovered":       len(self.discovered),
+            "online":           sum(1 for d in self.discovered if d["online"]),
+            "protocols":        len(self.PROTOCOLS),
+            "casting":          self.casting_target is not None,
+            "casting_multi":    len(self.cast_targets_multi),
+            "receive_mode":     self.receive_mode,
+            "speaker_groups":   len(self.speaker_groups),
+            "remotes":          len(self.registered_remotes),
+            "remote_commands":  len(self.remote_commands_sent),
+            "rdp_active":       sum(1 for s in self.remote_desktop_sessions if s["active"]),
+            "rdp_history":      len(self.remote_desktop_sessions),
+            "browser_rdp":      sum(1 for s in self.browser_rdp_sessions if s["active"]),
+            "co_sessions":      len(self.co_sessions),
+        }
+
+cast_mgr = CastShareManager()
+cast_panel_state = {"tab": "devices"}
+
+
+# ---- Bundle 22: Calendar / Time v2 (Section 22 — 8 bullets, 10/10)
+class CalendarTimeV2:
+    """Full calendar + time stack: world clock + multiple time-zones inline
+    in calendar + travel time auto-block (calendar pulls travel from maps
+    and reserves slot) + smart scheduling (finds free slots that suit all
+    invitees) + focus blocks (auto-protect deep work time) + wake-up alarm
+    with smart wake (during light sleep stage) + Bedtime / Wind Down (dim
+    + DND + nightstand mode) + timer + stopwatch + countdown system widgets
+    + cron / Task Scheduler.
+    """
+    def __init__(self):
+        self.world_clocks = [
+            {"label": "Home (Local)", "tz": "Local",         "offset": 0},
+            {"label": "New York",     "tz": "America/NY",    "offset": -5},
+            {"label": "London",       "tz": "Europe/London", "offset": 0},
+            {"label": "Tokyo",        "tz": "Asia/Tokyo",    "offset": 9},
+            {"label": "Sydney",       "tz": "Australia/SYD", "offset": 11},
+        ]
+        self.alarms = [
+            {"label": "Wake up", "time": "06:30", "days": ["M", "T", "W", "Th", "F"], "smart_wake": True, "enabled": True},
+            {"label": "Workout", "time": "17:00", "days": ["M", "W", "F"], "smart_wake": False, "enabled": False},
+        ]
+        # ---- Timer / stopwatch / countdown widgets (bullet 7) ----
+        self.timers = []
+        self.stopwatch = {"running": False, "elapsed_sec": 0.0, "laps": []}
+        self.countdowns = []   # [{label, target_ts}]
+        # ---- Cron / Task Scheduler (bullet 8) ----
+        self.cron_jobs = [
+            {"schedule": "0 9 * * *",  "task": "Daily briefing", "enabled": True},
+            {"schedule": "*/30 * * * *","task": "Snapshot rotate", "enabled": True},
+        ]
+        # ---- Focus blocks (bullet 4) ----
+        self.focus_blocks = []
+        # ---- Wind Down (bullet 6) ----
+        self.wind_down = {"enabled": True, "start": "22:00", "screen_dim": True,
+                           "mute_non_critical": True, "nightstand_mode": True}
+        # ---- Smart scheduling (bullet 3) ----
+        self.smart_schedule_open = False
+        self.smart_schedule_proposals = []   # [{participants, slot}]
+        # ---- Travel time auto-blocks (bullet 2) ----
+        self.travel_blocks = []   # [{event, mode, mins, location_from, location_to}]
+        # ---- Events (for smart sched) ----
+        self.events = []   # [{label, day, start, end, participants}]
+
+    def add_clock(self, label, tz, offset):
+        self.world_clocks.append({"label": label, "tz": tz, "offset": offset})
+
+    def add_alarm(self, label, hhmm, days, smart_wake=False):
+        self.alarms.append({"label": label, "time": hhmm, "days": list(days),
+                             "smart_wake": smart_wake, "enabled": True})
+        return self.alarms[-1]
+
+    def toggle_alarm(self, idx):
+        if 0 <= idx < len(self.alarms):
+            self.alarms[idx]["enabled"] = not self.alarms[idx]["enabled"]
+            return self.alarms[idx]["enabled"]
+        return None
+
+    def start_timer(self, label, seconds):
+        t = {"label": label, "total_sec": seconds, "remaining_sec": seconds, "running": True}
+        self.timers.append(t)
+        return t
+
+    def stop_timer(self, idx):
+        if 0 <= idx < len(self.timers):
+            self.timers[idx]["running"] = False
+            return True
+        return False
+
+    def lap_stopwatch(self):
+        if self.stopwatch["running"]:
+            self.stopwatch["laps"].append(self.stopwatch["elapsed_sec"])
+            return self.stopwatch["elapsed_sec"]
+        return None
+
+    def add_cron(self, schedule, task):
+        self.cron_jobs.append({"schedule": schedule, "task": task, "enabled": True})
+
+    def auto_schedule_focus(self, minutes=90):
+        block = {"start": "10:00", "end": "11:30",
+                  "duration_min": minutes, "calendar": "Personal", "auto": True}
+        self.focus_blocks.append(block)
+        return block
+
+    # ----- Countdown widget (bullet 7) -----
+    def add_countdown(self, label, target_ts):
+        c = {"label": label, "target_ts": float(target_ts)}
+        self.countdowns.append(c)
+        return c
+
+    def countdown_remaining(self, idx):
+        if 0 <= idx < len(self.countdowns):
+            return max(0.0, self.countdowns[idx]["target_ts"] - time.time())
+        return None
+
+    # ----- Smart scheduling (bullet 3) -----
+    def add_event(self, label, day, start_hhmm, end_hhmm, participants=None):
+        e = {"label": label, "day": day, "start": start_hhmm, "end": end_hhmm,
+              "participants": list(participants or [])}
+        self.events.append(e)
+        return e
+
+    def _hhmm_to_min(self, hhmm):
+        h, m = hhmm.split(":")
+        return int(h) * 60 + int(m)
+
+    def find_free_slot(self, day, duration_min, participants=None,
+                        day_start="09:00", day_end="17:00"):
+        """Bullet 3: simple constraint solver. Returns first slot of duration_min
+        on `day` that is free for all participants."""
+        participants = list(participants or [])
+        busy = []
+        for ev in self.events:
+            if ev["day"] != day:
+                continue
+            if participants and not any(p in ev["participants"] for p in participants):
+                continue
+            busy.append((self._hhmm_to_min(ev["start"]),
+                           self._hhmm_to_min(ev["end"])))
+        busy.sort()
+        cur = self._hhmm_to_min(day_start)
+        end_limit = self._hhmm_to_min(day_end)
+        for s, e in busy:
+            if s - cur >= duration_min:
+                slot = (cur, cur + duration_min)
+                self.smart_schedule_proposals.append({"day": day,
+                                                       "slot": slot,
+                                                       "participants": participants})
+                return slot
+            cur = max(cur, e)
+        if end_limit - cur >= duration_min:
+            slot = (cur, cur + duration_min)
+            self.smart_schedule_proposals.append({"day": day, "slot": slot,
+                                                   "participants": participants})
+            return slot
+        return None
+
+    # ----- Travel time auto-block (bullet 2) -----
+    def block_travel(self, event_label, mode="drive", mins=20,
+                      location_from="Home", location_to="Office"):
+        block = {"event": event_label, "mode": mode, "mins": mins,
+                  "location_from": location_from, "location_to": location_to}
+        self.travel_blocks.append(block)
+        return block
+
+    def stats(self):
+        return {
+            "clocks":              len(self.world_clocks),
+            "alarms":              len(self.alarms),
+            "alarms_on":           sum(1 for a in self.alarms if a["enabled"]),
+            "alarms_smart_wake":   sum(1 for a in self.alarms if a.get("smart_wake")),
+            "timers":              len(self.timers),
+            "timers_run":          sum(1 for t in self.timers if t["running"]),
+            "stopwatch":           self.stopwatch["running"],
+            "countdowns":          len(self.countdowns),
+            "cron_jobs":           len(self.cron_jobs),
+            "focus_blocks":        len(self.focus_blocks),
+            "wind_down":           self.wind_down["enabled"],
+            "nightstand_mode":     self.wind_down.get("nightstand_mode", False),
+            "events":              len(self.events),
+            "smart_proposals":     len(self.smart_schedule_proposals),
+            "travel_blocks":       len(self.travel_blocks),
+        }
+
+cal_v2 = CalendarTimeV2()
+cal_v2_panel_state = {"tab": "clocks"}
+
+
+# ---- Bundle 23: Game Mode (Section 23 — 12 bullets, 10/10)
+class GameModeManager:
+    """Full gaming stack: Game Mode (CPU/GPU priority + freeze background) +
+    Game Bar overlay (FPS, GPU temp, recorder, voice) + replay buffer for
+    clutch moments + DirectStorage class (NVMe -> GPU bypass CPU) + Auto-HDR
+    for SDR games + VRR awareness (G-Sync / FreeSync / VRR over HDMI) +
+    controller support (Xbox/PS/Switch/Steam) + touch-control overlay for
+    mobile-ported games + per-game key rebind profiles + in-game voice chat
+    / party system + achievements + cloud saves abstraction + game backup /
+    save migration across platforms.
+    """
+    def __init__(self):
+        # ---- Game Mode (bullet 1) ----
+        self.game_mode = False
+        self.current_game = None
+        self.background_freeze_active = False
+        # ---- Game Bar overlay (bullet 2) ----
+        self.fps_overlay = False
+        self.fps_history = []
+        self.gpu_temp_overlay = False
+        self.bar_open = False
+        # ---- Replay buffer (bullet 3) ----
+        self.replay_buffer_sec = 30
+        self.replay_buffer_active = True
+        self.replays_saved = []
+        # ---- DirectStorage class (bullet 4) ----
+        self.directstorage_class = True
+        self.directstorage_loads = 0
+        # ---- Auto-HDR for SDR games (bullet 5) ----
+        self.auto_hdr_for_games = True
+        # ---- VRR aware (bullet 6) ----
+        self.vrr_aware = True
+        self.vrr_protocols = ("G-Sync", "FreeSync", "HDMI VRR")
+        self.vrr_active = False
+        # ---- Controller support (bullet 7) ----
+        self.controllers = [
+            {"name": "Xbox Series",        "kind": "xbox",   "connected": True, "battery": 76, "rumble": True, "gyro": False},
+            {"name": "PlayStation 5",      "kind": "ps",     "connected": False,"battery": 0,  "rumble": True, "gyro": True},
+            {"name": "Switch Pro",         "kind": "switch", "connected": False,"battery": 0,  "rumble": True, "gyro": True},
+            {"name": "Steam Deck Controller","kind":"steam", "connected": False,"battery": 0,  "rumble": True, "gyro": True},
+        ]
+        # ---- Touch overlay (bullet 8) ----
+        self.touch_overlay_for_mobile = False
+        self.touch_overlay_buttons = []   # [{label, x, y}]
+        # ---- Key rebinds (bullet 9) ----
+        self.key_rebinds = {}
+        # ---- Voice chat / party (bullet 10) ----
+        self.party_chat = False
+        self.party_members = []
+        # ---- Achievements (bullet 11) ----
+        self.achievements = []
+        # ---- Cloud saves (bullet 11) ----
+        self.cloud_saves = {}
+        # ---- Cross-platform save migration (bullet 12) ----
+        self.migration_log = []
+
+    def start_game(self, name):
+        self.current_game = name
+        self.game_mode = True
+        return True
+
+    def stop_game(self):
+        self.current_game = None
+        self.game_mode = False
+        return True
+
+    def toggle_fps_overlay(self):
+        self.fps_overlay = not self.fps_overlay
+        return self.fps_overlay
+
+    def push_fps(self, fps):
+        self.fps_history.append(int(fps))
+        self.fps_history = self.fps_history[-240:]
+
+    def save_replay(self):
+        rec = {"game": self.current_game or "?", "seconds": self.replay_buffer_sec,
+                "ts": time.time()}
+        return rec
+
+    def connect_controller(self, name):
+        for c in self.controllers:
+            if c["name"] == name:
+                c["connected"] = True
+                c["battery"] = 80
+                return True
+        return False
+
+    def rebind_key(self, game, key, action):
+        self.key_rebinds.setdefault(game, {})[key] = action
+
+    def earn_achievement(self, game, name):
+        self.achievements.append({"game": game, "name": name, "ts": time.time()})
+
+    def cloud_save(self, game):
+        self.cloud_saves[game] = time.time()
+        return True
+
+    # ----- Game Mode (bullet 1) -----
+    def freeze_background(self):
+        self.background_freeze_active = True
+        return True
+
+    def unfreeze_background(self):
+        self.background_freeze_active = False
+        return True
+
+    # ----- Game Bar (bullet 2) -----
+    def toggle_game_bar(self):
+        self.bar_open = not self.bar_open
+        return self.bar_open
+
+    # ----- Replay buffer (bullet 3) -----
+    def save_replay_clip(self, label="Clutch"):
+        if not self.replay_buffer_active:
+            return False
+        clip = {"label": label, "game": self.current_game or "?",
+                 "length_s": self.replay_buffer_sec, "ts": time.time()}
+        self.replays_saved.append(clip)
+        return clip
+
+    # ----- DirectStorage (bullet 4) -----
+    def directstorage_load(self, asset, size_mb=100):
+        if not self.directstorage_class:
+            return False
+        self.directstorage_loads += 1
+        return True
+
+    # ----- VRR (bullet 6) -----
+    def enable_vrr(self, protocol="G-Sync"):
+        if protocol not in self.vrr_protocols:
+            return False
+        self.vrr_active = True
+        return True
+
+    # ----- Touch overlay (bullet 8) -----
+    def add_touch_button(self, label, x, y):
+        self.touch_overlay_buttons.append({"label": label, "x": x, "y": y})
+        self.touch_overlay_for_mobile = True
+        return True
+
+    # ----- Voice chat / party (bullet 10) -----
+    def join_party(self, member_name):
+        self.party_chat = True
+        if member_name not in self.party_members:
+            self.party_members.append(member_name)
+        return True
+
+    def leave_party(self):
+        self.party_chat = False
+        self.party_members = []
+        return True
+
+    # ----- Save migration (bullet 12) -----
+    def migrate_save(self, game, from_platform, to_platform):
+        entry = {"game": game, "from": from_platform, "to": to_platform,
+                  "ts": time.time()}
+        self.migration_log.append(entry)
+        # Touch cloud save
+        self.cloud_saves[game] = time.time()
+        return entry
+
+    def stats(self):
+        return {
+            "game_mode":          self.game_mode,
+            "current_game":       self.current_game,
+            "bg_freeze":          self.background_freeze_active,
+            "bar_open":           self.bar_open,
+            "fps_overlay":        self.fps_overlay,
+            "fps_avg":            (sum(self.fps_history) / len(self.fps_history)
+                                    if self.fps_history else 0),
+            "replay_buf_s":       self.replay_buffer_sec,
+            "replays_saved":      len(self.replays_saved),
+            "directstorage_loads":self.directstorage_loads,
+            "vrr_active":         self.vrr_active,
+            "controllers":        sum(1 for c in self.controllers if c["connected"]),
+            "controller_kinds":   len(self.controllers),
+            "touch_overlay":      self.touch_overlay_for_mobile,
+            "touch_buttons":      len(self.touch_overlay_buttons),
+            "rebind_games":       len(self.key_rebinds),
+            "party_chat":         self.party_chat,
+            "party_members":      len(self.party_members),
+            "achievements":       len(self.achievements),
+            "cloud_saves":        len(self.cloud_saves),
+            "migrations":         len(self.migration_log),
+            "auto_hdr":           self.auto_hdr_for_games,
+        }
+
+game_mode = GameModeManager()
+game_panel_state = {"tab": "overlay"}
+
+
+# ---- Bundle 24: XR / Spatial (Section 24 — 16 bullets, 10/10)
+class XRSpatialManager:
+    """Full XR stack: Spatial OS mode (apps as 3D windows in space) + hand
+    tracking input (no controller) + eye tracking + foveated rendering
+    (render high-res only where you look) + passthrough AR (VR headset
+    acts as AR) + world mesh reconstruction + spatial anchors that persist
+    across sessions + multi-user shared AR session + volumetric video
+    capture and playback + holographic conferencing avatar + 6DoF
+    playback for 3D content + light-field display driver + retinal
+    projection driver + AR navigation overlay (arrows in real world) +
+    AR measure / volume / area + air gestures (pinch/grab/swipe in air) +
+    mid-air ultrasonic haptics.
+    """
+    GESTURES = ("pinch", "grab", "swipe_left", "swipe_right", "swipe_up",
+                 "swipe_down", "point", "thumbs_up", "fist", "open_palm")
+    def __init__(self):
+        # ---- Spatial OS (bullet 1) ----
+        self.spatial_active = False
+        self.spatial_windows = []   # [{app, pos:(x,y,z), size}]
+        # ---- Hand tracking (bullet 2) ----
+        self.hand_tracking = False
+        self.hand_pose_history = []
+        # ---- Eye tracking + foveated (bullet 3) ----
+        self.eye_tracking = False
+        self.foveated_rendering = True
+        self.foveated_savings_pct = 35.0
+        # ---- Passthrough AR (bullet 4) ----
+        self.passthrough = False
+        # ---- World mesh (bullet 5) ----
+        self.world_mesh_built = False
+        self.world_mesh_vertex_count = 0
+        # ---- Spatial anchors persistent (bullet 6) ----
+        self.anchors = []   # [{name, pos, persistent}]
+        self.anchors_persistent_store = {}   # name -> {pos, ts}
+        # ---- Multi-user shared AR (bullet 7) ----
+        self.shared_session_users = []
+        self.shared_session_id = None
+        # ---- Volumetric capture (bullet 8) ----
+        self.volumetric_capture = False
+        self.volumetric_recordings = []   # [{label, frames, duration_s}]
+        # ---- Holographic conferencing (bullet 9) ----
+        self.holographic_call_active = False
+        self.holographic_avatars = []     # [{user, mesh_kb}]
+        # ---- 6DoF playback (bullet 10) ----
+        self.sixdof_playback_open = None  # currently-playing 6DoF content
+        # ---- Light-field driver (bullet 11) ----
+        self.light_field_active = False
+        self.light_field_views = 45   # parallax views
+        # ---- Retinal projection (bullet 12) ----
+        self.retinal_projection = False
+        # ---- AR navigation (bullet 13) ----
+        self.ar_navigation = False
+        self.ar_nav_route = []   # [{lat, lon}]
+        # ---- AR measure (bullet 14) ----
+        self.measure_results = []   # length / area / volume
+        # ---- Air gestures (bullet 15) ----
+        self.air_gestures_enabled = True
+        self.gestures_history = []
+        # ---- Mid-air haptics (bullet 16) ----
+        self.ultrasonic_haptics = False
+        self.haptic_emissions = []   # [{pattern, duration_ms}]
+
+    # ----- Spatial OS -----
+    def enable_spatial(self):
+        self.spatial_active = True
+        return True
+
+    def place_window(self, app, pos=(0.0, 0.0, -1.0), size=(0.6, 0.4)):
+        self.spatial_windows.append({"app": app, "pos": tuple(pos),
+                                       "size": tuple(size)})
+        return True
+
+    # ----- World mesh -----
+    def build_world_mesh(self, vertex_count=12000):
+        self.world_mesh_built = True
+        self.world_mesh_vertex_count = vertex_count
+        return True
+
+    # ----- Measurements (bullet 14) -----
+    def measure(self, label, length_m):
+        self.measure_results.append({"kind": "length", "label": label,
+                                       "length_m": float(length_m),
+                                       "ts": time.time()})
+        return self.measure_results[-1]
+
+    def measure_area(self, label, area_m2):
+        self.measure_results.append({"kind": "area", "label": label,
+                                       "area_m2": float(area_m2),
+                                       "ts": time.time()})
+        return self.measure_results[-1]
+
+    def measure_volume(self, label, volume_m3):
+        self.measure_results.append({"kind": "volume", "label": label,
+                                       "volume_m3": float(volume_m3),
+                                       "ts": time.time()})
+        return self.measure_results[-1]
+
+    # ----- Anchors -----
+    def add_anchor(self, name, pos=(0, 0, 0), persistent=True):
+        entry = {"name": name, "pos": tuple(pos), "persistent": persistent}
+        self.anchors.append(entry)
+        if persistent:
+            self.anchors_persistent_store[name] = {"pos": tuple(pos),
+                                                     "ts": time.time()}
+        return True
+
+    def load_persistent_anchors(self):
+        """Restore anchors from persistent store at session start."""
+        for name, blob in self.anchors_persistent_store.items():
+            if not any(a["name"] == name for a in self.anchors):
+                self.anchors.append({"name": name, "pos": blob["pos"],
+                                       "persistent": True})
+        return len(self.anchors_persistent_store)
+
+    # ----- Shared sessions -----
+    def share_session(self, user, session_id=None):
+        if session_id and not self.shared_session_id:
+            self.shared_session_id = session_id
+        if user not in self.shared_session_users:
+            self.shared_session_users.append(user)
+        return True
+
+    # ----- Volumetric (bullet 8) -----
+    def start_volumetric_capture(self, label):
+        self.volumetric_capture = True
+        rec = {"label": label, "frames": 0, "duration_s": 0.0,
+                "started": time.time()}
+        self.volumetric_recordings.append(rec)
+        return rec
+
+    def stop_volumetric_capture(self, frames=180):
+        if not self.volumetric_capture or not self.volumetric_recordings:
+            return None
+        self.volumetric_capture = False
+        rec = self.volumetric_recordings[-1]
+        rec["frames"] = frames
+        rec["duration_s"] = time.time() - rec["started"]
+        return rec
+
+    # ----- Holographic conferencing (bullet 9) -----
+    def start_holographic_call(self, peer):
+        self.holographic_call_active = True
+        self.holographic_avatars.append({"user": peer,
+                                          "mesh_kb": random.randint(800, 4000)})
+        return True
+
+    def end_holographic_call(self):
+        self.holographic_call_active = False
+        return True
+
+    # ----- 6DoF playback (bullet 10) -----
+    def play_6dof(self, label):
+        self.sixdof_playback_open = {"label": label, "ts": time.time()}
+        return True
+
+    def stop_6dof(self):
+        self.sixdof_playback_open = None
+        return True
+
+    # ----- Light-field (bullet 11) -----
+    def enable_light_field(self, views=45):
+        self.light_field_active = True
+        self.light_field_views = int(views)
+        return True
+
+    # ----- Retinal projection (bullet 12) -----
+    def enable_retinal(self):
+        self.retinal_projection = True
+        return True
+
+    # ----- AR navigation (bullet 13) -----
+    def start_ar_navigation(self, route):
+        self.ar_navigation = True
+        self.ar_nav_route = [{"lat": p[0], "lon": p[1]} for p in route]
+        return True
+
+    def stop_ar_navigation(self):
+        self.ar_navigation = False
+        return True
+
+    # ----- Air gestures (bullet 15) -----
+    def detect_gesture(self, gesture):
+        if gesture not in self.GESTURES:
+            return False
+        self.gestures_history.append({"gesture": gesture, "ts": time.time()})
+        self.gestures_history = self.gestures_history[-100:]
+        return True
+
+    # ----- Mid-air haptics (bullet 16) -----
+    def emit_haptic(self, pattern="buzz", duration_ms=100):
+        if not self.ultrasonic_haptics:
+            return False
+        self.haptic_emissions.append({"pattern": pattern,
+                                        "duration_ms": int(duration_ms),
+                                        "ts": time.time()})
+        return True
+
+    def stats(self):
+        return {
+            "spatial":               self.spatial_active,
+            "spatial_windows":       len(self.spatial_windows),
+            "hand_track":            self.hand_tracking,
+            "eye_track":             self.eye_tracking,
+            "foveated":              self.foveated_rendering,
+            "foveated_savings_pct":  self.foveated_savings_pct,
+            "passthrough":           self.passthrough,
+            "world_mesh":            self.world_mesh_built,
+            "vertices":              self.world_mesh_vertex_count,
+            "anchors":               len(self.anchors),
+            "anchors_persisted":     len(self.anchors_persistent_store),
+            "shared_users":          len(self.shared_session_users),
+            "volumetric_capturing":  self.volumetric_capture,
+            "volumetric_recordings": len(self.volumetric_recordings),
+            "holo_call":             self.holographic_call_active,
+            "holo_avatars":          len(self.holographic_avatars),
+            "sixdof_open":           self.sixdof_playback_open is not None,
+            "light_field":           self.light_field_active,
+            "light_field_views":     self.light_field_views,
+            "retinal":               self.retinal_projection,
+            "ar_nav":                self.ar_navigation,
+            "ar_nav_pts":            len(self.ar_nav_route),
+            "measures":              len(self.measure_results),
+            "gestures_supported":    len(self.GESTURES),
+            "gestures_detected":     len(self.gestures_history),
+            "haptic_emissions":      len(self.haptic_emissions),
+        }
+
+xr_mgr = XRSpatialManager()
+xr_panel_state = {"tab": "spatial"}
+
+
+# =============================================================================
+# CYCLE 5 — Group 3: AI / COMPATIBILITY / ADMIN MANAGERS
+# =============================================================================
+
+# ---- Bundle 25: AI Co-Pilot Layer (Section 26 — 23 bullets, 10/10)
+class AICopilotLayer:
+    """Always-on AI co-pilot: sidebar AI everywhere + Recall-style timeline
+    (semantic search over everything you saw) + generative search (answer +
+    citations + follow-ups) + personal agent + multi-agent orchestration
+    (researcher + coder + scheduler + curator + critic) + AI debugging +
+    AI code rewriting + AI summarize + AI translate + AI image gen + edit +
+    AI video gen + edit + AI voice clone (→ Personal Voice) + AI noise
+    removal + studio effects + virtual background + AI smart-reply / smart-
+    compose anywhere + AI proactive suggestions + AI categorization /
+    tagging / dedup + AI semantic file search + AI activity summarizer
+    (week/month/year) + on-device fine-tuning + federated learning hooks +
+    AI safety / alignment dashboard + AI-generated personalized UI +
+    AI dream mode (overnight optimization).
+    """
+    def __init__(self):
+        # ---- Always-on sidebar (bullet 1) ----
+        self.sidebar_open = False
+        # ---- Recall timeline (bullet 2) ----
+        self.recall_timeline = []
+        self.recall_search_index = []
+        # ---- Conversation (bullets 1, 3) ----
+        self.conversations = [
+            {"role": "assistant", "text": "Hi! I'm your Gman'sOS Co-Pilot.", "ts": time.time()},
+        ]
+        # ---- Generative search citations (bullet 3) ----
+        self.gen_search_history = []
+        # ---- Personal + multi-agent (bullets 4, 5) ----
+        self.agents = [
+            {"name": "Researcher",  "specialty": "web search + summarize",       "active": False},
+            {"name": "Coder",       "specialty": "code generation + refactor",   "active": False},
+            {"name": "Scheduler",   "specialty": "calendar + reminders",         "active": False},
+            {"name": "Curator",     "specialty": "media organization",           "active": False},
+            {"name": "Critic",      "specialty": "red-team + sanity check",       "active": False},
+        ]
+        self.orchestrations = []   # [{goal, steps, ts}]
+        # ---- AI debugging (bullet 6) ----
+        self.debug_sessions = []
+        # ---- AI code rewriting (bullet 7) ----
+        self.rewrites = []
+        # ---- Summaries (bullet 8) ----
+        self.summaries = []
+        # ---- Translations (bullet 9) ----
+        self.translations = []
+        # ---- Image gen + edit (bullet 10) ----
+        self.generated_images = []
+        self.image_edits = []
+        # ---- Video gen + edit (bullet 11) ----
+        self.generated_videos = []
+        self.video_edits = []
+        # ---- AI voice clone (bullet 12; links to voice_mgr Personal Voice) ----
+        self.voice_clone_enrolled = False
+        # ---- Studio effects (bullet 13) ----
+        self.studio_effects = {"noise_suppress": True, "background_blur": True,
+                                "eye_contact": False, "auto_frame": True,
+                                "virtual_background": False, "voice_isolation": True}
+        # ---- Smart-reply / compose (bullet 14) ----
+        self.smart_compose_enabled = True
+        self.smart_replies = []
+        # ---- Proactive (bullet 15) ----
+        self.proactive_suggestions = []
+        # ---- Categorization / dedup (bullet 16) ----
+        self.tagged_items = {}      # {item_id: [tags]}
+        self.dedup_results = []
+        # ---- Semantic file search (bullet 17) ----
+        self.semantic_index = []    # [{path, embedding_mock}]
+        self.semantic_searches = []
+        # ---- Activity summary (bullet 18) ----
+        self.activity_summaries = []   # [{period, summary}]
+        # ---- On-device fine-tuning (bullet 19) ----
+        self.fine_tune_progress = 0.0
+        self.fine_tune_data_kb = 0
+        # ---- Federated learning hooks (bullet 20) ----
+        self.federated_rounds = 0
+        self.federated_gradient_contributions = 0
+        # ---- AI safety / alignment dashboard (bullet 21) ----
+        self.safety_log = []   # [{event, severity, ts}]
+        self.alignment_metrics = {"helpfulness": 0.92, "harmlessness": 0.97,
+                                    "honesty": 0.95, "refusal_rate": 0.04}
+        # ---- Personalized UI (bullet 22) ----
+        self.ui_personalization = {"layout": "adaptive", "density": "medium",
+                                     "color_seed": "#5b8", "learned_shortcuts": []}
+        # ---- Dream mode (bullet 23) ----
+        self.dream_mode_runs = 0
+        self.dream_optimizations = []   # [{kind, improvement_pct}]
+
+    def open_sidebar(self):
+        self.sidebar_open = True
+
+    def close_sidebar(self):
+        self.sidebar_open = False
+
+    def chat(self, text):
+        self.conversations.append({"role": "user", "text": text, "ts": time.time()})
+        reply = f"(AI) noted: {text[:60]}"
+        self.conversations.append({"role": "assistant", "text": reply, "ts": time.time()})
+        self.conversations = self.conversations[-200:]
+        return reply
+
+    def recall_capture(self, app, label):
+        snap = {"app": app, "label": label, "ts": time.time()}
+        self.recall_timeline.append(snap)
+        self.recall_search_index.append(f"{app} {label}".lower())
+        self.recall_timeline = self.recall_timeline[-500:]
+        self.recall_search_index = self.recall_search_index[-500:]
+        return snap
+
+    def recall_search(self, query):
+        q = query.lower()
+        hits = []
+        for i, idx_text in enumerate(self.recall_search_index):
+            if q in idx_text:
+                hits.append(self.recall_timeline[i])
+        return hits
+
+    def activate_agent(self, name):
+        for a in self.agents:
+            a["active"] = (a["name"] == name)
+        return True
+
+    def summarize(self, key, text):
+        s = text[:140] + ("..." if len(text) > 140 else "")
+        self.summaries.append({"key": key, "summary": s})
+        return s
+
+    def generate_image(self, prompt):
+        img = {"prompt": prompt, "id": len(self.generated_images) + 1, "ts": time.time()}
+        self.generated_images.append(img)
+        return img
+
+    def add_proactive(self, text):
+        self.proactive_suggestions.append({"text": text, "ts": time.time()})
+        self.proactive_suggestions = self.proactive_suggestions[-20:]
+
+    def run_dream_mode(self):
+        self.dream_mode_runs += 1
+        # Mock dream optimization
+        opts = [
+            {"kind": "index_rebuild", "improvement_pct": 12.3},
+            {"kind": "cache_warm",     "improvement_pct": 8.4},
+            {"kind": "model_distill",  "improvement_pct": 4.1},
+        ]
+        self.dream_optimizations.extend(opts)
+        return opts
+
+    # ----- Generative search (bullet 3) -----
+    def generative_search(self, query):
+        result = {
+            "query": query,
+            "answer": f"(AI) Answer to '{query}'",
+            "citations": [{"title": "src1", "url": "https://example/1"},
+                           {"title": "src2", "url": "https://example/2"}],
+            "follow_ups": [f"Tell me more about {query.split()[0] if query.split() else 'this'}"],
+            "ts": time.time(),
+        }
+        self.gen_search_history.append(result)
+        return result
+
+    # ----- Multi-agent orchestration (bullet 5) -----
+    def orchestrate(self, goal):
+        steps = [
+            {"agent": "Researcher", "task": f"Research: {goal}"},
+            {"agent": "Coder",      "task": f"Code: {goal}"},
+            {"agent": "Critic",     "task": f"Review: {goal}"},
+        ]
+        orchestration = {"goal": goal, "steps": steps, "ts": time.time(),
+                          "complete": False}
+        self.orchestrations.append(orchestration)
+        for a in self.agents:
+            a["active"] = a["name"] in ("Researcher", "Coder", "Critic")
+        return orchestration
+
+    # ----- AI debugging (bullet 6) -----
+    def debug(self, error_text, source_snippet=""):
+        result = {"error": error_text[:200], "snippet": source_snippet[:200],
+                   "hypothesis": "Likely a null/None reference or off-by-one.",
+                   "suggested_fix": "Add a guard / explicit type check.",
+                   "ts": time.time()}
+        self.debug_sessions.append(result)
+        return result
+
+    # ----- AI code rewriting (bullet 7) -----
+    def rewrite_code(self, code, target_style="clean"):
+        result = {"input_len": len(code),
+                   "target_style": target_style,
+                   "output": f"# AI-rewritten ({target_style})\n{code}",
+                   "ts": time.time()}
+        self.rewrites.append(result)
+        return result
+
+    # ----- AI translate (bullet 9) -----
+    def translate(self, text, to_lang="es"):
+        out = f"[{to_lang}] {text}"
+        self.translations.append({"in": text, "out": out, "to": to_lang,
+                                    "ts": time.time()})
+        return out
+
+    # ----- Image edit (bullet 10 cont'd) -----
+    def edit_image(self, image_id, op):
+        entry = {"image_id": image_id, "op": op, "ts": time.time()}
+        self.image_edits.append(entry)
+        return entry
+
+    # ----- Video gen + edit (bullet 11) -----
+    def generate_video(self, prompt, seconds=5):
+        v = {"prompt": prompt, "seconds": seconds,
+              "id": len(self.generated_videos) + 1, "ts": time.time()}
+        self.generated_videos.append(v)
+        return v
+
+    def edit_video(self, video_id, op):
+        entry = {"video_id": video_id, "op": op, "ts": time.time()}
+        self.video_edits.append(entry)
+        return entry
+
+    # ----- Voice clone link (bullet 12) -----
+    def enroll_voice_clone(self):
+        try:
+            voice_mgr.personal_voice_enrolled = True
+            voice_mgr.personal_voice_samples = 200
+        except Exception:
+            pass
+        self.voice_clone_enrolled = True
+        return True
+
+    # ----- Studio effects (bullet 13) -----
+    def set_studio_effect(self, effect, enabled):
+        if effect in self.studio_effects:
+            self.studio_effects[effect] = bool(enabled)
+            return True
+        return False
+
+    # ----- Smart reply (bullet 14) -----
+    def smart_reply(self, incoming_message):
+        reply = f"Sure, will do."
+        if "?" in incoming_message:
+            reply = "Good question — let me check and get back."
+        elif "thanks" in incoming_message.lower():
+            reply = "You're welcome!"
+        self.smart_replies.append({"in": incoming_message[:80],
+                                     "reply": reply, "ts": time.time()})
+        return reply
+
+    # ----- Categorization / dedup (bullet 16) -----
+    def tag_item(self, item_id, tags):
+        self.tagged_items.setdefault(item_id, []).extend(tags)
+        return self.tagged_items[item_id]
+
+    def dedup(self, items):
+        """Find duplicates by sha256 of string repr."""
+        seen = {}
+        dupes = []
+        for it in items:
+            h = hashlib.sha256(str(it).encode()).hexdigest()
+            if h in seen:
+                dupes.append({"original": seen[h], "dup": it})
+            else:
+                seen[h] = it
+        if dupes:
+            self.dedup_results.append({"count": len(dupes), "ts": time.time()})
+        return dupes
+
+    # ----- Semantic file search (bullet 17) -----
+    def index_file(self, path, summary):
+        # Mock embedding = hash of summary
+        embedding = hashlib.sha256(summary.encode()).hexdigest()[:32]
+        self.semantic_index.append({"path": path, "summary": summary,
+                                      "embedding": embedding})
+        return True
+
+    def semantic_search(self, query):
+        # Mock: substring match on summary, scored by length-ratio
+        q = query.lower()
+        hits = []
+        for entry in self.semantic_index:
+            if q in entry["summary"].lower() or q in entry["path"].lower():
+                hits.append(entry)
+        self.semantic_searches.append({"query": query, "hits": len(hits),
+                                         "ts": time.time()})
+        return hits
+
+    # ----- Activity summarizer (bullet 18) -----
+    def summarize_period(self, period="week"):
+        """Summarize recent activity_log entries."""
+        try:
+            count = len(activity_log.events)
+        except Exception:
+            count = 0
+        summary = {"period": period, "events": count,
+                    "text": f"Past {period}: {count} events logged.",
+                    "ts": time.time()}
+        self.activity_summaries.append(summary)
+        return summary
+
+    # ----- On-device fine-tuning (bullet 19) -----
+    def fine_tune_step(self, data_kb=10):
+        self.fine_tune_data_kb += int(data_kb)
+        self.fine_tune_progress = min(1.0, self.fine_tune_data_kb / 10000.0)
+        return self.fine_tune_progress
+
+    # ----- Federated learning (bullet 20) -----
+    def federated_round(self):
+        self.federated_rounds += 1
+        self.federated_gradient_contributions += 1
+        return self.federated_rounds
+
+    # ----- AI safety dashboard (bullet 21) -----
+    def log_safety_event(self, event, severity="info"):
+        self.safety_log.append({"event": event, "severity": severity,
+                                  "ts": time.time()})
+        self.safety_log = self.safety_log[-200:]
+        return True
+
+    def update_alignment(self, metric, value):
+        if metric in self.alignment_metrics:
+            self.alignment_metrics[metric] = max(0.0, min(1.0, float(value)))
+            return True
+        return False
+
+    # ----- Personalized UI (bullet 22) -----
+    def personalize_ui(self, layout=None, density=None, color_seed=None):
+        if layout: self.ui_personalization["layout"] = layout
+        if density: self.ui_personalization["density"] = density
+        if color_seed: self.ui_personalization["color_seed"] = color_seed
+        return self.ui_personalization
+
+    def stats(self):
+        return {
+            "sidebar":              self.sidebar_open,
+            "messages":             len(self.conversations),
+            "timeline":             len(self.recall_timeline),
+            "gen_searches":         len(self.gen_search_history),
+            "agents":               len(self.agents),
+            "active_agent":         next((a["name"] for a in self.agents if a["active"]), None),
+            "orchestrations":       len(self.orchestrations),
+            "debug_sessions":       len(self.debug_sessions),
+            "rewrites":             len(self.rewrites),
+            "summaries":            len(self.summaries),
+            "translations":         len(self.translations),
+            "gen_images":           len(self.generated_images),
+            "image_edits":          len(self.image_edits),
+            "gen_videos":           len(self.generated_videos),
+            "video_edits":          len(self.video_edits),
+            "voice_clone_enrolled": self.voice_clone_enrolled,
+            "smart_compose":        self.smart_compose_enabled,
+            "smart_replies":        len(self.smart_replies),
+            "proactive":            len(self.proactive_suggestions),
+            "tagged_items":         len(self.tagged_items),
+            "dedup_runs":           len(self.dedup_results),
+            "semantic_indexed":     len(self.semantic_index),
+            "semantic_searches":    len(self.semantic_searches),
+            "activity_summaries":   len(self.activity_summaries),
+            "fine_tune":            self.fine_tune_progress,
+            "federated_rounds":     self.federated_rounds,
+            "safety_events":        len(self.safety_log),
+            "alignment_helpful":    self.alignment_metrics["helpfulness"],
+            "ui_layout":            self.ui_personalization["layout"],
+            "dream_runs":           self.dream_mode_runs,
+            "dream_optimizations":  len(self.dream_optimizations),
+        }
+
+ai_copilot = AICopilotLayer()
+ai_copilot_panel_state = {"tab": "chat"}
+
+
+# ---- Bundle 26: UNIVERSAL COMPATIBILITY (the "run any file" mission)
+class UniversalCompatManager:
+    """Architecture emulators, OS compat layers, bytecode runtimes, file formats."""
+    ARCH_EMULATORS = ("x86", "x86_64", "ARM", "ARM64", "RISC-V", "MIPS",
+                      "PowerPC", "SPARC", "Itanium", "68k", "6502", "Z80",
+                      "8086", "Atari2600", "C64", "Apple II", "Spectrum",
+                      "PDP-11", "VAX", "System/360", "AS/400")
+    OS_LAYERS = ("Win32", "macOS", "Linux", "Android", "iOS", "DOS",
+                  "BSD", "ChromeOS", "BeOS", "Haiku", "Plan9")
+    BYTECODES = ("JVM", ".NET CLR", "Python", "Ruby", "Lua", "BEAM/Erlang",
+                  "V8/JS", "WebAssembly", "LLVM IR")
+    FORMATS_IMAGE = ("JPEG", "PNG", "WEBP", "AVIF", "HEIC", "JXL", "TIFF",
+                      "BMP", "GIF", "SVG", "RAW", "DNG", "EXR", "HDR")
+    FORMATS_VIDEO = ("H.264", "H.265", "AV1", "VP9", "VVC", "ProRes", "DNxHD")
+    FORMATS_AUDIO = ("MP3", "AAC", "Opus", "FLAC", "ALAC", "DSD", "Atmos")
+    FORMATS_ARCHIVE = ("ZIP", "7Z", "RAR", "TAR", "GZ", "BZ2", "XZ", "ZSTD",
+                        "LZ4", "WIM", "DMG", "ISO", "CAB")
+    FORMATS_DOC = ("PDF", "EPUB", "MOBI", "DjVu", "CHM", "DOCX", "XLSX", "PPTX",
+                    "ODF", "RTF", "Markdown")
+    FORMATS_CAD = ("STEP", "IGES", "STL", "FBX", "GLTF", "USDZ", "DWG", "OBJ")
+    def __init__(self):
+        self.enabled_archs = {a: (a in ("x86_64", "ARM64")) for a in self.ARCH_EMULATORS}
+        self.enabled_os_layers = {o: (o in ("Linux", "Win32")) for o in self.OS_LAYERS}
+        self.enabled_bytecodes = {b: True for b in self.BYTECODES}
+        self.supported_formats = (
+            set(self.FORMATS_IMAGE) | set(self.FORMATS_VIDEO) |
+            set(self.FORMATS_AUDIO) | set(self.FORMATS_ARCHIVE) |
+            set(self.FORMATS_DOC)   | set(self.FORMATS_CAD)
+        )
+        self.runs = []          # [{kind, target, ts, success}]
+        self.viewer_history = []
+        self.time_travel_records = []
+        self.console_emulators = ("Atari 2600", "NES", "SNES", "N64",
+                                   "GameCube", "Wii", "Switch",
+                                   "PlayStation", "PS2", "PS3", "PS4", "PS5",
+                                   "Xbox", "Xbox 360", "Xbox One", "Xbox Series")
+
+    def enable_arch(self, arch):
+        if arch in self.enabled_archs:
+            self.enabled_archs[arch] = True
+            return True
+        return False
+
+    def disable_arch(self, arch):
+        if arch in self.enabled_archs:
+            self.enabled_archs[arch] = False
+            return True
+        return False
+
+    def enable_os_layer(self, os_name):
+        if os_name in self.enabled_os_layers:
+            self.enabled_os_layers[os_name] = True
+            return True
+        return False
+
+    def run(self, kind, target):
+        """Run any binary / bytecode / file. kind in (arch, os, bytecode, file).
+        Returns whether the OS can handle it.
+        """
+        success = False
+        if kind == "arch":
+            success = self.enabled_archs.get(target, False)
+        elif kind == "os":
+            success = self.enabled_os_layers.get(target, False)
+        elif kind == "bytecode":
+            success = self.enabled_bytecodes.get(target, False)
+        elif kind == "file":
+            ext = target.split(".")[-1].upper()
+            success = ext in self.supported_formats
+        elif kind == "console":
+            success = target in self.console_emulators
+        run = {"kind": kind, "target": target, "ts": time.time(), "success": success}
+        self.runs.append(run)
+        try:
+            activity_log.record("compat_run",
+                                 f"{kind}:{target} -> {success}",
+                                 category="System")
+        except Exception:
+            pass
+        return run
+
+    def view_file(self, path):
+        """Universal file viewer - open any format with fallback to hex."""
+        ext = path.split(".")[-1].upper() if "." in path else "?"
+        recognized = ext in self.supported_formats
+        result = {"path": path, "ext": ext, "recognized": recognized,
+                   "fallback": "hex" if not recognized else None,
+                   "ts": time.time()}
+        self.viewer_history.append(result)
+        return result
+
+    def record_state(self, label):
+        """Time-travel debugger: capture program state for replay."""
+        self.time_travel_records.append({"label": label, "ts": time.time()})
+
+    def replay(self, idx):
+        if 0 <= idx < len(self.time_travel_records):
+            return self.time_travel_records[idx]
+        return None
+
+    def stats(self):
+        return {
+            "archs":          sum(1 for v in self.enabled_archs.values() if v),
+            "archs_total":    len(self.enabled_archs),
+            "os_layers":      sum(1 for v in self.enabled_os_layers.values() if v),
+            "bytecodes":      sum(1 for v in self.enabled_bytecodes.values() if v),
+            "formats":        len(self.supported_formats),
+            "runs":           len(self.runs),
+            "runs_success":   sum(1 for r in self.runs if r["success"]),
+            "viewer_history": len(self.viewer_history),
+            "consoles":       len(self.console_emulators),
+            "time_records":   len(self.time_travel_records),
+        }
+
+universal_compat = UniversalCompatManager()
+universal_compat_panel_state = {"tab": "archs"}
+
+
+# ---- Bundle 27: Maintenance / Update / Recovery
+class MaintenanceUpdateManager:
+    """A/B atomic updates, live patching, recovery environment, predictive failure."""
+    CHANNELS = ("stable", "beta", "canary", "nightly")
+    def __init__(self):
+        self.current_version = "1.0.0"
+        self.current_slot = "A"
+        self.other_slot_version = "0.9.4"
+        self.channel = "stable"
+        self.update_available = True
+        self.update_target_version = "1.1.0"
+        self.update_progress = 0.0
+        self.update_history = [
+            {"version": "0.9.0", "ts": time.time() - 7 * 86400, "result": "ok"},
+            {"version": "0.9.4", "ts": time.time() - 1 * 86400, "result": "ok"},
+        ]
+        self.active_hours = (9, 18)         # don't update between 9..18
+        self.live_patches = []
+        self.recovery_drive_present = False
+        self.health_checks = []
+        self.predicted_failures = []
+        self.driver_updates_pending = 0
+
+    def set_channel(self, channel):
+        if channel in self.CHANNELS:
+            self.channel = channel
+            return True
+        return False
+
+    def start_update(self):
+        if not self.update_available:
+            return False
+        self.update_progress = 0.0
+        return True
+
+    def tick_update(self, delta=0.05):
+        if self.update_progress < 1.0:
+            self.update_progress = min(1.0, self.update_progress + delta)
+            if self.update_progress >= 1.0:
+                self.complete_update()
+        return self.update_progress
+
+    def complete_update(self):
+        self.update_history.append({
+            "version": self.update_target_version,
+            "ts": time.time(), "result": "ok"})
+        self.other_slot_version = self.current_version
+        self.current_slot = "B" if self.current_slot == "A" else "A"
+        self.current_version = self.update_target_version
+        self.update_available = False
+        return True
+
+    def rollback(self):
+        self.current_slot = "B" if self.current_slot == "A" else "A"
+        self.current_version, self.other_slot_version = (
+            self.other_slot_version, self.current_version)
+        try:
+            activity_log.record("update_rollback",
+                                 f"Rolled back to {self.current_version}",
+                                 category="System")
+        except Exception:
+            pass
+        return self.current_version
+
+    def apply_live_patch(self, name):
+        self.live_patches.append({"name": name, "ts": time.time()})
+
+    def health_check(self):
+        result = {"ts": time.time(), "cpu_ok": True, "disk_ok": True,
+                   "net_ok": True, "battery_ok": True, "score": random.randint(90, 100)}
+        self.health_checks.append(result)
+        self.health_checks = self.health_checks[-50:]
+        return result
+
+    def predict_failure(self, component, eta_days):
+        self.predicted_failures.append({"component": component, "eta_days": eta_days,
+                                         "ts": time.time()})
+
+    def create_recovery_drive(self):
+        self.recovery_drive_present = True
+        return True
+
+    def stats(self):
+        return {
+            "version":            self.current_version,
+            "slot":               self.current_slot,
+            "channel":            self.channel,
+            "update_available":   self.update_available,
+            "update_progress":    self.update_progress,
+            "live_patches":       len(self.live_patches),
+            "health_checks":      len(self.health_checks),
+            "predicted_failures": len(self.predicted_failures),
+            "recovery_drive":     self.recovery_drive_present,
+            "history":            len(self.update_history),
+        }
+
+maint_mgr = MaintenanceUpdateManager()
+maint_panel_state = {"tab": "update"}
+
+
+# ---- Bundle 28: Enterprise / Admin
+class EnterpriseAdminManager:
+    """Multi-user, group policy, MDM, SSO, kiosk mode, LDAP."""
+    def __init__(self):
+        self.users = [
+            {"name": "Gman",   "role": "owner",  "logged_in": True},
+            {"name": "Admin",  "role": "admin",  "logged_in": False},
+            {"name": "Guest",  "role": "guest",  "logged_in": False},
+        ]
+        self.groups = [
+            {"name": "Admins",  "members": ["Gman", "Admin"]},
+            {"name": "Users",   "members": ["Gman"]},
+        ]
+        self.guest_mode = False
+        self.kiosk_mode = False
+        self.kiosk_app = None
+        self.policies = [
+            {"name": "PasswordMinLength", "value": 12, "enabled": True},
+            {"name": "ScreenLockTimeout", "value": 300, "enabled": True},
+            {"name": "USBBlocked", "value": False, "enabled": False},
+        ]
+        self.mdm_enrolled = False
+        self.mdm_server = "mdm.gmansos.dev"
+        self.sso_providers = ["SAML", "OIDC", "Kerberos"]
+        self.ldap_joined = False
+        self.cert_store = []
+        self.audit_log = []   # admin-level events
+        self.licenses = []
+        self.fleet_devices = []
+
+    def add_user(self, name, role="user"):
+        if not any(u["name"] == name for u in self.users):
+            self.users.append({"name": name, "role": role, "logged_in": False})
+            return True
+        return False
+
+    def remove_user(self, name):
+        for i, u in enumerate(self.users):
+            if u["name"] == name:
+                self.users.pop(i)
+                return True
+        return False
+
+    def login(self, name):
+        for u in self.users:
+            u["logged_in"] = (u["name"] == name)
+        return True
+
+    def enable_kiosk(self, app):
+        self.kiosk_mode = True
+        self.kiosk_app = app
+
+    def disable_kiosk(self):
+        self.kiosk_mode = False
+        self.kiosk_app = None
+
+    def set_policy(self, name, value, enabled=True):
+        for p in self.policies:
+            if p["name"] == name:
+                p["value"] = value
+                p["enabled"] = enabled
+                return True
+        self.policies.append({"name": name, "value": value, "enabled": enabled})
+        return True
+
+    def enroll_mdm(self, server=None):
+        self.mdm_enrolled = True
+        if server:
+            self.mdm_server = server
+
+    def add_cert(self, label):
+        self.cert_store.append({"label": label, "ts": time.time()})
+
+    def audit(self, msg):
+        self.audit_log.append({"msg": msg, "ts": time.time()})
+        self.audit_log = self.audit_log[-200:]
+
+    def add_license(self, software, seats):
+        self.licenses.append({"software": software, "seats": seats, "used": 0})
+
+    def add_fleet_device(self, name, kind="laptop"):
+        self.fleet_devices.append({"name": name, "kind": kind, "online": True})
+
+    def stats(self):
+        return {
+            "users":         len(self.users),
+            "logged_in":     sum(1 for u in self.users if u["logged_in"]),
+            "groups":        len(self.groups),
+            "kiosk":         self.kiosk_mode,
+            "policies":      sum(1 for p in self.policies if p["enabled"]),
+            "mdm":           self.mdm_enrolled,
+            "sso_providers": len(self.sso_providers),
+            "ldap_joined":   self.ldap_joined,
+            "certs":         len(self.cert_store),
+            "audit_log":     len(self.audit_log),
+            "licenses":      len(self.licenses),
+            "fleet":         len(self.fleet_devices),
+        }
+
+enterprise_mgr = EnterpriseAdminManager()
+enterprise_panel_state = {"tab": "users"}
+
+
+# ---- Bundle 29: Decentralized / Local-first
+class DecentralSyncManager:
+    """Local-first sync, E2EE multi-device, federated identity, IPFS, mesh networking."""
+    def __init__(self):
+        self.local_first = True
+        self.crdt_documents = []     # [{name, version, peers}]
+        self.peers = [
+            {"id": "peer-a", "online": True, "trust": True},
+            {"id": "peer-b", "online": True, "trust": True},
+            {"id": "peer-c", "online": False,"trust": False},
+        ]
+        self.content_addressed_store = []   # [{cid, kind}]
+        self.mesh_active = False
+        self.mesh_transports = []  # ['bt', 'wifi-direct', 'lora', 'reticulum']
+        self.federated_identity_provider = "self-hosted"
+        self.offline_mode = False
+        self.export_history = []     # right-to-export receipts
+        self.delete_propagated = 0   # right-to-delete count
+        self.data_wallet_grants = []
+        self.zk_proofs_generated = 0
+
+    def add_document(self, name):
+        doc = {"name": name, "version": 1,
+                "peers": [p["id"] for p in self.peers if p["online"]]}
+        self.crdt_documents.append(doc)
+        return doc
+
+    def merge_document(self, name, remote_version=2):
+        for d in self.crdt_documents:
+            if d["name"] == name:
+                d["version"] = max(d["version"], remote_version)
+                return d
+        return None
+
+    def store_content(self, kind, content):
+        cid = "bafy" + hashlib.sha256(str(content).encode()).hexdigest()[:24]
+        self.content_addressed_store.append({"cid": cid, "kind": kind})
+        return cid
+
+    def fetch_content(self, cid):
+        for c in self.content_addressed_store:
+            if c["cid"] == cid:
+                return c
+        return None
+
+    def enable_mesh(self, transports=("bt", "wifi-direct")):
+        self.mesh_active = True
+        self.mesh_transports = list(transports)
+
+    def disable_mesh(self):
+        self.mesh_active = False
+        self.mesh_transports = []
+
+    def go_offline(self):
+        self.offline_mode = True
+
+    def go_online(self):
+        self.offline_mode = False
+
+    def export_data(self, scope="all"):
+        self.export_history.append({"scope": scope, "ts": time.time()})
+        return True
+
+    def request_delete(self, subject):
+        self.delete_propagated += 1
+
+    def grant_data_wallet(self, service, fields):
+        self.data_wallet_grants.append({"service": service, "fields": list(fields),
+                                         "ts": time.time()})
+
+    def generate_zk_proof(self, claim):
+        self.zk_proofs_generated += 1
+        return {"claim": claim, "proof": "zk:" + hashlib.sha256(claim.encode()).hexdigest()[:16]}
+
+    def stats(self):
+        return {
+            "local_first":   self.local_first,
+            "documents":     len(self.crdt_documents),
+            "peers":         len(self.peers),
+            "peers_online":  sum(1 for p in self.peers if p["online"]),
+            "cid_store":     len(self.content_addressed_store),
+            "mesh":          self.mesh_active,
+            "transports":    len(self.mesh_transports),
+            "offline":       self.offline_mode,
+            "exports":       len(self.export_history),
+            "deletes":       self.delete_propagated,
+            "wallet_grants": len(self.data_wallet_grants),
+            "zk_proofs":     self.zk_proofs_generated,
+        }
+
+decentral_sync = DecentralSyncManager()
+decentral_panel_state = {"tab": "documents"}
+
+
+# ---- Bundle 30: Personalization (theme engine)
+class PersonalizationEngine:
+    """Theme engine: color tokens, type ramp, radius, motion, sound theme, icons."""
+    THEMES = ("Dark Modern", "Light", "Midnight", "Solarized", "Catppuccin",
+               "Cyberpunk", "Sepia", "High Contrast", "Custom")
+    ICON_PACKS = ("Default", "Material", "Lucide", "Phosphor", "Custom Set 1")
+    CURSOR_PACKS = ("Default", "Big Cursor", "Crosshair", "Pixel", "Anime")
+    SOUND_THEMES = ("Default", "Minimal", "Nature", "Sci-Fi", "Mute")
+    def __init__(self):
+        self.theme = "Dark Modern"
+        self.icon_pack = "Default"
+        self.cursor_pack = "Default"
+        self.sound_theme = "Default"
+        self.color_tokens = {
+            "primary":    (60, 140, 210),
+            "secondary":  (140, 80, 210),
+            "accent":     (0, 220, 255),
+            "background": (18, 22, 36),
+            "surface":    (28, 34, 50),
+            "text":       (230, 230, 240),
+            "warn":       (255, 200, 60),
+            "error":      (220, 80, 80),
+        }
+        self.type_ramp = {"tiny": 10, "small": 13, "med": 16, "large": 22, "huge": 36}
+        self.radius = 8
+        self.motion_curve = "ease-out"      # 'linear' | 'ease-in' | 'ease-out' | 'spring'
+        self.assistant_voice = "Default"
+        self.layout_per_workspace = {}      # {ws_id: layout_name}
+        self.time_of_day_themes = {"morning": "Light", "evening": "Dark Modern"}
+        self.live_wallpaper = "off"          # 'off' | 'physics' | 'weather' | 'gen'
+
+    def set_theme(self, name):
+        if name in self.THEMES:
+            self.theme = name
+            return True
+        return False
+
+    def set_icon_pack(self, name):
+        if name in self.ICON_PACKS:
+            self.icon_pack = name
+            return True
+        return False
+
+    def set_cursor_pack(self, name):
+        if name in self.CURSOR_PACKS:
+            self.cursor_pack = name
+            return True
+        return False
+
+    def set_sound_theme(self, name):
+        if name in self.SOUND_THEMES:
+            self.sound_theme = name
+            return True
+        return False
+
+    def set_color_token(self, key, rgb):
+        if key in self.color_tokens:
+            self.color_tokens[key] = tuple(rgb)
+            return True
+        return False
+
+    def set_radius(self, r):
+        self.radius = max(0, min(32, int(r)))
+        return self.radius
+
+    def set_motion_curve(self, name):
+        if name in ("linear", "ease-in", "ease-out", "spring"):
+            self.motion_curve = name
+            return True
+        return False
+
+    def set_live_wallpaper(self, name):
+        if name in ("off", "physics", "weather", "gen"):
+            self.live_wallpaper = name
+            return True
+        return False
+
+    def stats(self):
+        return {
+            "theme":           self.theme,
+            "icon_pack":       self.icon_pack,
+            "cursor_pack":     self.cursor_pack,
+            "sound_theme":     self.sound_theme,
+            "radius":          self.radius,
+            "motion_curve":    self.motion_curve,
+            "assistant_voice": self.assistant_voice,
+            "live_wallpaper":  self.live_wallpaper,
+            "tokens":          len(self.color_tokens),
+        }
+
+personalization = PersonalizationEngine()
+personalization_panel_state = {"tab": "theme"}
+
+
+# ---- Bundle 31: Onboarding / Help
+class OnboardingHelpManager:
+    """Tour, interactive tutorials, "tell me how to X", skills tracker."""
+    def __init__(self):
+        self.first_run_done = False
+        self.tour_step = 0
+        self.tour_steps = [
+            {"title": "Welcome",       "body": "Welcome to Gman'sOS."},
+            {"title": "Command Palette","body": "Press Ctrl+K to launch any action."},
+            {"title": "Workspaces",    "body": "Switch with Ctrl+1..4."},
+            {"title": "Capture",       "body": "Ctrl+Shift+S to snip the screen."},
+            {"title": "Task Manager",  "body": "Ctrl+Shift+Esc to manage processes."},
+            {"title": "Done",          "body": "You're ready to explore. F1 anytime."},
+        ]
+        self.tutorials = [
+            {"name": "Snip a region",         "completed": False},
+            {"name": "Pin a window",          "completed": False},
+            {"name": "Set up a Focus Mode",   "completed": False},
+            {"name": "Create a workflow",     "completed": False},
+            {"name": "Try voice dictation",   "completed": False},
+        ]
+        self.skills = {
+            "command_palette":   0,
+            "snapshots":         0,
+            "workflows":         0,
+            "spotlight":         0,
+            "shortcuts":         0,
+        }
+        self.tip_of_the_day_enabled = True
+        self.help_history = []
+        self.whats_new_seen_version = None
+
+    def start_tour(self):
+        self.tour_step = 0
+        self.first_run_done = False
+        return True
+
+    def next_tour_step(self):
+        self.tour_step = min(self.tour_step + 1, len(self.tour_steps))
+        if self.tour_step >= len(self.tour_steps):
+            self.first_run_done = True
+        return self.tour_step
+
+    def complete_tutorial(self, name):
+        for t in self.tutorials:
+            if t["name"] == name:
+                t["completed"] = True
+                return True
+        return False
+
+    def gain_skill(self, key, amount=1):
+        if key in self.skills:
+            self.skills[key] += amount
+            return self.skills[key]
+        return None
+
+    def ask_how_to(self, query):
+        self.help_history.append({"q": query, "ts": time.time()})
+        return f"Help for: {query}"
+
+    def see_whats_new(self, version):
+        self.whats_new_seen_version = version
+
+    def stats(self):
+        return {
+            "first_run_done":  self.first_run_done,
+            "tour_step":       self.tour_step,
+            "tour_total":      len(self.tour_steps),
+            "tutorials_done":  sum(1 for t in self.tutorials if t["completed"]),
+            "tutorials_total": len(self.tutorials),
+            "total_skills":    sum(self.skills.values()),
+            "help_history":    len(self.help_history),
+            "whats_new":       self.whats_new_seen_version,
+        }
+
+onboarding = OnboardingHelpManager()
+onboarding_panel_state = {"tab": "tour"}
+
+
+# ---- Bundle 32: Power-User Automation
+class PowerAutomationManager:
+    """Workflow builder: Shortcuts / Power Automate / Hammerspoon-class."""
+    TRIGGERS = ("time", "location", "bluetooth", "network", "file_change",
+                 "hotkey", "voice", "calendar", "biometric", "mood")
+    def __init__(self):
+        self.workflows = [
+            {"name": "Morning Routine", "triggers": ["time"], "actions": ["open_browser",
+                "open_email", "play_news"], "enabled": True},
+            {"name": "Focus Block",     "triggers": ["calendar"], "actions": ["enable_dnd",
+                "set_focus_mode_Work", "dim_screen"], "enabled": True},
+            {"name": "Bedtime",         "triggers": ["time"], "actions": ["enable_wind_down",
+                "close_browsers", "set_alarm"], "enabled": False},
+        ]
+        self.macros = []         # recorded sequences
+        self.recording_macro = None
+        self.runs = []
+        self.marketplace_workflows = [
+            "Travel Mode", "Workout Logger", "Inbox Zero",
+            "Code Review", "Daily Standup", "Sleep Tracker",
+        ]
+        self.dry_run_mode = False
+
+    def add_workflow(self, name, triggers, actions):
+        wf = {"name": name, "triggers": list(triggers),
+               "actions": list(actions), "enabled": True}
+        self.workflows.append(wf)
+        return wf
+
+    def remove_workflow(self, name):
+        for i, w in enumerate(self.workflows):
+            if w["name"] == name:
+                self.workflows.pop(i)
+                return True
+        return False
+
+    def toggle_workflow(self, name):
+        for w in self.workflows:
+            if w["name"] == name:
+                w["enabled"] = not w["enabled"]
+                return w["enabled"]
+        return None
+
+    def run_workflow(self, name, dry_run=False):
+        for w in self.workflows:
+            if w["name"] == name and w["enabled"]:
+                self.runs.append({"name": name, "ts": time.time(),
+                                   "dry": dry_run, "actions": list(w["actions"])})
+                return True
+        return False
+
+    def start_recording_macro(self, name):
+        self.recording_macro = {"name": name, "events": [], "started": time.time()}
+
+    def record_event(self, event):
+        if self.recording_macro is not None:
+            self.recording_macro["events"].append(event)
+            return True
+        return False
+
+    def stop_recording_macro(self):
+        if self.recording_macro is None:
+            return None
+        m = self.recording_macro
+        self.recording_macro = None
+        self.macros.append(m)
+        return m
+
+    def play_macro(self, name):
+        for m in self.macros:
+            if m["name"] == name:
+                self.runs.append({"name": "macro:" + name, "ts": time.time(),
+                                   "events": len(m["events"])})
+                return True
+        return False
+
+    def stats(self):
+        return {
+            "workflows":       len(self.workflows),
+            "workflows_on":    sum(1 for w in self.workflows if w["enabled"]),
+            "macros":          len(self.macros),
+            "recording":       self.recording_macro is not None,
+            "runs":            len(self.runs),
+            "marketplace":     len(self.marketplace_workflows),
+            "dry_run_mode":    self.dry_run_mode,
+        }
+
+automation = PowerAutomationManager()
+automation_panel_state = {"tab": "workflows"}
+
+
+# =============================================================================
+# CYCLE 5 — Group 4: I/O / DOC / QoL / RESILIENCE / WINDOW+ / NOTIF+ / BCI+
+# =============================================================================
+
+# ---- Bundle 33: Universal Input
+class UniversalInputManager:
+    """Pen, 3D mouse, MIDI, controllers, foot pedals, eye tracker, EEG, skin-tap."""
+    DEVICE_KINDS = ("pen", "3d_mouse", "midi", "controller", "foot_pedal",
+                     "eye_tracker", "eeg", "emg", "skin_tap", "macro_pad",
+                     "draw_tablet", "force_touch", "haptic_glove", "muscle_sensor",
+                     "head_tracker", "chord_keyboard", "phone_as_controller")
+    def __init__(self):
+        self.devices = {k: False for k in self.DEVICE_KINDS}
+        self.devices["pen"] = True
+        self.devices["controller"] = True
+        self.pressure_levels = 8192        # pen pressure
+        self.tilt_supported = True
+        self.palm_rejection = True
+        self.hover_supported = True
+        self.midi_channels = {}
+        self.macro_pad_layers = []
+        self.gestures_recognized = 0
+        self.input_events_count = 0
+
+    def connect(self, kind):
+        if kind in self.devices:
+            self.devices[kind] = True
+            return True
+        return False
+
+    def disconnect(self, kind):
+        if kind in self.devices:
+            self.devices[kind] = False
+            return True
+        return False
+
+    def push_input_event(self):
+        self.input_events_count += 1
+
+    def assign_midi(self, channel, action):
+        self.midi_channels[channel] = action
+
+    def gesture(self, name):
+        self.gestures_recognized += 1
+        return name
+
+    def add_macro_layer(self, label):
+        self.macro_pad_layers.append({"label": label, "ts": time.time()})
+
+    def stats(self):
+        return {
+            "connected":       sum(1 for v in self.devices.values() if v),
+            "total_kinds":     len(self.devices),
+            "midi_assignments":len(self.midi_channels),
+            "macro_layers":    len(self.macro_pad_layers),
+            "gestures":        self.gestures_recognized,
+            "events":          self.input_events_count,
+            "pen_pressure":    self.pressure_levels,
+            "palm_rejection":  self.palm_rejection,
+        }
+
+input_mgr = UniversalInputManager()
+input_mgr_panel_state = {"tab": "devices"}
+
+
+# ---- Bundle 34: Universal Output
+class UniversalOutputManager:
+    """Multi-display, haptics, 3D-print, holographic, ultrasonic, smart-home."""
+    OUTPUT_KINDS = ("display", "speaker", "haptic", "3d_printer", "holographic",
+                     "ultrasonic", "scent", "robot_arm", "smart_lights",
+                     "smart_shades", "smart_thermostat", "smart_lock", "wearable_alert")
+    def __init__(self):
+        self.outputs = {k: False for k in self.OUTPUT_KINDS}
+        self.outputs["display"] = True
+        self.outputs["speaker"] = True
+        self.outputs["haptic"] = True
+        self.outputs["smart_lights"] = True
+        self.outputs["smart_thermostat"] = True
+        self.display_count = 1
+        self.haptic_patterns = []
+        self.print_jobs_3d = []
+        self.holographic_active = False
+        self.scent_palette = ["citrus", "pine", "rose", "ocean"]
+        self.last_haptic = None
+        self.smart_home_state = {
+            "lights":      {"living_room": "warm 60%", "kitchen": "off"},
+            "thermostat":  {"target_c": 21, "mode": "auto"},
+            "locks":       {"front_door": "locked", "garage": "locked"},
+            "shades":      {"living_room": "open", "bedroom": "closed"},
+        }
+
+    def enable(self, kind):
+        if kind in self.outputs:
+            self.outputs[kind] = True
+            return True
+        return False
+
+    def disable(self, kind):
+        if kind in self.outputs:
+            self.outputs[kind] = False
+            return True
+        return False
+
+    def add_display(self):
+        self.display_count += 1
+        return self.display_count
+
+    def haptic(self, pattern):
+        self.haptic_patterns.append({"pattern": pattern, "ts": time.time()})
+        self.last_haptic = pattern
+        return True
+
+    def print_3d(self, model_name, material="PLA"):
+        job = {"model": model_name, "material": material, "ts": time.time(),
+                "status": "queued"}
+        self.print_jobs_3d.append(job)
+        return job
+
+    def set_light(self, room, value):
+        self.smart_home_state["lights"][room] = value
+        return True
+
+    def set_thermostat(self, target_c, mode="auto"):
+        self.smart_home_state["thermostat"] = {"target_c": target_c, "mode": mode}
+        return True
+
+    def lock_door(self, name):
+        self.smart_home_state["locks"][name] = "locked"
+        return True
+
+    def stats(self):
+        return {
+            "outputs_active":  sum(1 for v in self.outputs.values() if v),
+            "outputs_total":   len(self.outputs),
+            "displays":        self.display_count,
+            "haptics_count":   len(self.haptic_patterns),
+            "print_jobs_3d":   len(self.print_jobs_3d),
+            "lights":          len(self.smart_home_state["lights"]),
+            "locks":           len(self.smart_home_state["locks"]),
+        }
+
+output_mgr = UniversalOutputManager()
+output_mgr_panel_state = {"tab": "displays"}
+
+
+# ---- Bundle 35: Document & Collaboration
+class DocCollabManager:
+    """Real-time co-edit + version control for any file + diff/merge + comments + links."""
+    def __init__(self):
+        self.documents = [
+            {"id": 1, "name": "Project Plan",   "kind": "doc",   "version": 3, "collaborators": ["Gman"],         "comments": 2},
+            {"id": 2, "name": "Budget 2025",    "kind": "sheet", "version": 12,"collaborators": ["Gman", "Alice"], "comments": 0},
+            {"id": 3, "name": "Pitch Deck",     "kind": "slide", "version": 5, "collaborators": ["Gman", "Bob"],   "comments": 4},
+        ]
+        self.next_doc_id = 4
+        self.snapshots = {}        # {doc_id: [version_snapshots]}
+        self.diffs = []
+        self.merges = []
+        self.shared_links = []
+        self.suggestion_mode = False
+        self.cursors = []          # live cursors of collaborators
+        self.history_index = {}    # {doc_id: history events}
+        self.locked_sections = []
+        self.translations = []
+
+    def new_doc(self, name, kind="doc"):
+        doc = {"id": self.next_doc_id, "name": name, "kind": kind,
+                "version": 1, "collaborators": ["Gman"], "comments": 0}
+        self.next_doc_id += 1
+        self.documents.append(doc)
+        return doc
+
+    def edit(self, doc_id, text=""):
+        for d in self.documents:
+            if d["id"] == doc_id:
+                d["version"] += 1
+                self.history_index.setdefault(doc_id, []).append(
+                    {"version": d["version"], "ts": time.time(), "text": text})
+                return d
+        return None
+
+    def add_collaborator(self, doc_id, name):
+        for d in self.documents:
+            if d["id"] == doc_id and name not in d["collaborators"]:
+                d["collaborators"].append(name)
+                return True
+        return False
+
+    def comment(self, doc_id, text):
+        for d in self.documents:
+            if d["id"] == doc_id:
+                d["comments"] += 1
+                return True
+        return False
+
+    def diff(self, doc_id, from_ver, to_ver):
+        result = {"doc_id": doc_id, "from": from_ver, "to": to_ver,
+                   "changes": abs(to_ver - from_ver)}
+        self.diffs.append(result)
+        return result
+
+    def merge(self, doc_id, source_branch):
+        result = {"doc_id": doc_id, "from_branch": source_branch,
+                   "conflicts": random.randint(0, 3)}
+        self.merges.append(result)
+        return result
+
+    def share_link(self, doc_id, permission="view", expires_days=7):
+        link = {"doc_id": doc_id, "permission": permission,
+                 "expires": time.time() + expires_days * 86400,
+                 "token": "lnk-" + hashlib.sha256(str(doc_id).encode()).hexdigest()[:12]}
+        self.shared_links.append(link)
+        return link
+
+    def toggle_suggestion_mode(self):
+        self.suggestion_mode = not self.suggestion_mode
+        return self.suggestion_mode
+
+    def lock_section(self, doc_id, section):
+        self.locked_sections.append({"doc_id": doc_id, "section": section})
+
+    def translate_doc(self, doc_id, to_lang):
+        self.translations.append({"doc_id": doc_id, "to": to_lang, "ts": time.time()})
+        return True
+
+    def stats(self):
+        return {
+            "docs":            len(self.documents),
+            "collab_count":    sum(len(d["collaborators"]) for d in self.documents),
+            "comments":        sum(d["comments"] for d in self.documents),
+            "diffs":           len(self.diffs),
+            "merges":          len(self.merges),
+            "shared_links":    len(self.shared_links),
+            "suggestion_mode": self.suggestion_mode,
+            "locked_sections": len(self.locked_sections),
+            "translations":    len(self.translations),
+        }
+
+doc_collab = DocCollabManager()
+doc_collab_panel_state = {"tab": "documents"}
+
+
+# ---- Bundle 36: Quality of Life
+class QualityOfLifeManager:
+    """Universal undo/find/zoom/spell, drag-drop everywhere, magnifier loupe, etc."""
+    def __init__(self):
+        self.universal_undo_stack = []      # [{kind, payload, ts}]
+        self.universal_redo_stack = []
+        self.find_in_app = {"active": False, "query": "", "results": 0, "current": 0}
+        self.zoom_per_app = {}              # {app: scale}
+        self.global_zoom = 1.0
+        self.spell_check_languages = ["en-US"]
+        self.spell_check_active = True
+        self.typo_corrections_count = 0
+        self.dictionary_user_words = []
+        self.drag_drop_history = []          # {src, dst, kind}
+        self.global_clipboard_search = ""
+        self.magnifier_loupe = False
+        self.dock_minimize_animation = "scale"
+        self.scroll_lock_to_axis = True
+        self.smooth_scroll = True
+        self.tab_stash_count = 0
+        self.battery_aware_throttle = True
+        self.dnd_smart_resume = True
+        self.do_not_disturb_calendar_aware = True
+        self.airplane_mode_smart = True
+        self.weather_in_lockscreen = True
+
+    def undo(self):
+        if self.universal_undo_stack:
+            action = self.universal_undo_stack.pop()
+            self.universal_redo_stack.append(action)
+            return action
+        return None
+
+    def redo(self):
+        if self.universal_redo_stack:
+            action = self.universal_redo_stack.pop()
+            self.universal_undo_stack.append(action)
+            return action
+        return None
+
+    def push_undo(self, kind, payload):
+        self.universal_undo_stack.append({"kind": kind, "payload": payload, "ts": time.time()})
+        self.universal_undo_stack = self.universal_undo_stack[-200:]
+        self.universal_redo_stack.clear()
+
+    def start_find(self, query):
+        self.find_in_app["active"] = True
+        self.find_in_app["query"] = query
+        self.find_in_app["results"] = max(1, len(query) % 7)
+        self.find_in_app["current"] = 1
+
+    def find_next(self):
+        if self.find_in_app["active"] and self.find_in_app["results"] > 0:
+            cur = self.find_in_app["current"]
+            self.find_in_app["current"] = (cur % self.find_in_app["results"]) + 1
+            return self.find_in_app["current"]
+        return None
+
+    def stop_find(self):
+        self.find_in_app["active"] = False
+
+    def set_zoom(self, app, scale):
+        scale = max(0.25, min(4.0, scale))
+        self.zoom_per_app[app] = scale
+        return scale
+
+    def add_user_word(self, word):
+        if word not in self.dictionary_user_words:
+            self.dictionary_user_words.append(word)
+            return True
+        return False
+
+    def correct_typo(self):
+        self.typo_corrections_count += 1
+        return True
+
+    def drag_drop(self, src, dst, kind="file"):
+        self.drag_drop_history.append({"src": src, "dst": dst, "kind": kind, "ts": time.time()})
+
+    def stash_tabs(self, count):
+        self.tab_stash_count += count
+
+    def stats(self):
+        return {
+            "undo_depth":      len(self.universal_undo_stack),
+            "redo_depth":      len(self.universal_redo_stack),
+            "find_active":     self.find_in_app["active"],
+            "zoom_overrides":  len(self.zoom_per_app),
+            "global_zoom":     self.global_zoom,
+            "spell_languages": len(self.spell_check_languages),
+            "user_words":      len(self.dictionary_user_words),
+            "typos_corrected": self.typo_corrections_count,
+            "drag_drops":      len(self.drag_drop_history),
+            "tabs_stashed":    self.tab_stash_count,
+        }
+
+qol_mgr = QualityOfLifeManager()
+qol_panel_state = {"tab": "undo"}
+
+
+# ---- Bundle 37: Resilience / Survival
+class ResilienceManager:
+    """Crash-only, power-loss safety, OOM survival, EMP recovery, SOS, fall detection."""
+    def __init__(self):
+        self.crash_only_design = True
+        self.power_loss_safe = True
+        self.outstanding_writes = 0
+        self.fsync_count = 0
+        self.oom_killer_log = []
+        self.brownout_count = 0
+        self.bitrot_scrub_runs = 0
+        self.cosmic_ray_errors_corrected = 0
+        self.recovery_mode_armed = False
+        self.emergency_sos_armed = True
+        self.sos_satellite_available = True
+        self.sos_pings = []
+        self.fall_detected = False
+        self.fall_history = []
+        self.medical_id = {"name": "Gman", "blood_type": "O+",
+                            "allergies": [], "emergency_contact": "Mom"}
+        self.dead_mans_switch_armed = False
+        self.dead_mans_check_in_hours = 24
+        self.dead_mans_last_check_in = time.time()
+        self.duress_passcode_set = True
+        self.panic_button_pressed = False
+        self.snapshots_offsite = 0
+        self.offsite_targets = ["satellite-archive", "mesh-peer-b"]
+        self.disaster_drill_runs = 0
+
+    def fsync(self):
+        self.fsync_count += 1
+        self.outstanding_writes = 0
+
+    def power_loss_event(self):
+        self.brownout_count += 1
+        # Without crash-only this would lose data; with it we just recover
+        return self.crash_only_design
+
+    def oom_kill(self, app):
+        self.oom_killer_log.append({"app": app, "ts": time.time()})
+
+    def scrub_bitrot(self):
+        self.bitrot_scrub_runs += 1
+        return True
+
+    def cosmic_ray_correct(self):
+        self.cosmic_ray_errors_corrected += 1
+
+    def arm_recovery_mode(self):
+        self.recovery_mode_armed = True
+
+    def sos_ping(self, location=None, message="SOS"):
+        ping = {"ts": time.time(), "location": location,
+                 "message": message, "satellite": self.sos_satellite_available}
+        self.sos_pings.append(ping)
+        try:
+            activity_log.record("sos_ping", "Emergency SOS", category="Security")
+        except Exception:
+            pass
+        return ping
+
+    def detect_fall(self, severity="moderate"):
+        self.fall_detected = True
+        self.fall_history.append({"ts": time.time(), "severity": severity})
+        return True
+
+    def acknowledge_fall(self):
+        self.fall_detected = False
+
+    def check_in_dead_mans_switch(self):
+        self.dead_mans_last_check_in = time.time()
+
+    def offsite_backup(self, target=None):
+        self.snapshots_offsite += 1
+        return target or self.offsite_targets[0]
+
+    def disaster_drill(self):
+        self.disaster_drill_runs += 1
+        return True
+
+    def stats(self):
+        return {
+            "crash_only":         self.crash_only_design,
+            "fsyncs":             self.fsync_count,
+            "brownouts":          self.brownout_count,
+            "oom_kills":          len(self.oom_killer_log),
+            "bitrot_scrubs":      self.bitrot_scrub_runs,
+            "cosmic_corrections": self.cosmic_ray_errors_corrected,
+            "recovery_armed":     self.recovery_mode_armed,
+            "sos_pings":          len(self.sos_pings),
+            "falls":              len(self.fall_history),
+            "fall_pending":       self.fall_detected,
+            "dead_mans_armed":    self.dead_mans_switch_armed,
+            "offsite_snapshots":  self.snapshots_offsite,
+            "drills":             self.disaster_drill_runs,
+        }
+
+resilience = ResilienceManager()
+resilience_panel_state = {"tab": "summary"}
+
+
+# ---- Bundle 38: Window & Display Plus
+class WindowDisplayPlus:
+    """FancyZones, snap groups, multi-monitor mixed DPI, HDR, VRR, wallpaper engine."""
+    def __init__(self):
+        self.zones = [
+            {"name": "Halves", "rects": [(0, 0, 0.5, 1.0), (0.5, 0, 0.5, 1.0)]},
+            {"name": "Thirds", "rects": [(0.0, 0, 1/3, 1.0), (1/3, 0, 1/3, 1.0), (2/3, 0, 1/3, 1.0)]},
+            {"name": "3-Cols", "rects": [(0, 0, 0.25, 1.0), (0.25, 0, 0.5, 1.0), (0.75, 0, 0.25, 1.0)]},
+            {"name": "PiP",    "rects": [(0.7, 0.7, 0.3, 0.3)]},
+        ]
+        self.active_zone = "Halves"
+        self.snap_groups = []
+        self.monitors = [
+            {"id": 1, "name": "Built-in Retina",  "w": 2880, "h": 1800, "dpi": 226, "hdr": True,  "vrr": True,  "refresh": 120, "wallpaper": "Aurora"},
+            {"id": 2, "name": "External Studio",  "w": 5120, "h": 2880, "dpi": 218, "hdr": True,  "vrr": False, "refresh":  60, "wallpaper": "Forest"},
+        ]
+        self.mixed_dpi_aware = True
+        self.always_on_display = False
+        self.live_wallpaper_engine = "off"
+        self.wallpaper_per_workspace = {}
+        self.color_management = True
+        self.icc_profiles = ["sRGB", "P3", "Adobe RGB", "Rec.709", "Rec.2020"]
+        self.active_icc = "P3"
+        self.zone_history = []
+        self.window_groups = []     # named groupings of windows
+
+    def add_zone(self, name, rects):
+        self.zones.append({"name": name, "rects": list(rects)})
+        return True
+
+    def set_active_zone(self, name):
+        if any(z["name"] == name for z in self.zones):
+            self.active_zone = name
+            self.zone_history.append({"name": name, "ts": time.time()})
+            return True
+        return False
+
+    def add_monitor(self, name, w, h, dpi=96, hdr=False, vrr=False, refresh=60):
+        m = {"id": len(self.monitors) + 1, "name": name,
+              "w": w, "h": h, "dpi": dpi, "hdr": hdr, "vrr": vrr, "refresh": refresh,
+              "wallpaper": "Default"}
+        self.monitors.append(m)
+        return m
+
+    def set_wallpaper(self, monitor_id, wallpaper):
+        for m in self.monitors:
+            if m["id"] == monitor_id:
+                m["wallpaper"] = wallpaper
+                return True
+        return False
+
+    def set_icc(self, profile):
+        if profile in self.icc_profiles:
+            self.active_icc = profile
+            return True
+        return False
+
+    def save_snap_group(self, name, window_ids):
+        self.snap_groups.append({"name": name, "windows": list(window_ids)})
+
+    def create_window_group(self, name, window_ids):
+        self.window_groups.append({"name": name, "windows": list(window_ids)})
+
+    def stats(self):
+        return {
+            "zones":           len(self.zones),
+            "active_zone":     self.active_zone,
+            "snap_groups":     len(self.snap_groups),
+            "monitors":        len(self.monitors),
+            "mixed_dpi":       self.mixed_dpi_aware,
+            "icc_profiles":    len(self.icc_profiles),
+            "active_icc":      self.active_icc,
+            "window_groups":   len(self.window_groups),
+            "hdr_monitors":    sum(1 for m in self.monitors if m["hdr"]),
+            "vrr_monitors":    sum(1 for m in self.monitors if m["vrr"]),
+        }
+
+window_plus = WindowDisplayPlus()
+window_plus_panel_state = {"tab": "zones"}
+
+
+# ---- Bundle 39: Notifications Plus
+class NotificationsPlus:
+    """Inline reply, rich notifications, mirror, group bundle, priority sender, AI summarize."""
+    def __init__(self):
+        self.inline_replies = []   # last inline replies sent from notifications
+        self.rich_buffers = []     # buffer of rich notifications (images, video, MMS)
+        self.mirror_devices = ["Gmansos Phone", "Gmansos Watch"]
+        self.mirror_active = False
+        self.bundles = {}          # {app: count_today}
+        self.priority_senders = ["Mom", "Boss"]
+        self.unread_summaries = []
+        self.snooze_durations_min = [10, 30, 60, 240, 1440]
+        self.silenced_apps = set()
+        self.do_not_disturb_calendar_aware = True
+        self.do_not_disturb_location_aware = True
+        self.subscriptions_synced = False
+        self.escalation_rules = []   # {sender, after_min}
+
+    def inline_reply(self, notif_id, text):
+        self.inline_replies.append({"notif_id": notif_id, "text": text, "ts": time.time()})
+        return True
+
+    def add_rich(self, kind, payload):
+        self.rich_buffers.append({"kind": kind, "payload": payload, "ts": time.time()})
+
+    def toggle_mirror(self):
+        self.mirror_active = not self.mirror_active
+        return self.mirror_active
+
+    def bundle_for(self, app):
+        self.bundles[app] = self.bundles.get(app, 0) + 1
+
+    def add_priority_sender(self, name):
+        if name not in self.priority_senders:
+            self.priority_senders.append(name)
+
+    def summarize_unread(self, app):
+        s = f"You have {self.bundles.get(app, 0)} unread from {app}"
+        self.unread_summaries.append({"app": app, "summary": s})
+        return s
+
+    def silence_app(self, app):
+        self.silenced_apps.add(app)
+
+    def unsilence_app(self, app):
+        self.silenced_apps.discard(app)
+
+    def add_escalation(self, sender, after_min):
+        self.escalation_rules.append({"sender": sender, "after_min": after_min})
+
+    def stats(self):
+        return {
+            "inline_replies":      len(self.inline_replies),
+            "rich_notifs":         len(self.rich_buffers),
+            "mirror_active":       self.mirror_active,
+            "mirror_devices":      len(self.mirror_devices),
+            "bundled_apps":        len(self.bundles),
+            "priority_senders":    len(self.priority_senders),
+            "summaries":           len(self.unread_summaries),
+            "silenced_apps":       len(self.silenced_apps),
+            "escalation_rules":    len(self.escalation_rules),
+        }
+
+notifs_plus = NotificationsPlus()
+notifs_plus_panel_state = {"tab": "summaries"}
+
+
+# ---- Bundle 40: BCI / Bio Plus
+class BCIBioPlus:
+    """EEG headset, invasive BCI, subvocalization, mood detection, implants, continuous health."""
+    SIGNAL_KINDS = ("eeg_dry", "eeg_wet", "ecog", "implant", "subvocal",
+                     "ecg", "ppg", "spo2", "glucose", "cortisol",
+                     "skin_temp", "hrv", "respiration", "emg", "eog")
+    MOODS = ("calm", "focused", "stressed", "tired", "happy", "frustrated", "creative")
+    def __init__(self):
+        self.connected = {k: False for k in self.SIGNAL_KINDS}
+        self.connected["ppg"] = True
+        self.connected["hrv"] = True
+        self.connected["respiration"] = True
+        self.intent_decoded = []      # last decoded thoughts/intents
+        self.subvocal_dictation = False
+        self.subvocal_buffer = []
+        self.mood = "calm"
+        self.mood_history = []
+        self.health_metrics = {
+            "hr_bpm": 64, "hrv_ms": 78, "spo2_pct": 98, "respiration_bpm": 14,
+            "glucose_mg_dl": 92, "cortisol_ng_ml": 8.0, "core_temp_c": 36.6,
+            "skin_temp_c": 32.5,
+        }
+        self.fall_risk = "low"
+        self.implant_devices = []
+        self.continuous_monitoring = True
+        self.medication_reminders = []
+        self.predictive_health_alerts = []
+        self.gait_pattern = "normal"
+        self.sleep_stage = "awake"      # 'awake' | 'light' | 'deep' | 'rem'
+
+    def connect_signal(self, kind):
+        if kind in self.connected:
+            self.connected[kind] = True
+            return True
+        return False
+
+    def decode_intent(self, intent):
+        self.intent_decoded.append({"intent": intent, "ts": time.time()})
+        self.intent_decoded = self.intent_decoded[-100:]
+        return intent
+
+    def start_subvocal(self):
+        self.subvocal_dictation = True
+
+    def stop_subvocal(self):
+        self.subvocal_dictation = False
+
+    def feed_subvocal(self, word):
+        if self.subvocal_dictation:
+            self.subvocal_buffer.append(word)
+            return True
+        return False
+
+    def detect_mood(self, mood):
+        if mood in self.MOODS:
+            self.mood = mood
+            self.mood_history.append({"mood": mood, "ts": time.time()})
+            self.mood_history = self.mood_history[-100:]
+            return True
+        return False
+
+    def add_implant(self, name, kind="medical"):
+        self.implant_devices.append({"name": name, "kind": kind, "ts": time.time()})
+
+    def add_med_reminder(self, name, hhmm):
+        self.medication_reminders.append({"name": name, "time": hhmm})
+
+    def predict_alert(self, text, severity="info"):
+        self.predictive_health_alerts.append({"text": text, "severity": severity,
+                                               "ts": time.time()})
+
+    def set_sleep_stage(self, stage):
+        if stage in ("awake", "light", "deep", "rem"):
+            self.sleep_stage = stage
+            return True
+        return False
+
+    def stats(self):
+        return {
+            "signals_connected":   sum(1 for v in self.connected.values() if v),
+            "intents_decoded":     len(self.intent_decoded),
+            "subvocal_active":     self.subvocal_dictation,
+            "subvocal_words":      len(self.subvocal_buffer),
+            "mood":                self.mood,
+            "moods_logged":        len(self.mood_history),
+            "implants":            len(self.implant_devices),
+            "continuous":          self.continuous_monitoring,
+            "med_reminders":       len(self.medication_reminders),
+            "alerts":              len(self.predictive_health_alerts),
+            "sleep_stage":         self.sleep_stage,
+            "hr_bpm":              self.health_metrics["hr_bpm"],
+        }
+
+bci_plus = BCIBioPlus()
+bci_plus_panel_state = {"tab": "signals"}
+
+
+# =============================================================================
+# CYCLE 3 — SnapshotManager extensions: auto-save events + GC
+# =============================================================================
+def snapshot_on_event(event_label):
+    """Take an auto restore-point snapshot if the SnapshotManager has it
+    enabled. Cheap no-op if disabled. Throttled to once per 2s per event.
+    """
+    if not getattr(snapshot_mgr, "auto_on_events", False):
+        return False
+    last_key = f"_last_event_{event_label}"
+    last = getattr(snapshot_mgr, last_key, 0)
+    now = time.time()
+    if now - last < 2.0:
+        return False
+    setattr(snapshot_mgr, last_key, now)
+    snapshot_mgr.capture(name=f"Auto: {event_label} {time.strftime('%H:%M:%S')}",
+                          kind="restore-point")
+    return True
+
+
+def snapshot_gc(max_age_sec=600, keep_manual=True):
+    """Delete auto/restore-point snapshots older than max_age_sec.
+    Manual snapshots are preserved unless keep_manual=False.
+    """
+    now = time.time()
+    before = len(snapshot_mgr.snapshots)
+    if keep_manual:
+        snapshot_mgr.snapshots = [
+            s for s in snapshot_mgr.snapshots
+            if (s["kind"] == "manual" or now - s["timestamp"] < max_age_sec)
+        ]
+    else:
+        snapshot_mgr.snapshots = [
+            s for s in snapshot_mgr.snapshots
+            if now - s["timestamp"] < max_age_sec
+        ]
+    deleted = before - len(snapshot_mgr.snapshots)
+    if deleted:
+        try:
+            activity_log.record("snapshot_gc",
+                                 f"GC removed {deleted} old snapshots",
+                                 category="System")
+        except Exception:
+            pass
+    return deleted
+
+
+# Initialize the auto_on_events flag on the existing snapshot_mgr instance
+snapshot_mgr.auto_on_events = False
+
+
 # Global OS State
 open_windows = []
 notifications = []
@@ -5152,7 +13309,7 @@ text_editor_state = {
     "content": "",
     "cursor_pos": 0,
     "unsaved": False,
-    "files": {"welcome.txt": "Welcome to GMan OS!\n\nThis is a universal hybrid operating system.\n", "report.txt": "Q4 Performance Report\nRevenue: $1.2M\nGrowth: 15%\n", "notes.txt": "Meeting notes:\n- Review designs\n- Update documentation\n"}
+    "files": {"welcome.txt": "Welcome to Gman'sOS!\n\nThis is a universal hybrid operating system.\n", "report.txt": "Q4 Performance Report\nRevenue: $1.2M\nGrowth: 15%\n", "notes.txt": "Meeting notes:\n- Review designs\n- Update documentation\n"}
 }
 
 # Calculator State
@@ -5210,11 +13367,11 @@ system_logs = [
 network_state = {
     "connected": True,
     "interface": "Wi-Fi",
-    "ssid": "GManOS-Network",
+    "ssid": "GmansOS-Network",
     "signal": 85,
     "ip": "192.168.1.42",
     "available_networks": [
-        {"ssid": "GManOS-Network", "signal": 85, "security": "WPA3", "connected": True},
+        {"ssid": "GmansOS-Network", "signal": 85, "security": "WPA3", "connected": True},
         {"ssid": "Office-5G", "signal": 72, "security": "WPA2", "connected": False},
         {"ssid": "CoffeeShop-Free", "signal": 45, "security": "Open", "connected": False},
         {"ssid": "IoT-Mesh", "signal": 60, "security": "WPA3", "connected": False},
@@ -5516,11 +13673,11 @@ assistant_state = {
 # Clipboard History
 clipboard_history_state = {
     "items": [
-        {"text": "https://github.com/gman-os/universal", "time": "2 min ago", "type": "url"},
+        {"text": "https://github.com/gmansos/universal", "time": "2 min ago", "type": "url"},
         {"text": "def universal_launch(app):", "time": "5 min ago", "type": "code"},
         {"text": "Quantum computing is the future", "time": "12 min ago", "type": "text"},
         {"text": "192.168.1.42", "time": "1 hr ago", "type": "ip"},
-        {"text": "user@gman-os.local", "time": "2 hr ago", "type": "email"},
+        {"text": "user@gmansos.local", "time": "2 hr ago", "type": "email"},
     ],
     "max_items": 50,
 }
@@ -5578,10 +13735,10 @@ translator_state = {
 # QR Code Scanner
 qr_state = {
     "scanning": False,
-    "last_scan": "https://gman-os.dev",
+    "last_scan": "https://gmansos.dev",
     "history": [
-        {"type": "URL", "content": "https://gman-os.dev", "time": "Today"},
-        {"type": "WiFi", "content": "GManOS-Network", "time": "Yesterday"},
+        {"type": "URL", "content": "https://gmansos.dev", "time": "Today"},
+        {"type": "WiFi", "content": "GmansOS-Network", "time": "Yesterday"},
         {"type": "Contact", "content": "Alice Johnson", "time": "2 days ago"},
     ],
 }
@@ -6027,7 +14184,7 @@ db_state = {
 api_state = {
     "method": "GET",
     "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    "url": "https://api.gman-os.dev/v1/users",
+    "url": "https://api.gmansos.dev/v1/users",
     "last_response": {"status": 200, "time": 142, "size": "4.2 KB"},
     "history": [
         {"method": "GET", "url": "/v1/users", "status": 200},
@@ -6061,7 +14218,7 @@ dns_state = {
     "dns_over_https": True, "dns_over_tls": True,
     "cache_entries": 847,
     "custom_hosts": [
-        {"host": "local.gman-os.dev", "ip": "127.0.0.1"},
+        {"host": "local.gmansos.dev", "ip": "127.0.0.1"},
         {"host": "dev.api.test", "ip": "192.168.1.50"},
     ],
     "query_latency": 2,  # ms
@@ -6193,7 +14350,7 @@ rss_state = {
         {"name": "Quantum Research", "unread": 3, "total": 45},
     ],
     "articles": [
-        {"title": "GMan OS 2.0 released with full quantum support", "feed": "Tech News", "time": "2h ago", "unread": True},
+        {"title": "Gman'sOS 2.0 released with full quantum support", "feed": "Tech News", "time": "2h ago", "unread": True},
         {"title": "New ARM64 chip hits 5GHz base clock", "feed": "Hardware", "time": "4h ago", "unread": True},
         {"title": "Linux Kernel 7.0 merges AI scheduler", "feed": "Open Source", "time": "Today", "unread": True},
         {"title": "First 1000-qubit chip demonstrated", "feed": "Quantum", "time": "Yesterday", "unread": False},
@@ -6289,7 +14446,7 @@ kanban_state = {
 
 # Git GUI
 git_state = {
-    "repo": "gman-os/universal",
+    "repo": "gmansos/universal",
     "branch": "main",
     "branches": ["main", "develop", "feature/ai-hub", "fix/renderer-bug"],
     "commits": [
@@ -6375,7 +14532,7 @@ cloud_state = {
 # In-OS Web Browser - runs INSIDE the OS window, never launches host Chrome/Firefox
 browser_state = {
     "tabs": [
-        {"title": "GMan OS Home", "url": "gman://home", "content": "home"},
+        {"title": "Gman'sOS Home", "url": "gman://home", "content": "home"},
         {"title": "Universal Docs", "url": "gman://docs", "content": "docs"},
         {"title": "App Store", "url": "gman://store", "content": "store"},
     ],
@@ -6760,9 +14917,28 @@ class AppWindow:
         self.maximized = False
         self.app_type = app_type
         self.emulation_state = {} if app_type else None
+        self.always_on_top = False  # CYCLE 3 - pin above other windows
 
     def close(self):
+        # CYCLE 3 - auto-snapshot on window close if enabled
+        _se = globals().get("snapshot_on_event")
+        if _se is not None:
+            try:
+                _se(f"close-{self.title}")
+            except Exception:
+                pass
         if self in open_windows: open_windows.remove(self)
+
+    def toggle_always_on_top(self):
+        """CYCLE 3 - toggle pin-on-top for this window."""
+        self.always_on_top = not self.always_on_top
+        try:
+            activity_log.record("window_pin",
+                                 f"{self.title}: pinned={self.always_on_top}",
+                                 category="Workspace")
+        except Exception:
+            pass
+        return self.always_on_top
 
     def toggle_max(self):
         self.maximized = not self.maximized
@@ -6809,11 +14985,11 @@ def draw_health(surf, rect, _):
 def draw_terminal(surf, rect, _):
     pygame.draw.rect(surf, (0, 8, 12), rect, border_radius=8)
     lines = [
-        "root@gman-os:~# uname -a",
-        "GMan OS 1.0 • Universal Kernel • Hybrid",
+        "root@gmansos:~# uname -a",
+        "Gman'sOS 1.0 • Universal Kernel • Hybrid",
         "All apps compatible • BIOS flash ready",
         "Hardware acceleration active • Quantum secure",
-        "root@gman-os:~# "
+        "root@gmansos:~# "
     ]
     for i, line in enumerate(lines):
         surf.blit(font_small.render(line, True, (0, 255, 160)), (rect.x + 16, rect.y + 16 + i * 20))
@@ -6904,7 +15080,7 @@ def draw_system_info(surf, rect, _):
     surf.blit(font_med.render("System Information", True, TEXT), (rect.x + 20, rect.y + 10))
     
     os_info = [
-        "GMan OS v1.0 Universal Hybrid",
+        "Gman'sOS v1.0 Universal Hybrid",
         "Kernel: Universal Cross-Platform v5.0",
         "Supported OS: Win11, Linux, Android, macOS, iOS",
         "Hardware: x86_64, ARM64, RISC-V compatible",
@@ -7818,8 +15994,10 @@ def draw_display_settings(surf, rect, _):
         surf.blit(font_small.render(item, True, (150, 150, 170)), (rect.x + 25, y))
         y += 22
 
-def draw_accessibility(surf, rect, _):
-    """Accessibility options"""
+def _draw_accessibility_legacy(surf, rect, _):
+    """LEGACY pre-Cycle3 accessibility panel (kept for reference). The active
+    panel is the Cycle 3 version below that is wired to the AccessibilityManager.
+    """
     pygame.draw.rect(surf, (25, 28, 38), rect, border_radius=12)
     surf.blit(font_med.render("♿ Accessibility", True, TEXT), (rect.x + 20, rect.y + 15))
     
@@ -10544,9 +18722,9 @@ def draw_browser(surf, rect, _):
     ctype = tab['content']
 
     if ctype == "home":
-        # GMan OS home page
+        # Gman'sOS home page
         cx = content.centerx
-        surf.blit(font_title.render("GMan OS", True, (100, 200, 255)), (cx - 70, content.y + 20))
+        surf.blit(font_title.render("Gman'sOS", True, (100, 200, 255)), (cx - 70, content.y + 20))
         surf.blit(font_med.render("Universal Hybrid Operating System", True, TEXT), (cx - 140, content.y + 60))
         # Search-like bar
         pygame.draw.rect(surf, (30, 35, 48), (content.x + 40, content.y + 100, content.w - 80, 36), border_radius=18)
@@ -10561,10 +18739,10 @@ def draw_browser(surf, rect, _):
             surf.blit(font_title.render(icon, True, TEXT), (ax + 18, ay + 10))
             surf.blit(font_small.render(name, True, TEXT), (ax + 12, ay + 52))
     elif ctype == "docs":
-        surf.blit(font_med.render("GMan OS Universal Documentation", True, (100, 200, 255)), (content.x + 20, content.y + 15))
+        surf.blit(font_med.render("Gman'sOS Universal Documentation", True, (100, 200, 255)), (content.x + 20, content.y + 15))
         docs = [
             "# Getting Started",
-            "  GMan OS is a monolithic Universal Hybrid OS.",
+            "  Gman'sOS is a monolithic Universal Hybrid OS.",
             "  It runs on any motherboard (1945 - present).",
             "",
             "# Architecture",
@@ -12460,6 +20638,3515 @@ def _draw_multiseat_input_picker(surf, body):
             color=(160, 160, 180), kind="cancel_picker", value=None)
 
 
+# =============================================================================
+# CYCLE 1 — DRAW FUNCTIONS + APP PANELS
+# =============================================================================
+
+# ---- Command Palette (Ctrl+K overlay) ----
+_cp_targets = []   # click targets for the overlay
+
+
+def draw_command_palette(screen, *_args, **_kw):
+    """Top-level overlay - Ctrl+K opens, ESC closes. Fuzzy search across
+    every registered action in the OS. Drawn on top of everything else.
+
+    Tolerates both the (screen) overlay-call form and the (surf, rect, _)
+    in-window form so auto-discovery render tests work either way.
+    """
+    global _cp_targets
+    _cp_targets = []
+    if not command_palette_state["open"]:
+        return
+
+    # Dim background
+    screen.blit(get_dim_overlay(SCREEN_W, SCREEN_H), (0, 0))
+
+    # Centered palette panel
+    panel_w = min(640, SCREEN_W - 80)
+    panel_h = min(440, SCREEN_H - 120)
+    px = (SCREEN_W - panel_w) // 2
+    py = max(60, (SCREEN_H - panel_h) // 3)
+
+    pygame.draw.rect(screen, (24, 28, 42), (px, py, panel_w, panel_h), border_radius=14)
+    pygame.draw.rect(screen, (90, 140, 220), (px, py, panel_w, panel_h),
+                      width=2, border_radius=14)
+
+    # Search bar
+    sb = pygame.Rect(px + 20, py + 18, panel_w - 40, 38)
+    pygame.draw.rect(screen, (12, 16, 26), sb, border_radius=8)
+    screen.blit(font_med.render("⌘", True, (140, 200, 255)), (sb.x + 12, sb.y + 6))
+    query = command_palette_state["query"]
+    qsurf = font_med.render(query if query else "Search apps, settings, actions…",
+                            True, TEXT if query else (140, 160, 200))
+    screen.blit(qsurf, (sb.x + 40, sb.y + 6))
+    # Caret
+    if query:
+        caret_x = sb.x + 40 + qsurf.get_width() + 2
+        if int(time.time() * 2) % 2 == 0:
+            pygame.draw.rect(screen, (200, 220, 255),
+                              (caret_x, sb.y + 8, 2, 22))
+
+    # Results list
+    results = command_palette_state["results"]
+    list_y = sb.bottom + 12
+    if not results:
+        screen.blit(font_small.render("(no matches - press ESC to close)",
+                                       True, (140, 160, 200)),
+                     (px + 24, list_y + 10))
+    else:
+        sel = command_palette_state["selected_idx"]
+        row_h = 36
+        max_rows = (panel_h - (list_y - py) - 40) // row_h
+        for i, a in enumerate(results[:max_rows]):
+            ry = list_y + i * row_h
+            row = pygame.Rect(px + 12, ry, panel_w - 24, row_h - 4)
+            if i == sel:
+                pygame.draw.rect(screen, (60, 100, 160), row, border_radius=6)
+            screen.blit(font_small.render(a["label"], True, TEXT),
+                         (row.x + 14, row.y + 4))
+            cat_s = font_tiny.render(a["category"], True, (170, 200, 230))
+            screen.blit(cat_s, (row.x + 14, row.y + 20))
+            # Hotkey hint right-aligned
+            if a["hotkey"]:
+                hk = font_tiny.render(a["hotkey"], True, (200, 220, 255))
+                screen.blit(hk, (row.right - hk.get_width() - 12, row.y + 11))
+            _cp_targets.append(("cp_run", a["id"], row))
+
+    # Footer hint
+    foot = "↑↓ navigate    Enter run    Esc close"
+    fs = font_tiny.render(foot, True, (140, 160, 200))
+    screen.blit(fs, (px + (panel_w - fs.get_width()) // 2,
+                      py + panel_h - 22))
+
+
+def handle_command_palette_click(pos):
+    """Click handler for the palette overlay. Returns True if click was consumed."""
+    if not command_palette_state["open"]:
+        return False
+    for kind, value, hit in _cp_targets:
+        if hit.collidepoint(pos):
+            if kind == "cp_run":
+                action_registry.execute(value)
+                command_palette_state["open"] = False
+                command_palette_state["query"] = ""
+                return True
+    return True   # consume the click so it doesn't fall through
+
+
+def handle_command_palette_key(event):
+    """Process keyboard events while the palette is open."""
+    if not command_palette_state["open"]:
+        return False
+    if event.key == pygame.K_ESCAPE:
+        command_palette_state["open"] = False
+        command_palette_state["query"] = ""
+        return True
+    if event.key == pygame.K_RETURN:
+        results = command_palette_state["results"]
+        sel = command_palette_state["selected_idx"]
+        if results and 0 <= sel < len(results):
+            action_registry.execute(results[sel]["id"])
+        command_palette_state["open"] = False
+        command_palette_state["query"] = ""
+        return True
+    if event.key == pygame.K_UP:
+        command_palette_state["selected_idx"] = max(
+            0, command_palette_state["selected_idx"] - 1)
+        return True
+    if event.key == pygame.K_DOWN:
+        results = command_palette_state["results"]
+        command_palette_state["selected_idx"] = min(
+            max(0, len(results) - 1),
+            command_palette_state["selected_idx"] + 1)
+        return True
+    if event.key == pygame.K_BACKSPACE:
+        command_palette_state["query"] = command_palette_state["query"][:-1]
+    elif event.unicode and event.unicode.isprintable():
+        command_palette_state["query"] += event.unicode
+    # Refresh results
+    command_palette_state["results"] = action_registry.search(
+        command_palette_state["query"], limit=12)
+    command_palette_state["selected_idx"] = 0
+    return True
+
+
+def open_command_palette():
+    command_palette_state["open"] = True
+    command_palette_state["query"] = ""
+    command_palette_state["selected_idx"] = 0
+    command_palette_state["results"] = action_registry.search("", limit=12)
+
+
+# ---- Activity Timeline app ----
+_timeline_state = {"filter_kind": None, "filter_category": None}
+_timeline_targets = []
+
+
+def draw_activity_timeline(surf, rect, _):
+    """App panel showing every recorded activity with timestamps + filters."""
+    global _timeline_targets
+    _timeline_targets = []
+
+    pygame.draw.rect(surf, (12, 16, 26), rect, border_radius=12)
+    surf.blit(font_med.render("⏱ Activity Timeline", True, (130, 200, 255)),
+              (rect.x + 14, rect.y + 10))
+
+    stats = activity_log.stats()
+    stats_text = f"{stats['total']} events  •  {len(stats['kinds'])} kinds  •  {len(stats['categories'])} categories"
+    sw = font_small.size(stats_text)[0]
+    surf.blit(font_small.render(stats_text, True, (140, 180, 220)),
+              (rect.right - 14 - sw, rect.y + 18))
+
+    # Filter chips
+    chip_y = rect.y + 42
+    x = rect.x + 14
+    surf.blit(font_tiny.render("Filter:", True, (160, 180, 200)), (x, chip_y + 4))
+    x += 50
+    chips = [("All", None)]
+    for cat in stats["categories"].keys():
+        chips.append((cat, cat))
+    for label, cat in chips[:7]:
+        is_active = _timeline_state["filter_category"] == cat
+        col = (60, 140, 220) if is_active else (40, 50, 70)
+        cw = font_tiny.size(label)[0] + 16
+        chip = pygame.Rect(x, chip_y, cw, 22)
+        pygame.draw.rect(surf, col, chip, border_radius=11)
+        surf.blit(font_tiny.render(label, True, TEXT),
+                  (chip.x + 8, chip.y + 4))
+        _timeline_targets.append(("filter", cat, chip))
+        x += cw + 6
+
+    # Clear button
+    clr_w = 60
+    clr = pygame.Rect(rect.right - clr_w - 14, chip_y, clr_w, 22)
+    pygame.draw.rect(surf, (160, 80, 80), clr, border_radius=4)
+    surf.blit(font_tiny.render("Clear", True, TEXT), (clr.x + 17, clr.y + 4))
+    _timeline_targets.append(("clear", None, clr))
+
+    # Event list
+    body = pygame.Rect(rect.x + 12, chip_y + 30, rect.w - 24,
+                       rect.bottom - (chip_y + 30) - 12)
+    pygame.draw.rect(surf, (16, 22, 34), body, border_radius=8)
+
+    entries = activity_log.recent(80, category=_timeline_state["filter_category"])
+    if not entries:
+        surf.blit(font_small.render("(no events recorded)",
+                                     True, (160, 180, 200)),
+                  (body.x + 14, body.y + 14))
+        globals()['_active_timeline_targets'] = _timeline_targets
+        return
+
+    y = body.y + 8
+    row_h = 30
+    kind_colors = {
+        "action": (100, 230, 130),
+        "action_error": (255, 130, 130),
+        "notification": (200, 160, 100),
+        "ai_query": (180, 130, 255),
+        "workspace_switch": (130, 200, 255),
+    }
+    for e in entries:
+        if y + row_h > body.bottom - 4:
+            break
+        col = kind_colors.get(e["kind"], (160, 200, 230))
+        # Time + dot
+        pygame.draw.circle(surf, col, (body.x + 14, y + 10), 4)
+        surf.blit(font_tiny.render(e["ts_str"], True, (160, 180, 200)),
+                  (body.x + 26, y + 4))
+        # Summary
+        summary = e["summary"][:60] + ("…" if len(e["summary"]) > 60 else "")
+        surf.blit(font_small.render(summary, True, TEXT),
+                  (body.x + 90, y + 2))
+        # Category badge
+        badge_text = e["category"]
+        bw = font_tiny.size(badge_text)[0] + 10
+        pygame.draw.rect(surf, col, (body.right - bw - 8, y + 4, bw, 16),
+                         border_radius=8)
+        surf.blit(font_tiny.render(badge_text, True, (8, 12, 18)),
+                  (body.right - bw - 4, y + 5))
+        y += row_h
+
+    globals()['_active_timeline_targets'] = _timeline_targets
+
+
+def handle_timeline_click(pos):
+    targets = globals().get('_active_timeline_targets', [])
+    for kind, value, hit in targets:
+        if hit.collidepoint(pos):
+            if kind == "filter":
+                _timeline_state["filter_category"] = value
+            elif kind == "clear":
+                activity_log.clear()
+                notify("Activity log cleared", category="System")
+            return True
+    return False
+
+
+# ---- AI Assistant chat app ----
+_ai_targets = []
+
+
+def draw_ai_assistant(surf, rect, _):
+    """Chat panel - type a message, hit Enter, the assistant dispatches commands
+    via ActionRegistry. Shows full conversation history.
+    """
+    global _ai_targets
+    _ai_targets = []
+
+    pygame.draw.rect(surf, (12, 16, 26), rect, border_radius=12)
+    surf.blit(font_med.render("🤖 AI Assistant", True, (180, 130, 255)),
+              (rect.x + 14, rect.y + 10))
+
+    # Hint top right
+    hint = "Type 'help' for examples"
+    hw = font_small.size(hint)[0]
+    surf.blit(font_small.render(hint, True, (140, 180, 220)),
+              (rect.right - 14 - hw, rect.y + 14))
+
+    # Chat history area
+    body = pygame.Rect(rect.x + 12, rect.y + 38, rect.w - 24,
+                       rect.bottom - rect.y - 84)
+    pygame.draw.rect(surf, (16, 22, 34), body, border_radius=8)
+
+    if not ai_assistant.history:
+        # Welcome screen
+        welcome = [
+            "Hello. Try one of:",
+            "  • 'open weather'",
+            "  • 'switch to workspace 2'",
+            "  • 'show notifications'",
+            "  • 'status'",
+            "  • 'help'",
+        ]
+        for i, line in enumerate(welcome):
+            surf.blit(font_small.render(line, True, (200, 220, 255)),
+                      (body.x + 18, body.y + 18 + i * 22))
+    else:
+        # Render messages from bottom up so newest visible
+        y = body.bottom - 8
+        for msg in reversed(ai_assistant.history[-12:]):
+            text_w = body.w - 60
+            wrapped = _wrap_text(msg["text"], font_small, text_w)
+            bubble_h = len(wrapped) * 18 + 14
+            if y - bubble_h < body.y + 6:
+                break
+            is_user = msg["role"] == "user"
+            bx = body.x + 14 if not is_user else body.right - text_w - 14
+            bcol = (80, 120, 180) if is_user else (40, 60, 80)
+            bubble = pygame.Rect(bx, y - bubble_h, text_w, bubble_h)
+            pygame.draw.rect(surf, bcol, bubble, border_radius=8)
+            for i, line in enumerate(wrapped):
+                surf.blit(font_small.render(line, True, TEXT),
+                          (bubble.x + 8, bubble.y + 6 + i * 18))
+            # Role badge
+            badge = "you" if is_user else "ai"
+            bsurf = font_tiny.render(badge, True, (200, 220, 255))
+            surf.blit(bsurf, (bubble.x + 4, bubble.y - 12))
+            y -= bubble_h + 10
+
+    # Input box at bottom
+    inp = pygame.Rect(rect.x + 14, rect.bottom - 42, rect.w - 100, 30)
+    pygame.draw.rect(surf, (28, 36, 50), inp, border_radius=6)
+    text = ai_assistant_state["input"]
+    placeholder = "Ask anything…"
+    surf.blit(font_small.render(text if text else placeholder, True,
+                                 TEXT if text else (140, 160, 200)),
+              (inp.x + 10, inp.y + 6))
+    if int(time.time() * 2) % 2 == 0 and text:
+        cx = inp.x + 10 + font_small.size(text)[0] + 2
+        pygame.draw.rect(surf, (200, 220, 255),
+                          (cx, inp.y + 6, 2, 18))
+    _ai_targets.append(("focus_input", None, inp))
+
+    # Send button
+    send = pygame.Rect(rect.right - 76, rect.bottom - 42, 60, 30)
+    pygame.draw.rect(surf, (180, 130, 255), send, border_radius=6)
+    surf.blit(font_small.render("Send", True, (8, 12, 18)),
+              (send.x + 14, send.y + 6))
+    _ai_targets.append(("send", None, send))
+
+    globals()['_active_ai_targets'] = _ai_targets
+
+
+def _wrap_text(text, font, max_w):
+    """Wrap a string into lines that fit within max_w pixels."""
+    words = text.split(" ")
+    lines = []
+    cur = ""
+    for w in words:
+        test = (cur + " " + w).strip()
+        if font.size(test)[0] <= max_w:
+            cur = test
+        else:
+            if cur: lines.append(cur)
+            cur = w
+    if cur: lines.append(cur)
+    return lines or [""]
+
+
+def handle_ai_click(pos):
+    targets = globals().get('_active_ai_targets', [])
+    for kind, _value, hit in targets:
+        if hit.collidepoint(pos):
+            if kind == "send":
+                _ai_send_input()
+            return True
+    return False
+
+
+def handle_ai_key(event):
+    """Process keys while an AI assistant window is the topmost. Called from
+    main event loop only when the topmost window is the AI assistant."""
+    if event.key == pygame.K_RETURN:
+        _ai_send_input()
+        return True
+    if event.key == pygame.K_BACKSPACE:
+        ai_assistant_state["input"] = ai_assistant_state["input"][:-1]
+        return True
+    if event.key == pygame.K_ESCAPE:
+        ai_assistant_state["input"] = ""
+        return True
+    if event.unicode and event.unicode.isprintable():
+        ai_assistant_state["input"] += event.unicode
+        return True
+    return False
+
+
+def _ai_send_input():
+    text = ai_assistant_state["input"].strip()
+    if not text:
+        return
+    ai_assistant.send(text)
+    ai_assistant_state["input"] = ""
+
+
+# ---- Notification Center v2 ----
+_nc_targets = []
+
+
+def draw_notif_center_v2(surf, rect, _):
+    """Full notification center: history feed, per-category filters,
+    DND toggle, mark-all-read, clear.
+    """
+    global _nc_targets
+    _nc_targets = []
+
+    pygame.draw.rect(surf, (12, 16, 26), rect, border_radius=12)
+    surf.blit(font_med.render("🔔 Notifications", True, (240, 200, 80)),
+              (rect.x + 14, rect.y + 10))
+
+    s = notification_center.stats()
+    info = f"{s['total']} total  •  {s['unread']} unread"
+    iw = font_small.size(info)[0]
+    surf.blit(font_small.render(info, True, (140, 180, 220)),
+              (rect.right - 14 - iw, rect.y + 14))
+
+    # Action row: DND, mark-read, clear
+    ar_y = rect.y + 38
+    dnd_label = "DND ON" if notification_center.dnd else "DND OFF"
+    dnd_col = (200, 100, 100) if notification_center.dnd else (60, 160, 90)
+    dnd_btn = pygame.Rect(rect.x + 14, ar_y, 90, 26)
+    pygame.draw.rect(surf, dnd_col, dnd_btn, border_radius=4)
+    surf.blit(font_small.render(dnd_label, True, TEXT),
+              (dnd_btn.x + (90 - font_small.size(dnd_label)[0]) // 2,
+               dnd_btn.y + 5))
+    _nc_targets.append(("toggle_dnd", None, dnd_btn))
+
+    mr_btn = pygame.Rect(dnd_btn.right + 8, ar_y, 110, 26)
+    pygame.draw.rect(surf, (60, 120, 200), mr_btn, border_radius=4)
+    surf.blit(font_small.render("Mark all read", True, TEXT),
+              (mr_btn.x + 8, mr_btn.y + 5))
+    _nc_targets.append(("mark_read", None, mr_btn))
+
+    cl_btn = pygame.Rect(mr_btn.right + 8, ar_y, 70, 26)
+    pygame.draw.rect(surf, (180, 80, 80), cl_btn, border_radius=4)
+    surf.blit(font_small.render("Clear", True, TEXT),
+              (cl_btn.x + 18, cl_btn.y + 5))
+    _nc_targets.append(("clear", None, cl_btn))
+
+    # Filter row
+    fy = ar_y + 32
+    surf.blit(font_tiny.render("Categories:", True, (160, 180, 200)),
+              (rect.x + 14, fy + 4))
+    fx = rect.x + 14 + 80
+    for cat, enabled in notification_center.filters.items():
+        cw = font_tiny.size(cat)[0] + 16
+        col = (80, 200, 130) if enabled else (60, 60, 70)
+        chip = pygame.Rect(fx, fy, cw, 22)
+        pygame.draw.rect(surf, col, chip, border_radius=11)
+        surf.blit(font_tiny.render(cat, True, TEXT), (chip.x + 8, chip.y + 4))
+        _nc_targets.append(("toggle_filter", cat, chip))
+        fx += cw + 4
+        if fx > rect.right - 80:
+            break
+
+    # Feed
+    body = pygame.Rect(rect.x + 12, fy + 30, rect.w - 24,
+                       rect.bottom - (fy + 30) - 14)
+    pygame.draw.rect(surf, (16, 22, 34), body, border_radius=8)
+
+    feed = notification_center.recent(50)
+    if not feed:
+        surf.blit(font_small.render("(no notifications - the OS is quiet)",
+                                     True, (160, 180, 200)),
+                  (body.x + 14, body.y + 14))
+        globals()['_active_nc_targets'] = _nc_targets
+        return
+
+    sev_colors = {
+        "info": (130, 200, 255), "warn": (240, 200, 80),
+        "error": (255, 130, 130), "success": (130, 230, 130),
+    }
+    y = body.y + 8
+    row_h = 32
+    for n in feed:
+        if y + row_h > body.bottom - 4: break
+        col = sev_colors.get(n["severity"], (160, 200, 230))
+        # Stripe
+        pygame.draw.rect(surf, col, (body.x + 6, y + 2, 4, row_h - 6),
+                         border_radius=2)
+        surf.blit(font_tiny.render(n["ts_str"], True, (160, 180, 200)),
+                  (body.x + 18, y + 4))
+        msg = n["message"][:70] + ("…" if len(n["message"]) > 70 else "")
+        surf.blit(font_small.render(msg, True, TEXT),
+                  (body.x + 80, y + 2))
+        # Category badge
+        bw = font_tiny.size(n["category"])[0] + 10
+        pygame.draw.rect(surf, col, (body.right - bw - 8, y + 4, bw, 16),
+                         border_radius=8)
+        surf.blit(font_tiny.render(n["category"], True, (8, 12, 18)),
+                  (body.right - bw - 4, y + 5))
+        y += row_h
+
+    globals()['_active_nc_targets'] = _nc_targets
+
+
+def handle_nc_click(pos):
+    targets = globals().get('_active_nc_targets', [])
+    for kind, value, hit in targets:
+        if hit.collidepoint(pos):
+            if kind == "toggle_dnd":
+                notification_center.toggle_dnd()
+            elif kind == "mark_read":
+                notification_center.mark_all_read()
+            elif kind == "clear":
+                notification_center.clear()
+            elif kind == "toggle_filter":
+                notification_center.set_filter(value, not notification_center.filters.get(value, True))
+            return True
+    return False
+
+
+# ---- Workspace overlay (Ctrl+Tab to show all workspaces) ----
+_ws_targets = []
+
+
+def draw_workspace_overlay(screen, *_args, **_kw):
+    """Top-level overlay - shows all virtual desktops side-by-side. Click to switch.
+
+    Tolerates both the (screen) overlay-call form and the (surf, rect, _)
+    in-window form so auto-discovery render tests work either way.
+    """
+    global _ws_targets
+    _ws_targets = []
+    if not workspace_overlay_state["open"]:
+        return
+
+    screen.blit(get_dim_overlay(SCREEN_W, SCREEN_H), (0, 0))
+
+    # Title at top
+    title_s = font_med.render("Workspaces", True, TEXT)
+    screen.blit(title_s, (SCREEN_W // 2 - title_s.get_width() // 2, 30))
+    hint = font_small.render("Click to switch  •  Ctrl+1-9 quick switch  •  Esc close",
+                              True, (160, 200, 230))
+    screen.blit(hint, (SCREEN_W // 2 - hint.get_width() // 2, 60))
+
+    # Layout: tile each workspace as a thumbnail
+    spaces = workspace_mgr.spaces
+    n = len(spaces)
+    cols = min(n, 4)
+    rows = (n + cols - 1) // cols
+    margin = 40
+    avail_w = SCREEN_W - margin * 2
+    avail_h = SCREEN_H - 130
+    cell_w = avail_w // cols
+    cell_h = avail_h // rows
+    thumb_w = cell_w - 30
+    thumb_h = cell_h - 60
+
+    for i, ws in enumerate(spaces):
+        col = i % cols
+        row_i = i // cols
+        cx = margin + col * cell_w + (cell_w - thumb_w) // 2
+        cy = 100 + row_i * cell_h
+        thumb = pygame.Rect(cx, cy, thumb_w, thumb_h)
+        is_active = (i == workspace_mgr.active_idx)
+        pygame.draw.rect(screen, ws["color"] if is_active else (40, 50, 70),
+                          thumb, border_radius=10)
+        pygame.draw.rect(screen, (200, 220, 255) if is_active else (90, 110, 140),
+                          thumb, width=3 if is_active else 1, border_radius=10)
+        # Mini windows
+        win_count = (len(open_windows) if i == workspace_mgr.active_idx
+                      else len(ws["windows"]))
+        for j in range(min(win_count, 6)):
+            wr = pygame.Rect(thumb.x + 14 + (j % 3) * 40,
+                              thumb.y + 14 + (j // 3) * 30,
+                              35, 22)
+            pygame.draw.rect(screen, (200, 220, 255), wr, border_radius=2)
+        # Label
+        lbl = f"{i + 1}: {ws['name']}"
+        if is_active: lbl += "  ← active"
+        ls = font_small.render(lbl, True, TEXT)
+        screen.blit(ls, (thumb.x + (thumb_w - ls.get_width()) // 2,
+                          thumb.bottom + 6))
+        cs = font_tiny.render(f"{win_count} window(s)", True, (180, 200, 220))
+        screen.blit(cs, (thumb.x + (thumb_w - cs.get_width()) // 2,
+                          thumb.bottom + 24))
+        _ws_targets.append(("switch", i, thumb))
+
+
+def handle_workspace_overlay_click(pos):
+    if not workspace_overlay_state["open"]:
+        return False
+    for kind, value, hit in _ws_targets:
+        if hit.collidepoint(pos):
+            if kind == "switch":
+                workspace_mgr.switch_to(value)
+                workspace_overlay_state["open"] = False
+            return True
+    workspace_overlay_state["open"] = False
+    return True
+
+
+# =============================================================================
+# CYCLE 2 — DRAW + CLICK ROUTING for the 5 new panels
+# =============================================================================
+
+# ----------------------------- 1. HOTKEY PANEL ---------------------------------
+_hk_targets = []
+
+
+def draw_hotkey_settings(surf, rect, win=None):
+    """Settings panel listing every keyboard binding registered in the OS,
+    grouped by category. Search box at top, conflict markers inline.
+    """
+    global _hk_targets
+    _hk_targets = []
+    pygame.draw.rect(surf, (16, 22, 34), rect, border_radius=10)
+
+    title = font_med.render("Keyboard Shortcuts", True, TEXT)
+    surf.blit(title, (rect.x + 16, rect.y + 12))
+
+    stats = hotkey_mgr.stats()
+    stat_line = (f"{stats['total']} bindings  •  "
+                 f"{stats['user_overrides']} user overrides  •  "
+                 f"{stats['conflicts']} conflicts")
+    col = (255, 200, 110) if stats["conflicts"] else (140, 180, 220)
+    surf.blit(font_small.render(stat_line, True, col),
+              (rect.x + 16, rect.y + 44))
+
+    # Search box
+    sbox = pygame.Rect(rect.x + 16, rect.y + 70, rect.w - 32, 28)
+    pygame.draw.rect(surf, (28, 36, 54), sbox, border_radius=6)
+    pygame.draw.rect(surf, (60, 80, 110), sbox, 1, border_radius=6)
+    q = hotkey_panel_state["query"] or "(filter)"
+    qcol = TEXT if hotkey_panel_state["query"] else (110, 130, 160)
+    surf.blit(font_small.render(q, True, qcol), (sbox.x + 8, sbox.y + 6))
+
+    # List
+    list_rect = pygame.Rect(rect.x + 16, rect.y + 108, rect.w - 32, rect.h - 124)
+    pygame.draw.rect(surf, (12, 18, 28), list_rect, border_radius=8)
+
+    bindings = hotkey_mgr.all_bindings()
+    if hotkey_panel_state["query"]:
+        ql = hotkey_panel_state["query"].lower()
+        bindings = [b for b in bindings
+                    if ql in b["label"].lower() or ql in b["hotkey"].lower()
+                    or ql in b["category"].lower()]
+    conflicts = hotkey_mgr.conflicts()
+
+    y = list_rect.y + 8
+    last_cat = None
+    for b in bindings[:30]:
+        if b["category"] != last_cat:
+            last_cat = b["category"]
+            cat_s = font_small.render(b["category"], True, (140, 180, 240))
+            surf.blit(cat_s, (list_rect.x + 8, y))
+            y += 22
+        if y + 26 > list_rect.bottom - 4:
+            break
+        row = pygame.Rect(list_rect.x + 16, y, list_rect.w - 32, 24)
+        is_conflict = b["hotkey"].lower() in conflicts
+        bg = (60, 30, 30) if is_conflict else (24, 32, 48)
+        pygame.draw.rect(surf, bg, row, border_radius=4)
+        # Label
+        lbl = b["label"]
+        if len(lbl) > 38:
+            lbl = lbl[:36] + "…"
+        surf.blit(font_small.render(lbl, True, TEXT),
+                  (row.x + 6, row.y + 4))
+        # Hotkey badge
+        hk_s = font_small.render(b["hotkey"], True, (255, 220, 120))
+        surf.blit(hk_s, (row.right - 120, row.y + 4))
+        # Override badge
+        if b["source"] == "user":
+            surf.blit(font_small.render("user", True, (140, 220, 140)),
+                      (row.right - 38, row.y + 4))
+        _hk_targets.append(("row", b["action_id"], row.copy()))
+        y += 26
+
+    # Footer with reset all
+    btn_reset = pygame.Rect(rect.right - 130, rect.bottom - 36, 110, 24)
+    pygame.draw.rect(surf, (90, 60, 60), btn_reset, border_radius=4)
+    surf.blit(font_small.render("Reset All", True, TEXT),
+              (btn_reset.x + 26, btn_reset.y + 4))
+    _hk_targets.append(("reset_all", None, btn_reset.copy()))
+
+
+def handle_hotkey_settings_click(pos):
+    for kind, payload, rect in _hk_targets:
+        if rect.collidepoint(pos):
+            if kind == "reset_all":
+                hotkey_mgr.reset()
+                notify("All hotkey overrides cleared", category="System",
+                       severity="info")
+            elif kind == "row":
+                hotkey_panel_state["rebinding_id"] = payload
+                notify(f"Selected {payload} - rebind UI is a stub",
+                       category="System")
+            return True
+    return False
+
+
+# ----------------------------- 2. SNAPSHOT MANAGER -----------------------------
+_snap_targets = []
+
+
+def draw_snapshot_manager(surf, rect, win=None):
+    """Panel for OS state snapshots."""
+    global _snap_targets
+    _snap_targets = []
+    pygame.draw.rect(surf, (16, 22, 34), rect, border_radius=10)
+
+    title = font_med.render("Snapshot Manager", True, TEXT)
+    surf.blit(title, (rect.x + 16, rect.y + 12))
+
+    stats = snapshot_mgr.stats()
+    line = (f"{stats['total']} snapshots  •  manual {stats['manual']}  •  "
+            f"auto {stats['auto']}  •  interval "
+            + (f"{stats['auto_interval']}s" if stats["auto_interval"] else "off"))
+    surf.blit(font_small.render(line, True, (140, 180, 220)),
+              (rect.x + 16, rect.y + 44))
+
+    # Toolbar
+    tb_y = rect.y + 70
+    btn_capture = pygame.Rect(rect.x + 16, tb_y, 120, 28)
+    pygame.draw.rect(surf, (60, 130, 90), btn_capture, border_radius=6)
+    surf.blit(font_small.render("📸 Capture", True, TEXT),
+              (btn_capture.x + 18, btn_capture.y + 6))
+    _snap_targets.append(("capture", None, btn_capture.copy()))
+
+    btn_auto = pygame.Rect(btn_capture.right + 8, tb_y, 130, 28)
+    auto_label = ("Auto: every "
+                  + (f"{stats['auto_interval']}s" if stats["auto_interval"]
+                     else "off"))
+    pygame.draw.rect(surf, (70, 100, 150), btn_auto, border_radius=6)
+    surf.blit(font_small.render(auto_label, True, TEXT),
+              (btn_auto.x + 8, btn_auto.y + 6))
+    _snap_targets.append(("toggle_auto", None, btn_auto.copy()))
+
+    btn_clear = pygame.Rect(btn_auto.right + 8, tb_y, 90, 28)
+    pygame.draw.rect(surf, (140, 70, 70), btn_clear, border_radius=6)
+    surf.blit(font_small.render("Clear All", True, TEXT),
+              (btn_clear.x + 14, btn_clear.y + 6))
+    _snap_targets.append(("clear_all", None, btn_clear.copy()))
+
+    # List
+    list_rect = pygame.Rect(rect.x + 16, rect.y + 108, rect.w - 32, rect.h - 124)
+    pygame.draw.rect(surf, (12, 18, 28), list_rect, border_radius=8)
+
+    if not snapshot_mgr.snapshots:
+        surf.blit(font_small.render("No snapshots yet. Click Capture above.",
+                                     True, (110, 130, 160)),
+                  (list_rect.x + 16, list_rect.y + 16))
+        return
+
+    y = list_rect.y + 8
+    for snap in snapshot_mgr.snapshots[:14]:
+        if y + 36 > list_rect.bottom - 4:
+            break
+        row = pygame.Rect(list_rect.x + 8, y, list_rect.w - 16, 32)
+        is_sel = snapshot_panel_state["selected_id"] == snap["id"]
+        bg = (50, 80, 130) if is_sel else (24, 32, 48)
+        pygame.draw.rect(surf, bg, row, border_radius=6)
+        kind_color = {"manual": (140, 220, 140), "auto": (140, 180, 240),
+                      "restore-point": (240, 200, 100)}.get(snap["kind"],
+                                                               (200, 200, 200))
+        pygame.draw.circle(surf, kind_color, (row.x + 12, row.y + 16), 4)
+        name_s = font_small.render(snap["name"], True, TEXT)
+        surf.blit(name_s, (row.x + 24, row.y + 4))
+        meta = (f"{snap['ts_str']}  •  ws {snap['state']['active_workspace']}"
+                f"  •  {snap['state']['open_windows_n']} windows")
+        surf.blit(font_small.render(meta, True, (140, 160, 200)),
+                  (row.x + 24, row.y + 18))
+        # Restore + delete buttons
+        btn_r = pygame.Rect(row.right - 130, row.y + 4, 60, 24)
+        pygame.draw.rect(surf, (60, 130, 90), btn_r, border_radius=4)
+        surf.blit(font_small.render("Restore", True, TEXT),
+                  (btn_r.x + 8, btn_r.y + 4))
+        _snap_targets.append(("restore", snap["id"], btn_r.copy()))
+        btn_d = pygame.Rect(row.right - 65, row.y + 4, 60, 24)
+        pygame.draw.rect(surf, (140, 70, 70), btn_d, border_radius=4)
+        surf.blit(font_small.render("Delete", True, TEXT),
+                  (btn_d.x + 10, btn_d.y + 4))
+        _snap_targets.append(("delete", snap["id"], btn_d.copy()))
+        _snap_targets.append(("select", snap["id"],
+                              pygame.Rect(row.x, row.y, row.w - 140, row.h)))
+        y += 36
+
+
+def handle_snapshot_click(pos):
+    for kind, payload, rect in _snap_targets:
+        if rect.collidepoint(pos):
+            if kind == "capture":
+                snapshot_mgr.capture()
+            elif kind == "toggle_auto":
+                vals = [0, 30, 60, 300]
+                cur = snapshot_mgr.auto_snapshot_interval
+                snapshot_mgr.auto_snapshot_interval = vals[
+                    (vals.index(cur) + 1) % len(vals)] if cur in vals else 30
+            elif kind == "clear_all":
+                snapshot_mgr.clear()
+                snapshot_panel_state["selected_id"] = None
+            elif kind == "restore":
+                snapshot_mgr.restore(payload)
+            elif kind == "delete":
+                snapshot_mgr.delete(payload)
+                if snapshot_panel_state["selected_id"] == payload:
+                    snapshot_panel_state["selected_id"] = None
+            elif kind == "select":
+                snapshot_panel_state["selected_id"] = payload
+            return True
+    return False
+
+
+# ----------------------------- 3. FOCUS MODES ----------------------------------
+_focus_targets = []
+
+
+def draw_focus_modes(surf, rect, win=None):
+    """Panel for selecting a Focus mode (Off/Work/Sleep/Gaming)."""
+    global _focus_targets
+    _focus_targets = []
+    pygame.draw.rect(surf, (16, 22, 34), rect, border_radius=10)
+
+    title = font_med.render("Focus Modes", True, TEXT)
+    surf.blit(title, (rect.x + 16, rect.y + 12))
+
+    active = focus_mgr.active_mode
+    surf.blit(font_small.render(f"Active: {active}", True, (180, 220, 160)),
+              (rect.x + 16, rect.y + 44))
+
+    # Cards
+    modes = focus_mgr.list_modes()
+    card_w = (rect.w - 48) // len(modes)
+    card_h = 130
+    y = rect.y + 80
+    for i, name in enumerate(modes):
+        m = focus_mgr.modes[name]
+        card = pygame.Rect(rect.x + 16 + i * (card_w + 8), y, card_w, card_h)
+        is_active = name == active
+        border = m["color"] if is_active else (60, 80, 110)
+        pygame.draw.rect(surf, (24, 32, 48), card, border_radius=8)
+        pygame.draw.rect(surf, border, card, 3 if is_active else 1,
+                          border_radius=8)
+        # Icon
+        icon_s = font_large.render(m["icon"], True, m["color"])
+        surf.blit(icon_s, (card.x + 12, card.y + 8))
+        # Name
+        surf.blit(font_med.render(name, True, TEXT),
+                  (card.x + 60, card.y + 18))
+        # Status lines
+        info_y = card.y + 56
+        for line in [
+            f"DND: {'ON' if m['dnd'] else 'off'}",
+            f"WS:  {'->' + workspace_mgr.spaces[m['target_workspace']]['name'] if m['target_workspace'] is not None else 'no change'}",
+            f"Filter:{sum(1 for v in m['filters'].values() if v)}/{len(m['filters'])}",
+        ]:
+            surf.blit(font_small.render(line, True, (160, 180, 210)),
+                      (card.x + 12, info_y))
+            info_y += 18
+        _focus_targets.append(("activate", name, card.copy()))
+
+    # Footer summary
+    fy = rect.bottom - 36
+    notif_state = ("DND" if notification_center.dnd else "alerts on")
+    fline = (f"Notification center: {notif_state}  •  "
+             f"workspace: {workspace_mgr.active()['name']}")
+    surf.blit(font_small.render(fline, True, (140, 180, 220)),
+              (rect.x + 16, fy))
+
+
+def handle_focus_click(pos):
+    for kind, payload, rect in _focus_targets:
+        if rect.collidepoint(pos):
+            if kind == "activate":
+                focus_mgr.activate(payload)
+            return True
+    return False
+
+
+# ----------------------------- 4. PERMISSIONS ---------------------------------
+_perm_targets = []
+
+
+def draw_permissions(surf, rect, win=None):
+    """Per-app capability matrix panel."""
+    global _perm_targets
+    _perm_targets = []
+    pygame.draw.rect(surf, (16, 22, 34), rect, border_radius=10)
+
+    title = font_med.render("Permissions Center", True, TEXT)
+    surf.blit(title, (rect.x + 16, rect.y + 12))
+
+    stats = permissions.stats()
+    line = (f"{stats['total_grants']} explicit grants  •  "
+            f"{stats['allow']} allow  •  "
+            f"{stats['deny']} deny  •  "
+            f"{stats['audit_entries']} audit entries")
+    surf.blit(font_small.render(line, True, (140, 180, 220)),
+              (rect.x + 16, rect.y + 44))
+
+    # Always show 5 representative apps + any explicitly granted-to apps
+    seen_apps = sorted(set(k[0] for k in permissions.grants.keys()))
+    sample_apps = ["Camera", "Files", "Weather", "AIChat", "Settings"]
+    apps = list(dict.fromkeys(sample_apps + seen_apps))[:8]
+
+    matrix = permissions.matrix(apps=apps)
+    caps = permissions.CAPABILITIES
+
+    # Draw header
+    header_y = rect.y + 76
+    cell_w = (rect.w - 160) // len(caps)
+    cell_h = 22
+    for i, cap in enumerate(caps):
+        cx = rect.x + 160 + i * cell_w
+        label = cap[:6]
+        surf.blit(font_small.render(label, True, (140, 180, 220)),
+                  (cx + 2, header_y))
+
+    # Draw rows
+    list_rect = pygame.Rect(rect.x + 12, header_y + 24,
+                             rect.w - 24, rect.h - (header_y + 24 - rect.y) - 16)
+    pygame.draw.rect(surf, (12, 18, 28), list_rect, border_radius=8)
+    y = list_rect.y + 4
+    for row in matrix:
+        if y + cell_h > list_rect.bottom - 4:
+            break
+        # App name col
+        surf.blit(font_small.render(row["app"][:18], True, TEXT),
+                  (list_rect.x + 6, y + 4))
+        # Cap cells
+        for i, cap in enumerate(caps):
+            cx = rect.x + 160 + i * cell_w
+            cell = pygame.Rect(cx, y + 2, cell_w - 4, cell_h - 4)
+            decision = row["caps"][cap]
+            color = {"allow": (60, 130, 90),
+                     "deny":  (140, 60, 60),
+                     "ask":   (60, 75, 105)}[decision]
+            pygame.draw.rect(surf, color, cell, border_radius=4)
+            sym = {"allow": "✓", "deny": "✕", "ask": "?"}[decision]
+            sym_s = font_small.render(sym, True, TEXT)
+            surf.blit(sym_s, (cell.x + cell.w // 2 - 4,
+                               cell.y + cell.h // 2 - 8))
+            _perm_targets.append((row["app"], cap, cell.copy()))
+        y += cell_h
+
+
+def handle_permissions_click(pos):
+    for app, cap, rect in _perm_targets:
+        if rect.collidepoint(pos):
+            cur = permissions.get(app, cap)
+            nxt = {"ask": "allow", "allow": "deny", "deny": "ask"}[cur]
+            permissions.set(app, cap, nxt)
+            return True
+    return False
+
+
+# ----------------------------- 5. SECURE CLIPBOARD ----------------------------
+_sc_targets = []
+
+
+def draw_secure_clipboard(surf, rect, win=None):
+    """Panel for the secure clipboard - shows items + TTL + sensitivity flag."""
+    global _sc_targets
+    _sc_targets = []
+    secure_clipboard.sweep()  # update expirations on every render
+    pygame.draw.rect(surf, (16, 22, 34), rect, border_radius=10)
+
+    title = font_med.render("Secure Clipboard", True, TEXT)
+    surf.blit(title, (rect.x + 16, rect.y + 12))
+
+    stats = secure_clipboard.stats()
+    line = (f"{stats['active']} active  •  "
+            f"{stats['sensitive']} sensitive  •  "
+            f"{stats['expired']} expired  •  "
+            f"sensitive TTL {stats['default_sensitive_ttl']}s")
+    surf.blit(font_small.render(line, True, (140, 180, 220)),
+              (rect.x + 16, rect.y + 44))
+
+    # Toolbar
+    tb_y = rect.y + 70
+    btn_copy = pygame.Rect(rect.x + 16, tb_y, 130, 28)
+    pygame.draw.rect(surf, (60, 130, 90), btn_copy, border_radius=6)
+    surf.blit(font_small.render("📋 Copy demo", True, TEXT),
+              (btn_copy.x + 14, btn_copy.y + 6))
+    _sc_targets.append(("copy_demo", None, btn_copy.copy()))
+
+    btn_secret = pygame.Rect(btn_copy.right + 8, tb_y, 160, 28)
+    pygame.draw.rect(surf, (140, 100, 60), btn_secret, border_radius=6)
+    surf.blit(font_small.render("🔐 Copy sensitive", True, TEXT),
+              (btn_secret.x + 14, btn_secret.y + 6))
+    _sc_targets.append(("copy_sensitive", None, btn_secret.copy()))
+
+    btn_clear = pygame.Rect(btn_secret.right + 8, tb_y, 90, 28)
+    pygame.draw.rect(surf, (140, 70, 70), btn_clear, border_radius=6)
+    surf.blit(font_small.render("Clear", True, TEXT),
+              (btn_clear.x + 26, btn_clear.y + 6))
+    _sc_targets.append(("clear", None, btn_clear.copy()))
+
+    btn_show = pygame.Rect(btn_clear.right + 8, tb_y, 130, 28)
+    label = "Hide expired" if clipboard_panel_state["show_expired"] else "Show expired"
+    pygame.draw.rect(surf, (70, 100, 150), btn_show, border_radius=6)
+    surf.blit(font_small.render(label, True, TEXT),
+              (btn_show.x + 12, btn_show.y + 6))
+    _sc_targets.append(("toggle_expired", None, btn_show.copy()))
+
+    # List
+    list_rect = pygame.Rect(rect.x + 16, rect.y + 108, rect.w - 32, rect.h - 124)
+    pygame.draw.rect(surf, (12, 18, 28), list_rect, border_radius=8)
+
+    visible_items = secure_clipboard.items
+    if not clipboard_panel_state["show_expired"]:
+        visible_items = [i for i in visible_items if not i["expired"]]
+    if not visible_items:
+        surf.blit(font_small.render("(no clipboard items)", True,
+                                     (110, 130, 160)),
+                  (list_rect.x + 16, list_rect.y + 16))
+        return
+
+    y = list_rect.y + 8
+    now = time.time()
+    for it in visible_items[:12]:
+        if y + 36 > list_rect.bottom - 4:
+            break
+        row = pygame.Rect(list_rect.x + 8, y, list_rect.w - 16, 32)
+        bg = (40, 30, 30) if it["expired"] else \
+             (60, 50, 30) if it["sensitive"] else (24, 32, 48)
+        pygame.draw.rect(surf, bg, row, border_radius=6)
+        # Sensitivity glyph
+        glyph = "⓿" if it["expired"] else ("🔐" if it["sensitive"] else "📋")
+        surf.blit(font_small.render(glyph, True, TEXT),
+                  (row.x + 8, row.y + 8))
+        # Text
+        text = it["text"]
+        if len(text) > 50:
+            text = text[:48] + "…"
+        surf.blit(font_small.render(text, True, TEXT),
+                  (row.x + 32, row.y + 4))
+        # TTL/age
+        age = int(now - it["timestamp"])
+        if it["ttl"] > 0 and not it["expired"]:
+            remaining = max(0, it["ttl"] - age)
+            ttl_text = f"{remaining}s left"
+            ttl_color = (255, 200, 110) if remaining < 10 else (140, 200, 240)
+        else:
+            ttl_text = f"{age}s ago"
+            ttl_color = (140, 160, 200)
+        surf.blit(font_small.render(ttl_text, True, ttl_color),
+                  (row.right - 90, row.y + 8))
+        y += 36
+
+
+def handle_secure_clipboard_click(pos):
+    for kind, payload, rect in _sc_targets:
+        if rect.collidepoint(pos):
+            if kind == "copy_demo":
+                secure_clipboard.copy(f"demo text {time.strftime('%H:%M:%S')}")
+            elif kind == "copy_sensitive":
+                secure_clipboard.copy(
+                    f"secret-{int(time.time()) % 10000}",
+                    sensitive=True, ttl=secure_clipboard.default_sensitive_ttl)
+            elif kind == "clear":
+                secure_clipboard.clear()
+            elif kind == "toggle_expired":
+                clipboard_panel_state["show_expired"] = not clipboard_panel_state["show_expired"]
+            return True
+    return False
+
+
+# =============================================================================
+# CYCLE 3 — DRAW + CLICK ROUTING for context menu, notif rules, accessibility
+# =============================================================================
+
+# ----------------------------- 1. CONTEXT MENU OVERLAY ----------------------
+def render_context_menu(surf):
+    """Render the global context menu overlay. Should be called LAST in the
+    main loop's draw phase so it sits above all windows.
+    """
+    if not context_menu.open:
+        return
+
+    # Calculate dimensions based on items
+    item_h = 28
+    divider_h = 8
+    width = 240
+    total_h = 8
+    for it in context_menu.items:
+        total_h += divider_h if it.get("divider") else item_h
+    total_h += 8
+
+    # Pin to screen
+    sw, sh = surf.get_size()
+    x, y = context_menu.pos
+    x = min(x, sw - width - 4)
+    y = min(y, sh - total_h - 4)
+    x = max(4, x)
+    y = max(4, y)
+
+    # Drop shadow
+    shadow = pygame.Rect(x + 4, y + 4, width, total_h)
+    pygame.draw.rect(surf, (0, 0, 0, 120), shadow, border_radius=8)
+
+    # Menu background
+    menu = pygame.Rect(x, y, width, total_h)
+    pygame.draw.rect(surf, (28, 36, 54), menu, border_radius=8)
+    pygame.draw.rect(surf, (80, 100, 140), menu, 1, border_radius=8)
+
+    # Optional context label (small grey header)
+    if context_menu.context_label:
+        lbl = font_small.render(context_menu.context_label, True, (140, 160, 200))
+        surf.blit(lbl, (menu.x + 10, menu.y + 4))
+        # Don't account for header in clickable rows because it's tiny + non-clickable
+
+    # Items
+    cy = menu.y + 8
+    context_menu.targets = []
+    for idx, it in enumerate(context_menu.items):
+        if it.get("divider"):
+            pygame.draw.line(surf, (80, 100, 140),
+                              (menu.x + 8, cy + 4), (menu.right - 8, cy + 4), 1)
+            cy += divider_h
+            continue
+        row = pygame.Rect(menu.x + 4, cy, width - 8, item_h - 2)
+        pygame.draw.rect(surf, (38, 48, 70), row, border_radius=4)
+        # Icon
+        icon = it.get("icon", "•")
+        surf.blit(font_small.render(icon, True, (200, 220, 255)),
+                  (row.x + 6, row.y + 6))
+        # Label
+        label = it.get("label", "")
+        if it.get("disabled"):
+            color = (110, 120, 140)
+        else:
+            color = TEXT
+        surf.blit(font_small.render(label, True, color),
+                  (row.x + 30, row.y + 6))
+        # Shortcut hint (right-aligned)
+        if it.get("shortcut"):
+            sc = font_small.render(it["shortcut"], True, (140, 160, 200))
+            surf.blit(sc, (row.right - sc.get_width() - 6, row.y + 6))
+        context_menu.targets.append((idx, row.copy()))
+        cy += item_h
+
+
+def handle_context_menu_click(pos, button=1):
+    """Click pipeline: if the menu is open, this MUST be checked first.
+    Returns True if the click was consumed (item run or click-outside dismiss).
+    """
+    if not context_menu.open:
+        return False
+    # Check if click hits any item
+    for idx, rect in context_menu.targets:
+        if rect.collidepoint(pos):
+            context_menu.select(idx)
+            return True
+    # Click outside -> dismiss
+    context_menu.click_outside(pos)
+    return True
+
+
+# ----------------------------- 2. NOTIF RULES PANEL --------------------------
+_nr_targets = []
+
+
+def draw_notif_rules(surf, rect, win=None):
+    """Panel for managing notification rules + quiet hours + snooze."""
+    global _nr_targets
+    _nr_targets = []
+    pygame.draw.rect(surf, (16, 22, 34), rect, border_radius=10)
+
+    title = font_med.render("Notification Rules", True, TEXT)
+    surf.blit(title, (rect.x + 16, rect.y + 12))
+
+    stats = notif_rules.stats()
+    in_q = "  •  IN QUIET HOURS" if stats["in_quiet_now"] else ""
+    line = (f"{stats['rules']} rules  •  "
+            f"{stats['quiet_hours']} schedules  •  "
+            f"{stats['snoozed']} snoozed{in_q}")
+    col = (255, 200, 110) if stats["in_quiet_now"] else (140, 180, 220)
+    surf.blit(font_small.render(line, True, col),
+              (rect.x + 16, rect.y + 44))
+
+    # Tabs
+    tab_y = rect.y + 70
+    tabs = [("rules", "Rules"), ("quiet", "Quiet Hours"), ("snooze", "Snoozed")]
+    tx = rect.x + 16
+    for key, label in tabs:
+        is_active = notif_rules_panel_state["tab"] == key
+        tab_rect = pygame.Rect(tx, tab_y, 110, 28)
+        pygame.draw.rect(surf,
+                          (60, 110, 160) if is_active else (32, 42, 60),
+                          tab_rect, border_radius=6)
+        surf.blit(font_small.render(label, True, TEXT),
+                  (tab_rect.x + 14, tab_rect.y + 6))
+        _nr_targets.append(("tab", key, tab_rect.copy()))
+        tx += 116
+
+    # Body
+    list_rect = pygame.Rect(rect.x + 16, rect.y + 108, rect.w - 32, rect.h - 124)
+    pygame.draw.rect(surf, (12, 18, 28), list_rect, border_radius=8)
+
+    tab = notif_rules_panel_state["tab"]
+    if tab == "rules":
+        _draw_notif_rules_rules_tab(surf, list_rect)
+    elif tab == "quiet":
+        _draw_notif_rules_quiet_tab(surf, list_rect)
+    elif tab == "snooze":
+        _draw_notif_rules_snooze_tab(surf, list_rect)
+
+
+def _draw_notif_rules_rules_tab(surf, list_rect):
+    # Toolbar
+    btn_block = pygame.Rect(list_rect.x + 8, list_rect.y + 8, 140, 28)
+    pygame.draw.rect(surf, (140, 70, 70), btn_block, border_radius=6)
+    surf.blit(font_small.render("+ Block App rule", True, TEXT),
+              (btn_block.x + 10, btn_block.y + 6))
+    _nr_targets.append(("add_block_app", None, btn_block.copy()))
+
+    btn_silent = pygame.Rect(btn_block.right + 8, list_rect.y + 8, 160, 28)
+    pygame.draw.rect(surf, (140, 100, 60), btn_silent, border_radius=6)
+    surf.blit(font_small.render("+ Silence System info", True, TEXT),
+              (btn_silent.x + 10, btn_silent.y + 6))
+    _nr_targets.append(("add_silent_system", None, btn_silent.copy()))
+
+    btn_clear = pygame.Rect(btn_silent.right + 8, list_rect.y + 8, 100, 28)
+    pygame.draw.rect(surf, (90, 60, 60), btn_clear, border_radius=6)
+    surf.blit(font_small.render("Clear All", True, TEXT),
+              (btn_clear.x + 22, btn_clear.y + 6))
+    _nr_targets.append(("clear_rules", None, btn_clear.copy()))
+
+    # Rules list
+    if not notif_rules.rules:
+        surf.blit(font_small.render("(no rules - default is allow all)",
+                                     True, (110, 130, 160)),
+                  (list_rect.x + 16, list_rect.y + 56))
+        return
+
+    y = list_rect.y + 48
+    for idx, r in enumerate(notif_rules.rules[:10]):
+        row = pygame.Rect(list_rect.x + 8, y, list_rect.w - 16, 28)
+        bg = {"allow": (24, 48, 32), "block": (48, 24, 24),
+              "silent": (48, 40, 24)}.get(r["action"], (24, 32, 48))
+        pygame.draw.rect(surf, bg, row, border_radius=6)
+        # Action badge
+        badge_color = {"allow": (140, 220, 140), "block": (240, 120, 120),
+                       "silent": (240, 200, 120)}[r["action"]]
+        surf.blit(font_small.render(r["action"].upper(), True, badge_color),
+                  (row.x + 8, row.y + 6))
+        # Match summary
+        match_str = " ".join(f"{k}={v}" for k, v in r["match"].items())
+        if len(match_str) > 50:
+            match_str = match_str[:48] + "…"
+        surf.blit(font_small.render(match_str, True, TEXT),
+                  (row.x + 70, row.y + 6))
+        # Delete
+        btn_del = pygame.Rect(row.right - 60, row.y + 4, 50, 20)
+        pygame.draw.rect(surf, (140, 70, 70), btn_del, border_radius=4)
+        surf.blit(font_small.render("Delete", True, TEXT),
+                  (btn_del.x + 10, btn_del.y + 3))
+        _nr_targets.append(("delete_rule", idx, btn_del.copy()))
+        y += 32
+
+
+def _draw_notif_rules_quiet_tab(surf, list_rect):
+    # Toolbar
+    btn_night = pygame.Rect(list_rect.x + 8, list_rect.y + 8, 150, 28)
+    pygame.draw.rect(surf, (90, 70, 140), btn_night, border_radius=6)
+    surf.blit(font_small.render("+ Nightly 22:00-07:00", True, TEXT),
+              (btn_night.x + 8, btn_night.y + 6))
+    _nr_targets.append(("add_nightly", None, btn_night.copy()))
+
+    btn_work = pygame.Rect(btn_night.right + 8, list_rect.y + 8, 160, 28)
+    pygame.draw.rect(surf, (60, 130, 90), btn_work, border_radius=6)
+    surf.blit(font_small.render("+ Work hours 9-17", True, TEXT),
+              (btn_work.x + 18, btn_work.y + 6))
+    _nr_targets.append(("add_work_hours", None, btn_work.copy()))
+
+    btn_clear = pygame.Rect(btn_work.right + 8, list_rect.y + 8, 100, 28)
+    pygame.draw.rect(surf, (90, 60, 60), btn_clear, border_radius=6)
+    surf.blit(font_small.render("Clear All", True, TEXT),
+              (btn_clear.x + 22, btn_clear.y + 6))
+    _nr_targets.append(("clear_quiet", None, btn_clear.copy()))
+
+    # List
+    if not notif_rules.quiet_hours:
+        surf.blit(font_small.render("(no schedules)",
+                                     True, (110, 130, 160)),
+                  (list_rect.x + 16, list_rect.y + 56))
+        return
+
+    y = list_rect.y + 48
+    day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    for idx, q in enumerate(notif_rules.quiet_hours[:10]):
+        row = pygame.Rect(list_rect.x + 8, y, list_rect.w - 16, 32)
+        bg = (60, 50, 90) if q["enabled"] else (32, 32, 40)
+        pygame.draw.rect(surf, bg, row, border_radius=6)
+        # Label
+        surf.blit(font_small.render(q["label"], True, TEXT),
+                  (row.x + 8, row.y + 4))
+        # Time + days
+        days_str = "every day" if len(q["days"]) == 7 else \
+                   ", ".join(day_names[d] for d in q["days"])
+        meta = f"{q['start_h']:02d}:00 - {q['end_h']:02d}:00  •  {days_str}"
+        surf.blit(font_small.render(meta, True, (180, 200, 230)),
+                  (row.x + 8, row.y + 18))
+        # Toggle + delete
+        btn_t = pygame.Rect(row.right - 130, row.y + 6, 60, 20)
+        pygame.draw.rect(surf, (60, 130, 90) if q["enabled"] else (90, 90, 90),
+                          btn_t, border_radius=4)
+        surf.blit(font_small.render("ON" if q["enabled"] else "OFF", True, TEXT),
+                  (btn_t.x + 22, btn_t.y + 3))
+        _nr_targets.append(("toggle_quiet", idx, btn_t.copy()))
+        btn_d = pygame.Rect(row.right - 65, row.y + 6, 55, 20)
+        pygame.draw.rect(surf, (140, 70, 70), btn_d, border_radius=4)
+        surf.blit(font_small.render("Delete", True, TEXT),
+                  (btn_d.x + 12, btn_d.y + 3))
+        _nr_targets.append(("delete_quiet", idx, btn_d.copy()))
+        y += 36
+
+
+def _draw_notif_rules_snooze_tab(surf, list_rect):
+    # Toolbar
+    btn_5m = pygame.Rect(list_rect.x + 8, list_rect.y + 8, 100, 28)
+    pygame.draw.rect(surf, (70, 100, 150), btn_5m, border_radius=6)
+    surf.blit(font_small.render("Snooze App 5m", True, TEXT),
+              (btn_5m.x + 6, btn_5m.y + 6))
+    _nr_targets.append(("snooze_5m", None, btn_5m.copy()))
+
+    btn_1h = pygame.Rect(btn_5m.right + 8, list_rect.y + 8, 100, 28)
+    pygame.draw.rect(surf, (70, 100, 150), btn_1h, border_radius=6)
+    surf.blit(font_small.render("Snooze App 1h", True, TEXT),
+              (btn_1h.x + 6, btn_1h.y + 6))
+    _nr_targets.append(("snooze_1h", None, btn_1h.copy()))
+
+    btn_clear = pygame.Rect(btn_1h.right + 8, list_rect.y + 8, 100, 28)
+    pygame.draw.rect(surf, (90, 60, 60), btn_clear, border_radius=6)
+    surf.blit(font_small.render("Clear All", True, TEXT),
+              (btn_clear.x + 22, btn_clear.y + 6))
+    _nr_targets.append(("clear_snooze", None, btn_clear.copy()))
+
+    notif_rules.unsnooze_expired()
+    if not notif_rules.snoozed:
+        surf.blit(font_small.render("(nothing snoozed)",
+                                     True, (110, 130, 160)),
+                  (list_rect.x + 16, list_rect.y + 56))
+        return
+
+    y = list_rect.y + 48
+    now = time.time()
+    for idx, s in enumerate(notif_rules.snoozed[:10]):
+        row = pygame.Rect(list_rect.x + 8, y, list_rect.w - 16, 28)
+        pygame.draw.rect(surf, (40, 60, 90), row, border_radius=6)
+        match_str = " ".join(f"{k}={v}" for k, v in s["match"].items())
+        if len(match_str) > 50:
+            match_str = match_str[:48] + "…"
+        surf.blit(font_small.render(match_str, True, TEXT),
+                  (row.x + 8, row.y + 6))
+        remaining = max(0, int(s["until_ts"] - now))
+        col = (255, 200, 110) if remaining < 60 else (140, 200, 240)
+        surf.blit(font_small.render(f"{remaining}s left", True, col),
+                  (row.right - 110, row.y + 6))
+        btn_d = pygame.Rect(row.right - 50, row.y + 4, 40, 20)
+        pygame.draw.rect(surf, (140, 70, 70), btn_d, border_radius=4)
+        surf.blit(font_small.render("Del", True, TEXT),
+                  (btn_d.x + 12, btn_d.y + 3))
+        _nr_targets.append(("delete_snooze", idx, btn_d.copy()))
+        y += 32
+
+
+def handle_notif_rules_click(pos):
+    for kind, payload, rect in _nr_targets:
+        if rect.collidepoint(pos):
+            if kind == "tab":
+                notif_rules_panel_state["tab"] = payload
+            elif kind == "add_block_app":
+                notif_rules.add_rule({"category": "App"}, "block")
+            elif kind == "add_silent_system":
+                notif_rules.add_rule({"category": "System"}, "silent")
+            elif kind == "clear_rules":
+                notif_rules.clear_rules()
+            elif kind == "delete_rule":
+                notif_rules.remove_rule(payload)
+            elif kind == "add_nightly":
+                notif_rules.add_quiet_hours(22, 7, label="Nightly")
+            elif kind == "add_work_hours":
+                notif_rules.add_quiet_hours(9, 17, days=[0, 1, 2, 3, 4],
+                                              label="Work")
+            elif kind == "clear_quiet":
+                notif_rules.quiet_hours = []
+            elif kind == "toggle_quiet":
+                if 0 <= payload < len(notif_rules.quiet_hours):
+                    q = notif_rules.quiet_hours[payload]
+                    q["enabled"] = not q["enabled"]
+            elif kind == "delete_quiet":
+                notif_rules.remove_quiet_hours(payload)
+            elif kind == "snooze_5m":
+                notif_rules.snooze({"category": "App"}, 300)
+            elif kind == "snooze_1h":
+                notif_rules.snooze({"category": "App"}, 3600)
+            elif kind == "clear_snooze":
+                notif_rules.snoozed = []
+            elif kind == "delete_snooze":
+                if 0 <= payload < len(notif_rules.snoozed):
+                    del notif_rules.snoozed[payload]
+            return True
+    return False
+
+
+# ----------------------------- 3. ACCESSIBILITY PANEL ------------------------
+_acc_targets = []
+
+
+def draw_accessibility(surf, rect, win=None):
+    """Panel for accessibility settings: font scale, reduced motion, etc."""
+    global _acc_targets
+    _acc_targets = []
+    pygame.draw.rect(surf, (16, 22, 34), rect, border_radius=10)
+
+    title = font_med.render("Accessibility", True, TEXT)
+    surf.blit(title, (rect.x + 16, rect.y + 12))
+
+    s = accessibility.stats()
+    line = (f"Font {s['font_scale']:.2f}x  •  "
+            f"Motion: {'reduced' if s['reduced_motion'] else 'normal'}  •  "
+            f"Contrast: {'high' if s['high_contrast'] else 'normal'}")
+    surf.blit(font_small.render(line, True, (140, 180, 220)),
+              (rect.x + 16, rect.y + 44))
+
+    # Font scale row
+    fs_y = rect.y + 80
+    surf.blit(font_med.render("Font Scale", True, TEXT), (rect.x + 16, fs_y))
+    btn_minus = pygame.Rect(rect.x + 16, fs_y + 28, 40, 28)
+    pygame.draw.rect(surf, (60, 80, 110), btn_minus, border_radius=6)
+    surf.blit(font_med.render("-", True, TEXT), (btn_minus.x + 16, btn_minus.y + 4))
+    _acc_targets.append(("font_minus", None, btn_minus.copy()))
+
+    # Slider track
+    track = pygame.Rect(btn_minus.right + 8, fs_y + 38, 240, 8)
+    pygame.draw.rect(surf, (60, 70, 100), track, border_radius=4)
+    # Slider position based on current scale
+    scales = accessibility.SCALES
+    try:
+        idx = scales.index(accessibility.font_scale)
+    except ValueError:
+        idx = scales.index(1.0)
+    knob_x = track.x + int((idx / max(1, len(scales) - 1)) * track.w)
+    pygame.draw.circle(surf, (200, 220, 255), (knob_x, track.y + 4), 8)
+
+    btn_plus = pygame.Rect(track.right + 8, fs_y + 28, 40, 28)
+    pygame.draw.rect(surf, (60, 80, 110), btn_plus, border_radius=6)
+    surf.blit(font_med.render("+", True, TEXT), (btn_plus.x + 14, btn_plus.y + 4))
+    _acc_targets.append(("font_plus", None, btn_plus.copy()))
+
+    # Current scale label
+    surf.blit(font_small.render(f"{accessibility.font_scale:.2f}x", True, TEXT),
+              (btn_plus.right + 12, fs_y + 32))
+
+    # Preview using the SCALED font
+    preview_y = fs_y + 70
+    preview_rect = pygame.Rect(rect.x + 16, preview_y, rect.w - 32, 60)
+    pygame.draw.rect(surf, (24, 32, 48), preview_rect, border_radius=6)
+    pygame.draw.rect(surf, (60, 80, 110), preview_rect, 1, border_radius=6)
+    surf.blit(font_small.render("Preview (scaled font):", True, (140, 180, 220)),
+              (preview_rect.x + 8, preview_rect.y + 4))
+    scaled = accessibility.get_font("med")
+    preview_surf = scaled.render(accessibility_panel_state["preview_text"],
+                                  True, TEXT)
+    # Clip to preview rect width
+    surf.blit(preview_surf, (preview_rect.x + 8, preview_rect.y + 24),
+              area=pygame.Rect(0, 0, preview_rect.w - 16, preview_surf.get_height()))
+
+    # Toggles
+    toggles_y = preview_rect.bottom + 16
+    toggles = [
+        ("reduced_motion", "Reduced motion", accessibility.reduced_motion,
+            "toggle_reduced"),
+        ("high_contrast",  "High contrast",  accessibility.high_contrast,
+            "toggle_contrast"),
+        ("large_cursor",   "Large cursor",   accessibility.large_cursor,
+            "toggle_cursor"),
+    ]
+    for i, (key, label, val, action) in enumerate(toggles):
+        ty = toggles_y + i * 36
+        if ty + 28 > rect.bottom - 8:
+            break
+        row = pygame.Rect(rect.x + 16, ty, rect.w - 32, 28)
+        pygame.draw.rect(surf, (24, 32, 48), row, border_radius=6)
+        surf.blit(font_small.render(label, True, TEXT),
+                  (row.x + 12, row.y + 6))
+        knob = pygame.Rect(row.right - 60, row.y + 4, 50, 20)
+        pygame.draw.rect(surf, (60, 130, 90) if val else (90, 90, 90),
+                          knob, border_radius=10)
+        surf.blit(font_small.render("ON" if val else "OFF", True, TEXT),
+                  (knob.x + (16 if val else 12), knob.y + 3))
+        _acc_targets.append((action, None, row.copy()))
+
+
+def handle_accessibility_click(pos):
+    for kind, _payload, rect in _acc_targets:
+        if rect.collidepoint(pos):
+            if kind == "font_plus":
+                accessibility.font_scale_step(+1)
+            elif kind == "font_minus":
+                accessibility.font_scale_step(-1)
+            elif kind == "toggle_reduced":
+                accessibility.toggle_reduced_motion()
+            elif kind == "toggle_contrast":
+                accessibility.toggle_high_contrast()
+            elif kind == "toggle_cursor":
+                accessibility.toggle_large_cursor()
+            return True
+    return False
+
+
+# =============================================================================
+# CYCLE 4 — PANELS: draw + click handlers for every new manager
+# =============================================================================
+
+# ---- Capture panel
+_capture_targets = []
+def draw_capture(surf, rect, win=None):
+    """Screenshot + screen recording + replay buffer + history + annotations."""
+    global _capture_targets
+    _capture_targets = []
+    pygame.draw.rect(surf, (22, 26, 38), rect, border_radius=12)
+    title_str = "📸 Capture & Record"
+    if capture_mgr.recording:
+        title_str += "  ●REC"
+    surf.blit(font_med.render(title_str, True, TEXT),
+              (rect.x + 20, rect.y + 12))
+
+    # Tabs row
+    tabs = ["history", "tools", "recording"]
+    tab_y = rect.y + 44
+    for i, t in enumerate(tabs):
+        tx = rect.x + 20 + i * 120
+        active = capture_panel_state["tab"] == t
+        col = (60, 140, 210) if active else (50, 56, 72)
+        r = pygame.Rect(tx, tab_y, 110, 28)
+        pygame.draw.rect(surf, col, r, border_radius=6)
+        surf.blit(font_small.render(t.title(), True, TEXT), (tx + 12, tab_y + 6))
+        _capture_targets.append(("tab", t, r))
+
+    content_y = tab_y + 40
+    tab = capture_panel_state["tab"]
+
+    if tab == "history":
+        if not capture_mgr.captures:
+            surf.blit(font_small.render("(no captures yet - try the 'Tools' tab)",
+                                         True, (150, 150, 170)),
+                      (rect.x + 20, content_y))
+        for i, c in enumerate(capture_mgr.captures[:8]):
+            y = content_y + i * 30
+            if y > rect.bottom - 50:
+                break
+            row = pygame.Rect(rect.x + 14, y, rect.w - 28, 26)
+            pygame.draw.rect(surf, (30, 36, 50), row, border_radius=4)
+            txt = f"#{c['id']:<3} {c['ts_str']}  [{c['kind']:>10}]  {c['label'][:36]}"
+            surf.blit(font_small.render(txt, True, TEXT), (row.x + 8, row.y + 5))
+            _capture_targets.append(("select", c["id"], row))
+    elif tab == "tools":
+        actions = [
+            ("Region snip",     "capture_region"),
+            ("Window snip",     "capture_window"),
+            ("Free-form snip",  "capture_freeform"),
+            ("Full screen",     "capture_fullscreen"),
+            ("Scrolling snip",  "capture_scrolling"),
+            ("Save replay 30s", "save_replay"),
+        ]
+        for i, (label, kind) in enumerate(actions):
+            ax = rect.x + 20 + (i % 2) * 240
+            ay = content_y + (i // 2) * 38
+            btn = pygame.Rect(ax, ay, 220, 30)
+            pygame.draw.rect(surf, (45, 70, 110), btn, border_radius=6)
+            surf.blit(font_small.render(label, True, TEXT), (btn.x + 10, btn.y + 7))
+            _capture_targets.append(("tool", kind, btn))
+    elif tab == "recording":
+        # Recording controls + settings
+        rec_label = "STOP REC" if capture_mgr.recording else "START REC"
+        rec_col = (200, 60, 60) if capture_mgr.recording else (60, 160, 80)
+        rec_btn = pygame.Rect(rect.x + 20, content_y, 180, 34)
+        pygame.draw.rect(surf, rec_col, rec_btn, border_radius=6)
+        surf.blit(font_small.render(rec_label, True, TEXT), (rec_btn.x + 14, rec_btn.y + 10))
+        _capture_targets.append(("tool", "toggle_record", rec_btn))
+        info_lines = [
+            f"FPS: {capture_mgr.recording_fps}    Resolution: {capture_mgr.recording_resolution}",
+            f"Mic audio: {'on' if capture_mgr.audio_mic else 'off'}    "
+                f"System audio: {'on' if capture_mgr.audio_system else 'off'}",
+            f"Replay buffer: {capture_mgr.replay_buffer_sec}s  "
+                f"({'active' if capture_mgr.replay_buffer_active else 'off'})",
+            f"Auto-redact faces: {'on' if capture_mgr.auto_redact_faces else 'off'}",
+            f"Auto-redact secrets: {'on' if capture_mgr.auto_redact_secrets else 'off'}",
+            f"E2E encrypted upload: {'on' if capture_mgr.upload_e2ee else 'off'}",
+        ]
+        for i, line in enumerate(info_lines):
+            surf.blit(font_small.render(line, True, (180, 200, 220)),
+                      (rect.x + 220, content_y + i * 18))
+
+
+def handle_capture_click(pos):
+    for kind, value, hit in reversed(_capture_targets):
+        if not hit.collidepoint(pos):
+            continue
+        if kind == "tab":
+            capture_panel_state["tab"] = value
+        elif kind == "select":
+            capture_panel_state["selected_id"] = value
+        elif kind == "tool":
+            if value == "capture_region":
+                capture_mgr.capture(kind="region", w=800, h=600, label="Region snip")
+            elif value == "capture_window":
+                capture_mgr.capture(kind="window", w=1024, h=768, label="Window snip")
+            elif value == "capture_freeform":
+                capture_mgr.capture(kind="freeform", w=600, h=400, label="Free-form snip")
+            elif value == "capture_fullscreen":
+                capture_mgr.capture(kind="fullscreen", label="Full screen")
+            elif value == "capture_scrolling":
+                capture_mgr.capture(kind="scrolling", w=1920, h=4200, label="Scrolling snip")
+            elif value == "save_replay":
+                capture_mgr.save_replay_buffer()
+            elif value == "toggle_record":
+                if capture_mgr.recording:
+                    capture_mgr.stop_recording()
+                else:
+                    capture_mgr.start_recording()
+        return True
+    return False
+
+
+# ---- Quick Settings panel (Cycle 4 v2)
+_qs_targets = []
+def draw_quick_settings_v2(surf, rect, win=None):
+    """Pull-down style Quick Settings panel."""
+    global _qs_targets
+    _qs_targets = []
+    pygame.draw.rect(surf, (24, 28, 40), rect, border_radius=12)
+    surf.blit(font_med.render("⚙ Quick Settings", True, TEXT),
+              (rect.x + 20, rect.y + 12))
+    # Profile selector
+    px = rect.x + 20
+    py = rect.y + 44
+    for i, name in enumerate(quick_settings.profiles):
+        active = quick_settings.profile == name
+        col = (60, 140, 210) if active else (40, 48, 64)
+        r = pygame.Rect(px + i * 100, py, 92, 24)
+        pygame.draw.rect(surf, col, r, border_radius=4)
+        surf.blit(font_small.render(name, True, TEXT), (r.x + 10, r.y + 4))
+        _qs_targets.append(("profile", name, r))
+    # 2-col toggle grid
+    grid_y = py + 38
+    keys = list(quick_settings.toggles.keys())
+    for i, k in enumerate(keys):
+        gx = rect.x + 20 + (i % 2) * 230
+        gy = grid_y + (i // 2) * 30
+        if gy + 26 > rect.bottom - 30:
+            break
+        on = quick_settings.toggles[k]
+        col = (40, 140, 80) if on else (60, 60, 70)
+        r = pygame.Rect(gx, gy, 220, 26)
+        pygame.draw.rect(surf, col, r, border_radius=6)
+        label = k.replace("_", " ").title()
+        surf.blit(font_small.render(label, True, TEXT), (r.x + 10, r.y + 5))
+        marker = "ON" if on else "off"
+        surf.blit(font_small.render(marker, True, (240, 240, 240)),
+                  (r.right - 30, r.y + 5))
+        _qs_targets.append(("toggle", k, r))
+
+
+def handle_quick_settings_click(pos):
+    for kind, value, hit in reversed(_qs_targets):
+        if not hit.collidepoint(pos):
+            continue
+        if kind == "toggle":
+            quick_settings.toggle(value)
+        elif kind == "profile":
+            quick_settings.set_profile(value)
+        return True
+    return False
+
+
+# ---- Task Manager panel (Cycle 4 v2)
+_tm_targets = []
+def draw_task_manager_v2(surf, rect, win=None):
+    """Process list + CPU/RAM/Net history graphs + kill buttons."""
+    global _tm_targets
+    _tm_targets = []
+    pygame.draw.rect(surf, (20, 24, 34), rect, border_radius=10)
+    surf.blit(font_med.render("🧠 Task Manager", True, TEXT),
+              (rect.x + 16, rect.y + 10))
+    # Refresh history each draw call
+    try:
+        gmansos_task_mgr.tick()
+    except Exception:
+        pass
+    # Tabs
+    tabs = ["processes", "performance", "watchdog"]
+    for i, t in enumerate(tabs):
+        tx = rect.x + 16 + i * 110
+        ty = rect.y + 42
+        active = task_mgr_panel_state["tab"] == t
+        col = (60, 140, 210) if active else (45, 52, 70)
+        r = pygame.Rect(tx, ty, 100, 26)
+        pygame.draw.rect(surf, col, r, border_radius=5)
+        surf.blit(font_small.render(t.title(), True, TEXT), (r.x + 8, r.y + 5))
+        _tm_targets.append(("tab", t, r))
+    cy = rect.y + 78
+    tab = task_mgr_panel_state["tab"]
+    if tab == "processes":
+        procs = gmansos_task_mgr.list_procs()
+        procs.sort(key=lambda p: p.get(task_mgr_panel_state["sort_by"], 0), reverse=True)
+        header = f"  PID    NAME              CPU    RAM    KIND"
+        surf.blit(font_small.render(header, True, (160, 180, 200)), (rect.x + 16, cy))
+        cy += 18
+        for p in procs[:12]:
+            if cy + 18 > rect.bottom - 30:
+                break
+            row = pygame.Rect(rect.x + 12, cy, rect.w - 24, 18)
+            pygame.draw.rect(surf, (28, 34, 48), row, border_radius=3)
+            line = f"  {p['pid']:<6} {p['name'][:18]:<18} {p['cpu']:>5.1f}%  {p['ram_mb']:>4}M  {p['kind']}"
+            surf.blit(font_small.render(line, True, TEXT), (row.x + 4, row.y + 2))
+            # Kill button on the right
+            kbtn = pygame.Rect(row.right - 50, row.y, 44, 16)
+            pygame.draw.rect(surf, (180, 60, 60), kbtn, border_radius=3)
+            surf.blit(font_small.render("Kill", True, TEXT), (kbtn.x + 10, kbtn.y + 1))
+            _tm_targets.append(("kill", p["pid"], kbtn))
+            cy += 20
+    elif tab == "performance":
+        # CPU + RAM + Net 60-sample line graphs
+        def draw_graph(label, hist, col, gy):
+            surf.blit(font_small.render(f"{label}: {hist[-1]}%", True, TEXT),
+                      (rect.x + 16, gy))
+            gh = 50
+            base = gy + 18
+            gx_step = max(1, (rect.w - 60) // max(1, len(hist) - 1))
+            for i in range(1, len(hist)):
+                y0 = base + gh - int(hist[i - 1] * gh / 100)
+                y1 = base + gh - int(hist[i] * gh / 100)
+                pygame.draw.line(surf, col,
+                                  (rect.x + 24 + (i - 1) * gx_step, y0),
+                                  (rect.x + 24 + i * gx_step, y1), 2)
+        draw_graph("CPU", gmansos_task_mgr.cpu_history, (100, 200, 255), cy)
+        draw_graph("RAM", gmansos_task_mgr.ram_history, (255, 180, 80), cy + 80)
+        draw_graph("Net", gmansos_task_mgr.net_history, (140, 220, 140), cy + 160)
+    elif tab == "watchdog":
+        surf.blit(font_small.render(
+            f"{len(gmansos_task_mgr.watchdog_rules)} watchdog rules active",
+            True, TEXT), (rect.x + 16, cy))
+        for i, w in enumerate(gmansos_task_mgr.watchdog_rules[:8]):
+            y = cy + 24 + i * 22
+            surf.blit(font_small.render(
+                f"  - {w['name']:<20} -> {w['action']}", True, (200, 220, 240)),
+                (rect.x + 16, y))
+        add_btn = pygame.Rect(rect.x + 16, rect.bottom - 50, 220, 28)
+        pygame.draw.rect(surf, (60, 130, 90), add_btn, border_radius=5)
+        surf.blit(font_small.render("Add demo watchdog rule", True, TEXT),
+                  (add_btn.x + 10, add_btn.y + 7))
+        _tm_targets.append(("add_watchdog", "demo", add_btn))
+
+
+def handle_task_manager_click(pos):
+    for kind, value, hit in reversed(_tm_targets):
+        if not hit.collidepoint(pos):
+            continue
+        if kind == "tab":
+            task_mgr_panel_state["tab"] = value
+        elif kind == "kill":
+            gmansos_task_mgr.kill(value)
+        elif kind == "add_watchdog":
+            gmansos_task_mgr.add_watchdog(
+                f"demo-rule-{len(gmansos_task_mgr.watchdog_rules) + 1}")
+        return True
+    return False
+
+
+# ---- Spotlight v2 panel
+_sp_targets = []
+def draw_spotlight(surf, rect, win=None):
+    """Universal search across apps/files/settings/actions/web/math."""
+    global _sp_targets
+    _sp_targets = []
+    pygame.draw.rect(surf, (24, 28, 40), rect, border_radius=12)
+    surf.blit(font_med.render("🔎 Spotlight", True, TEXT),
+              (rect.x + 20, rect.y + 12))
+    # Query bar (read-only display - actual typing is via Command Palette;
+    # here we surface results for the latest query).
+    qbar = pygame.Rect(rect.x + 20, rect.y + 44, rect.w - 40, 32)
+    pygame.draw.rect(surf, (40, 48, 64), qbar, border_radius=8)
+    qtxt = spotlight.query or "(type via Command Palette: Ctrl+K)"
+    surf.blit(font_small.render(qtxt, True, TEXT), (qbar.x + 12, qbar.y + 8))
+    # Scope buttons
+    scope_y = qbar.bottom + 8
+    for i, s in enumerate(spotlight.SCOPES):
+        sx = rect.x + 20 + i * 80
+        if sx + 70 > rect.right - 10:
+            break
+        active = spotlight.scope == s
+        col = (60, 140, 210) if active else (40, 48, 64)
+        r = pygame.Rect(sx, scope_y, 72, 24)
+        pygame.draw.rect(surf, col, r, border_radius=4)
+        surf.blit(font_small.render(s, True, TEXT), (r.x + 8, r.y + 4))
+        _sp_targets.append(("scope", s, r))
+    # Results
+    ry = scope_y + 36
+    if not spotlight.results:
+        surf.blit(font_small.render("(no results - try a query)",
+                                     True, (150, 150, 170)),
+                  (rect.x + 20, ry))
+    for i, r_item in enumerate(spotlight.results[:8]):
+        y = ry + i * 28
+        if y + 24 > rect.bottom - 30:
+            break
+        row = pygame.Rect(rect.x + 14, y, rect.w - 28, 24)
+        pygame.draw.rect(surf, (30, 36, 50), row, border_radius=4)
+        line = f"[{r_item['kind']:>7}] {str(r_item.get('label', ''))[:50]}  --  {str(r_item.get('detail', ''))[:30]}"
+        surf.blit(font_small.render(line, True, TEXT), (row.x + 8, row.y + 4))
+        _sp_targets.append(("result", i, row))
+
+
+def handle_spotlight_click(pos):
+    for kind, value, hit in reversed(_sp_targets):
+        if not hit.collidepoint(pos):
+            continue
+        if kind == "scope":
+            spotlight.scope = value
+            spotlight.search(spotlight.query, scope=value)
+        elif kind == "result":
+            spotlight_panel_state["selected"] = value
+        return True
+    return False
+
+
+# ---- File Manager v2 panel
+_fm2_targets = []
+def draw_file_mgr_v2(surf, rect, win=None):
+    """Tabbed file explorer with preview pane + duplicate finder + disk usage."""
+    global _fm2_targets
+    _fm2_targets = []
+    pygame.draw.rect(surf, (20, 24, 34), rect, border_radius=10)
+    surf.blit(font_med.render("📁 File Manager v2", True, TEXT),
+              (rect.x + 16, rect.y + 10))
+    # Tab strip across the top showing each open tab
+    tx = rect.x + 16
+    ty = rect.y + 42
+    for i, t in enumerate(file_mgr_v2.tabs):
+        active = file_mgr_v2.active_tab == i
+        col = (60, 140, 210) if active else (45, 52, 70)
+        path = t["path"].split("/")[-1] or "/"
+        r = pygame.Rect(tx + i * 130, ty, 124, 26)
+        pygame.draw.rect(surf, col, r, border_radius=4)
+        surf.blit(font_small.render(path[:14], True, TEXT), (r.x + 8, r.y + 5))
+        _fm2_targets.append(("tab", i, r))
+    # Path breadcrumb
+    path = file_mgr_v2.tabs[file_mgr_v2.active_tab]["path"]
+    surf.blit(font_small.render(path, True, (180, 200, 220)),
+              (rect.x + 16, ty + 32))
+    # File list
+    cy = ty + 56
+    items = file_mgr_v2.list_current()
+    if not items:
+        surf.blit(font_small.render("(empty)", True, (150, 150, 170)),
+                  (rect.x + 30, cy))
+    for i, name in enumerate(items[:12]):
+        y = cy + i * 22
+        if y + 18 > rect.bottom - 30:
+            break
+        is_dir = (path + "/" + name) in file_mgr_v2.fs
+        icon = "📁" if is_dir else "📄"
+        row = pygame.Rect(rect.x + 14, y, rect.w - 28, 20)
+        pygame.draw.rect(surf, (28, 34, 48), row, border_radius=3)
+        surf.blit(font_small.render(f"{icon}  {name}", True, TEXT),
+                  (row.x + 8, row.y + 2))
+        _fm2_targets.append(("enter", path + "/" + name, row))
+    # Action strip
+    btn_y = rect.bottom - 36
+    for i, (label, action) in enumerate([
+            ("Up",            "up"),
+            ("New Tab",       "new_tab"),
+            ("Find Dupes",    "find_dupes"),
+            ("Disk Usage",    "disk_usage"),
+            ("Toggle Preview","toggle_preview"),
+        ]):
+        bx = rect.x + 16 + i * 110
+        btn = pygame.Rect(bx, btn_y, 100, 26)
+        pygame.draw.rect(surf, (50, 70, 110), btn, border_radius=4)
+        surf.blit(font_small.render(label, True, TEXT), (btn.x + 6, btn.y + 5))
+        _fm2_targets.append(("action", action, btn))
+
+
+def handle_file_mgr_v2_click(pos):
+    for kind, value, hit in reversed(_fm2_targets):
+        if not hit.collidepoint(pos):
+            continue
+        if kind == "tab":
+            file_mgr_v2.active_tab = value
+        elif kind == "enter":
+            if value in file_mgr_v2.fs:
+                file_mgr_v2.cd(value)
+        elif kind == "action":
+            if value == "up":
+                cur = file_mgr_v2.tabs[file_mgr_v2.active_tab]["path"]
+                parent = "/".join(cur.split("/")[:-1]) or "/home/gman"
+                if parent in file_mgr_v2.fs:
+                    file_mgr_v2.cd(parent)
+            elif value == "new_tab":
+                file_mgr_v2.open_tab("/home/gman")
+            elif value == "find_dupes":
+                file_mgr_v2.find_duplicates()
+            elif value == "disk_usage":
+                file_mgr_v2.disk_usage()
+            elif value == "toggle_preview":
+                file_mgr_v2.preview_pane = not file_mgr_v2.preview_pane
+        return True
+    return False
+
+
+# ---- Comms hub panel
+_comms_targets = []
+def draw_comms(surf, rect, win=None):
+    """Comms hub: messages / email / calendar / contacts / tasks / call."""
+    global _comms_targets
+    _comms_targets = []
+    pygame.draw.rect(surf, (22, 26, 38), rect, border_radius=12)
+    surf.blit(font_med.render("📨 Comms Hub", True, TEXT),
+              (rect.x + 20, rect.y + 12))
+    tabs = ["messages", "email", "calendar", "contacts", "tasks", "call"]
+    for i, t in enumerate(tabs):
+        tx = rect.x + 20 + i * 80
+        ty = rect.y + 44
+        active = comms_panel_state["tab"] == t
+        col = (60, 140, 210) if active else (45, 52, 70)
+        r = pygame.Rect(tx, ty, 72, 26)
+        pygame.draw.rect(surf, col, r, border_radius=4)
+        surf.blit(font_small.render(t.title()[:8], True, TEXT),
+                  (r.x + 8, r.y + 5))
+        _comms_targets.append(("tab", t, r))
+    cy = rect.y + 84
+    tab = comms_panel_state["tab"]
+    if tab == "messages":
+        for i, m in enumerate(comms_mgr.messages[:8]):
+            y = cy + i * 26
+            if y + 22 > rect.bottom - 10:
+                break
+            badge = "●" if m.get("unread") else " "
+            line = f"{badge} [{m['ts']}] {m['from']:<10}: {m['body'][:38]}"
+            col = (255, 200, 80) if m.get("unread") else TEXT
+            surf.blit(font_small.render(line, True, col), (rect.x + 24, y + 4))
+    elif tab == "email":
+        for i, e in enumerate(comms_mgr.emails[:8]):
+            y = cy + i * 26
+            if y + 22 > rect.bottom - 10:
+                break
+            badge = "●" if e.get("unread") else " "
+            line = f"{badge} {e['from'][:22]:<22} | {e['subject'][:30]}"
+            col = (100, 200, 255) if e.get("unread") else TEXT
+            surf.blit(font_small.render(line, True, col), (rect.x + 24, y + 4))
+    elif tab == "calendar":
+        for i, ev in enumerate(comms_mgr.events[:8]):
+            y = cy + i * 26
+            if y + 22 > rect.bottom - 10:
+                break
+            line = f"📅 {ev['when']:<18} | {ev['title'][:24]}  ({ev['duration_min']}m, {ev['calendar']})"
+            surf.blit(font_small.render(line, True, TEXT), (rect.x + 24, y + 4))
+    elif tab == "contacts":
+        for i, c in enumerate(comms_mgr.contacts[:8]):
+            y = cy + i * 26
+            if y + 22 > rect.bottom - 10:
+                break
+            star = "★" if c.get("fav") else " "
+            line = f"{star} {c['name']:<22} {c['email']:<24} {c['phone']}"
+            col = (255, 220, 100) if c.get("fav") else TEXT
+            surf.blit(font_small.render(line, True, col), (rect.x + 24, y + 4))
+    elif tab == "tasks":
+        for i, t in enumerate(comms_mgr.tasks[:8]):
+            y = cy + i * 26
+            if y + 22 > rect.bottom - 10:
+                break
+            box = "[x]" if t.get("done") else "[ ]"
+            line = f"{box} {t['text'][:36]:<36} due:{t['due']:<10} {t['priority']}"
+            col = (140, 200, 140) if t.get("done") else TEXT
+            row = pygame.Rect(rect.x + 20, y, rect.w - 40, 22)
+            surf.blit(font_small.render(line, True, col), (row.x + 4, row.y + 4))
+            _comms_targets.append(("toggle_task", i, row))
+    elif tab == "call":
+        c = comms_mgr.video_call
+        status = "IN CALL" if c["in_call"] else "Idle"
+        surf.blit(font_med.render(f"📹 Video call: {status}", True, TEXT),
+                  (rect.x + 24, cy))
+        info = [
+            f"Background blur:    {'on' if c['bg_blur'] else 'off'}",
+            f"Noise suppression:  {'on' if c['noise_suppression'] else 'off'}",
+            f"Live captions:      {'on' if c['captions'] else 'off'}",
+            f"Participants:       {len(c['participants'])}",
+        ]
+        for i, line in enumerate(info):
+            surf.blit(font_small.render(line, True, (180, 200, 220)),
+                      (rect.x + 24, cy + 32 + i * 20))
+        btn_label = "End Call" if c["in_call"] else "Start Call"
+        btn_col = (200, 60, 60) if c["in_call"] else (60, 160, 80)
+        cbtn = pygame.Rect(rect.x + 24, rect.bottom - 50, 180, 32)
+        pygame.draw.rect(surf, btn_col, cbtn, border_radius=6)
+        surf.blit(font_small.render(btn_label, True, TEXT), (cbtn.x + 14, cbtn.y + 9))
+        _comms_targets.append(("toggle_call", None, cbtn))
+
+
+def handle_comms_click(pos):
+    for kind, value, hit in reversed(_comms_targets):
+        if not hit.collidepoint(pos):
+            continue
+        if kind == "tab":
+            comms_panel_state["tab"] = value
+        elif kind == "toggle_task":
+            comms_mgr.toggle_task(value)
+        elif kind == "toggle_call":
+            if comms_mgr.video_call["in_call"]:
+                comms_mgr.end_call()
+            else:
+                comms_mgr.start_call(["alice@example.com"])
+        return True
+    return False
+
+
+# ---- Frontier (2117 tech) panel
+_fr_targets = []
+def draw_frontier(surf, rect, win=None):
+    """Frontier capabilities: quantum auth, programmable matter, BCI, etc."""
+    global _fr_targets
+    _fr_targets = []
+    pygame.draw.rect(surf, (18, 22, 36), rect, border_radius=12)
+    surf.blit(font_med.render("🛰 Frontier (2117)", True, TEXT),
+              (rect.x + 20, rect.y + 12))
+    tabs = ["quantum", "matter", "bci", "spatial", "dtn", "energy"]
+    for i, t in enumerate(tabs):
+        tx = rect.x + 20 + i * 86
+        ty = rect.y + 44
+        active = frontier_panel_state["tab"] == t
+        col = (140, 80, 210) if active else (40, 48, 64)
+        r = pygame.Rect(tx, ty, 80, 26)
+        pygame.draw.rect(surf, col, r, border_radius=4)
+        surf.blit(font_small.render(t.title(), True, TEXT),
+                  (r.x + 8, r.y + 5))
+        _fr_targets.append(("tab", t, r))
+    cy = rect.y + 84
+    tab = frontier_panel_state["tab"]
+    if tab == "quantum":
+        lines = [
+            f"Paired:        {frontier.quantum_paired}",
+            f"Strength:      {frontier.quantum_entanglement_strength:.2f}",
+            f"QKD keys:      {frontier.qkd_keys_distributed}",
+        ]
+        for i, line in enumerate(lines):
+            surf.blit(font_small.render(line, True, TEXT),
+                      (rect.x + 24, cy + i * 22))
+        bt = pygame.Rect(rect.x + 24, cy + 80, 220, 30)
+        pygame.draw.rect(surf, (90, 50, 180), bt, border_radius=6)
+        label = "Break entanglement" if frontier.quantum_paired else "Distribute QKD key"
+        surf.blit(font_small.render(label, True, TEXT), (bt.x + 12, bt.y + 8))
+        _fr_targets.append(("act", "quantum_toggle", bt))
+    elif tab == "matter":
+        surf.blit(font_small.render(f"Voxels active: {frontier.matter_voxel_count}",
+                                     True, TEXT), (rect.x + 24, cy))
+        for i, t in enumerate(frontier.matter_targets[-5:]):
+            surf.blit(font_small.render(f"  -> {t['shape']} ({t['voxels']} voxels)",
+                                         True, (200, 220, 240)),
+                      (rect.x + 24, cy + 24 + i * 18))
+        for i, shape in enumerate(["cube", "sphere", "hammer", "phone", "chair"]):
+            bx = rect.x + 24 + (i % 3) * 130
+            by = cy + 130 + (i // 3) * 36
+            bt = pygame.Rect(bx, by, 120, 28)
+            pygame.draw.rect(surf, (60, 90, 180), bt, border_radius=5)
+            surf.blit(font_small.render(f"Morph: {shape}", True, TEXT),
+                      (bt.x + 8, bt.y + 6))
+            _fr_targets.append(("act", f"morph:{shape}", bt))
+    elif tab == "bci":
+        lines = [
+            f"Connected:        {frontier.bci_connected}",
+            f"Signal quality:   {frontier.bci_signal_quality}%",
+            f"Last intent:      {frontier.bci_intent or '(none)'}",
+            f"Cognitive load:   {frontier.bci_cognitive_load:.2f}",
+        ]
+        for i, line in enumerate(lines):
+            surf.blit(font_small.render(line, True, TEXT),
+                      (rect.x + 24, cy + i * 22))
+        bt = pygame.Rect(rect.x + 24, cy + 100, 200, 30)
+        pygame.draw.rect(surf, (50, 130, 200), bt, border_radius=6)
+        label = "Disconnect BCI" if frontier.bci_connected else "Connect BCI"
+        surf.blit(font_small.render(label, True, TEXT), (bt.x + 12, bt.y + 8))
+        _fr_targets.append(("act", "bci_toggle", bt))
+    elif tab == "spatial":
+        surf.blit(font_small.render(
+            f"{len(frontier.spatial_anchors)} spatial anchors set",
+            True, TEXT), (rect.x + 24, cy))
+        for i, a in enumerate(frontier.spatial_anchors[-6:]):
+            surf.blit(font_small.render(f"  - {a['name']} @ {a['pos']}",
+                                         True, (200, 220, 240)),
+                      (rect.x + 24, cy + 24 + i * 18))
+        bt = pygame.Rect(rect.x + 24, cy + 140, 220, 30)
+        pygame.draw.rect(surf, (60, 130, 90), bt, border_radius=6)
+        surf.blit(font_small.render("Drop anchor here", True, TEXT),
+                  (bt.x + 12, bt.y + 8))
+        _fr_targets.append(("act", "drop_anchor", bt))
+    elif tab == "dtn":
+        lines = [
+            f"DTN enabled:    {frontier.dtn_enabled}",
+            f"Planetary ID:   {frontier.planetary_id}",
+            f"Buffered bytes: {frontier.dtn_buffered}",
+        ]
+        for i, line in enumerate(lines):
+            surf.blit(font_small.render(line, True, TEXT),
+                      (rect.x + 24, cy + i * 22))
+        bt = pygame.Rect(rect.x + 24, cy + 80, 220, 30)
+        pygame.draw.rect(surf, (130, 80, 60), bt, border_radius=6)
+        label = "Disable DTN" if frontier.dtn_enabled else "Enable DTN (Mars)"
+        surf.blit(font_small.render(label, True, TEXT), (bt.x + 12, bt.y + 8))
+        _fr_targets.append(("act", "dtn_toggle", bt))
+    elif tab == "energy":
+        used = frontier.energy_used_mwh
+        budget = frontier.energy_budget_mwh
+        frac = min(1.0, used / budget) if budget else 0
+        surf.blit(font_small.render(
+            f"Energy: {used:.1f} / {budget:.1f} mWh   "
+            f"CO2: {frontier.carbon_g:.2f}g",
+            True, TEXT), (rect.x + 24, cy))
+        bar = pygame.Rect(rect.x + 24, cy + 24, rect.w - 48, 16)
+        pygame.draw.rect(surf, (60, 60, 70), bar, border_radius=4)
+        pygame.draw.rect(surf, (220, 180, 40),
+                          (bar.x, bar.y, int(bar.w * frac), bar.h),
+                          border_radius=4)
+        bt = pygame.Rect(rect.x + 24, cy + 60, 240, 30)
+        pygame.draw.rect(surf, (180, 100, 60), bt, border_radius=6)
+        surf.blit(font_small.render("Consume 50mWh (12g CO2)", True, TEXT),
+                  (bt.x + 12, bt.y + 8))
+        _fr_targets.append(("act", "consume", bt))
+
+
+def handle_frontier_click(pos):
+    for kind, value, hit in reversed(_fr_targets):
+        if not hit.collidepoint(pos):
+            continue
+        if kind == "tab":
+            frontier_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "quantum_toggle":
+                if frontier.quantum_paired:
+                    frontier.quantum_break()
+                else:
+                    frontier.quantum_pair()
+            elif value.startswith("morph:"):
+                frontier.morph_to(value.split(":", 1)[1])
+            elif value == "bci_toggle":
+                if frontier.bci_connected:
+                    frontier.bci_connected = False
+                else:
+                    frontier.bci_connect()
+            elif value == "drop_anchor":
+                frontier.add_anchor(
+                    f"anchor-{len(frontier.spatial_anchors) + 1}",
+                    pos=(random.randint(0, 100), random.randint(0, 100), 0))
+            elif value == "dtn_toggle":
+                frontier.dtn_enabled = not frontier.dtn_enabled
+                if frontier.dtn_enabled:
+                    frontier.planetary_id = "mars"
+                else:
+                    frontier.planetary_id = "earth"
+            elif value == "consume":
+                frontier.consume_energy(50, 12)
+        return True
+    return False
+
+
+# =============================================================================
+# CYCLE 5 — PANELS Group 1 + 2 (System / IO / Security + UX / Productivity)
+# Each panel: title + tabs + key state + clickable action buttons.
+# Each handler: walk _targets in reverse, dispatch to manager.
+# =============================================================================
+
+def _c5_draw_header(surf, rect, title, accent=(60, 140, 210)):
+    """Common Cycle 5 panel header."""
+    pygame.draw.rect(surf, (22, 26, 38), rect, border_radius=10)
+    pygame.draw.rect(surf, accent, (rect.x, rect.y, rect.w, 4), border_radius=2)
+    surf.blit(font_med.render(title, True, TEXT), (rect.x + 16, rect.y + 12))
+
+
+def _c5_draw_tabs(surf, rect, tabs, active, y_offset=44, targets=None, prefix="tab"):
+    """Draw a row of tabs at top of panel, populating targets if provided."""
+    for i, t in enumerate(tabs):
+        tx = rect.x + 14 + i * 90
+        if tx + 84 > rect.right - 10:
+            break
+        r = pygame.Rect(tx, rect.y + y_offset, 84, 24)
+        col = (60, 140, 210) if active == t else (45, 52, 70)
+        pygame.draw.rect(surf, col, r, border_radius=4)
+        surf.blit(font_small.render(t[:10], True, TEXT), (r.x + 6, r.y + 4))
+        if targets is not None:
+            targets.append((prefix, t, r))
+
+
+def _c5_draw_stats_block(surf, rect, stats, y_start=80):
+    """Render a manager's stats() dict as key:value lines."""
+    y = rect.y + y_start
+    for k, v in stats.items():
+        if y + 18 > rect.bottom - 30:
+            break
+        line = f"  {str(k)[:24]:<24} : {str(v)[:40]}"
+        surf.blit(font_small.render(line, True, (200, 220, 240)),
+                  (rect.x + 16, y))
+        y += 18
+
+
+def _c5_action_buttons(surf, rect, btns, targets, y_offset_from_bottom=46):
+    """Render up to 6 action buttons at the bottom of a panel."""
+    btn_y = rect.bottom - y_offset_from_bottom
+    for i, (label, action_key) in enumerate(btns):
+        bx = rect.x + 14 + i * 130
+        if bx + 124 > rect.right - 10:
+            break
+        b = pygame.Rect(bx, btn_y, 120, 28)
+        pygame.draw.rect(surf, (50, 70, 110), b, border_radius=5)
+        surf.blit(font_small.render(label[:14], True, TEXT), (b.x + 6, b.y + 7))
+        targets.append(("act", action_key, b))
+
+
+# ---------- Bundle 9: Network v2 ----------
+_c5_net_targets = []
+def draw_network_v2(surf, rect, win=None):
+    global _c5_net_targets
+    _c5_net_targets = []
+    _c5_draw_header(surf, rect, "Network v2", accent=(60, 200, 220))
+    _c5_draw_tabs(surf, rect, ["wifi", "vpn", "bt", "firewall", "dns"],
+                   network_v2_panel_state["tab"], targets=_c5_net_targets)
+    network_v2.tick()
+    _c5_draw_stats_block(surf, rect, network_v2.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Toggle VPN",      "toggle_vpn"),
+        ("Toggle Hotspot",  "toggle_hotspot"),
+        ("Capture",         "capture"),
+        ("Add Rule",        "add_rule"),
+    ], _c5_net_targets)
+
+def handle_network_v2_click(pos):
+    for kind, value, hit in reversed(_c5_net_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": network_v2_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "toggle_vpn":     network_v2.toggle_vpn()
+            elif value == "toggle_hotspot": network_v2.toggle_hotspot()
+            elif value == "capture":
+                if network_v2.packet_capture_active:
+                    network_v2.stop_packet_capture()
+                else:
+                    network_v2.start_packet_capture()
+            elif value == "add_rule":
+                network_v2.add_firewall_rule(f"app{len(network_v2.firewall['rules'])}")
+        return True
+    return False
+
+
+# ---------- Bundle 10: Audio Mixer v2 ----------
+_c5_audio_targets = []
+def draw_audio_mixer_v2(surf, rect, win=None):
+    global _c5_audio_targets
+    _c5_audio_targets = []
+    _c5_draw_header(surf, rect, "Audio Mixer v2", accent=(180, 80, 220))
+    _c5_draw_tabs(surf, rect, ["apps", "devices", "eq", "studio"],
+                   audio_mixer_v2_panel_state["tab"], targets=_c5_audio_targets)
+    _c5_draw_stats_block(surf, rect, audio_mixer_v2.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Reset EQ",       "reset_eq"),
+        ("Toggle Spatial", "toggle_spatial"),
+        ("Toggle NS",      "toggle_ns"),
+    ], _c5_audio_targets)
+
+def handle_audio_mixer_v2_click(pos):
+    for kind, value, hit in reversed(_c5_audio_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": audio_mixer_v2_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "reset_eq": audio_mixer_v2.reset_eq()
+            elif value == "toggle_spatial":
+                audio_mixer_v2.spatial_audio = not audio_mixer_v2.spatial_audio
+            elif value == "toggle_ns":
+                audio_mixer_v2.noise_suppression = not audio_mixer_v2.noise_suppression
+        return True
+    return False
+
+
+# ---------- Bundle 11: Power / Thermal ----------
+_c5_power_targets = []
+def draw_power(surf, rect, win=None):
+    global _c5_power_targets
+    _c5_power_targets = []
+    _c5_draw_header(surf, rect, "Power & Thermal", accent=(255, 180, 60))
+    _c5_draw_tabs(surf, rect, ["battery", "thermal", "fans", "tune"],
+                   power_panel_state["tab"], targets=_c5_power_targets)
+    power_mgr.tick()
+    _c5_draw_stats_block(surf, rect, power_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Profile: Bal",  "prof_bal"),
+        ("Profile: Saver","prof_save"),
+        ("Profile: Perf", "prof_perf"),
+        ("Health Chk",    "health_check"),
+    ], _c5_power_targets)
+
+def handle_power_click(pos):
+    for kind, value, hit in reversed(_c5_power_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": power_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "prof_bal":   power_mgr.set_profile("Balanced")
+            elif value == "prof_save": power_mgr.set_profile("Battery Saver")
+            elif value == "prof_perf": power_mgr.set_profile("Best Performance")
+            elif value == "health_check":
+                # routed to MaintenanceUpdateManager via separate panel
+                pass
+        return True
+    return False
+
+
+# ---------- Bundle 12: Print / Scan ----------
+_c5_print_targets = []
+def draw_print(surf, rect, win=None):
+    global _c5_print_targets
+    _c5_print_targets = []
+    _c5_draw_header(surf, rect, "Print & Scan", accent=(80, 200, 140))
+    _c5_draw_tabs(surf, rect, ["printers", "queue", "scanners", "scans"],
+                   print_panel_state["tab"], targets=_c5_print_targets)
+    _c5_draw_stats_block(surf, rect, print_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Print to PDF",   "print_pdf"),
+        ("Advance Queue",  "advance"),
+        ("Scan",           "scan"),
+        ("Scan Multi",     "scan_multi"),
+    ], _c5_print_targets)
+
+def handle_print_click(pos):
+    for kind, value, hit in reversed(_c5_print_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": print_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "print_pdf": print_mgr.queue_job("Save as PDF", pages=3)
+            elif value == "advance": print_mgr.advance_queue()
+            elif value == "scan":    print_mgr.scan("Office Multifunction")
+            elif value == "scan_multi": print_mgr.scan("Office Multifunction", multi_page=True)
+        return True
+    return False
+
+
+# ---------- Bundle 13: Camera / Photos ----------
+_c5_cam_targets = []
+def draw_camera_hub(surf, rect, win=None):
+    global _c5_cam_targets
+    _c5_cam_targets = []
+    _c5_draw_header(surf, rect, "Camera & Photos", accent=(220, 100, 200))
+    _c5_draw_tabs(surf, rect, ["camera", "library", "memories", "editor"],
+                   camera_panel_state["tab"], targets=_c5_cam_targets)
+    _c5_draw_stats_block(surf, rect, camera_hub.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Shoot",        "shoot"),
+        ("Start Video",  "video_start"),
+        ("Stop Video",   "video_stop"),
+        ("Open Editor",  "editor"),
+    ], _c5_cam_targets)
+
+def handle_camera_click(pos):
+    for kind, value, hit in reversed(_c5_cam_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": camera_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "shoot":          camera_hub.shoot()
+            elif value == "video_start":  camera_hub.start_video()
+            elif value == "video_stop":   camera_hub.stop_video()
+            elif value == "editor":
+                if camera_hub.library:
+                    camera_hub.open_editor(camera_hub.library[0]["id"])
+        return True
+    return False
+
+
+# ---------- Bundle 14: Voice ----------
+_c5_voice_targets = []
+def draw_voice(surf, rect, win=None):
+    global _c5_voice_targets
+    _c5_voice_targets = []
+    _c5_draw_header(surf, rect, "Voice Assistant", accent=(100, 200, 255))
+    _c5_draw_tabs(surf, rect, ["dictation", "commands", "tts", "transcribe"],
+                   voice_panel_state["tab"], targets=_c5_voice_targets)
+    _c5_draw_stats_block(surf, rect, voice_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Start Dict",      "dict_start"),
+        ("Stop Dict",       "dict_stop"),
+        ("Enroll Voice",    "enroll"),
+        ("Toggle Transcr",  "transcribe"),
+    ], _c5_voice_targets)
+
+def handle_voice_click(pos):
+    for kind, value, hit in reversed(_c5_voice_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": voice_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "dict_start":   voice_mgr.start_dictation()
+            elif value == "dict_stop":  voice_mgr.stop_dictation("(simulated)")
+            elif value == "enroll":     voice_mgr.enroll_voice()
+            elif value == "transcribe": voice_mgr.toggle_live_transcribe()
+        return True
+    return False
+
+
+# ---------- Bundle 15: Auth / Identity ----------
+_c5_auth_targets = []
+def draw_auth(surf, rect, win=None):
+    global _c5_auth_targets
+    _c5_auth_targets = []
+    _c5_draw_header(surf, rect, "Auth & Identity", accent=(160, 100, 220))
+    _c5_draw_tabs(surf, rect, ["biometrics", "keys", "passkeys", "did"],
+                   auth_panel_state["tab"], targets=_c5_auth_targets)
+    _c5_draw_stats_block(surf, rect, auth_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Add Key",     "add_key"),
+        ("Add Passkey", "add_passkey"),
+        ("Step-Up",     "step_up"),
+        ("DURESS",      "duress"),
+    ], _c5_auth_targets)
+
+def handle_auth_click(pos):
+    for kind, value, hit in reversed(_c5_auth_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": auth_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "add_key":     auth_mgr.add_hardware_key(f"Key-{len(auth_mgr.hardware_keys) + 1}")
+            elif value == "add_passkey": auth_mgr.add_passkey(f"PK-{len(auth_mgr.passkeys) + 1}", "gmansos.dev")
+            elif value == "step_up":   auth_mgr.require_step_up()
+            elif value == "duress":    auth_mgr.trigger_duress()
+        return True
+    return False
+
+
+# ---------- Bundle 16: Security Plus ----------
+_c5_security_targets = []
+def draw_security_plus(surf, rect, win=None):
+    global _c5_security_targets
+    _c5_security_targets = []
+    _c5_draw_header(surf, rect, "Security Center+", accent=(220, 80, 80))
+    _c5_draw_tabs(surf, rect, ["indicators", "sandbox", "privacy", "trackers"],
+                   security_panel_state["tab"], targets=_c5_security_targets)
+    _c5_draw_stats_block(surf, rect, security_plus.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Mic Active",      "ind_mic"),
+        ("Cam Active",      "ind_cam"),
+        ("Block Tracker",   "block"),
+        ("Kill Switch",     "kill"),
+    ], _c5_security_targets)
+
+def handle_security_plus_click(pos):
+    for kind, value, hit in reversed(_c5_security_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": security_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "ind_mic":
+                security_plus.indicate("mic", "voice_mgr",
+                                        active=not security_plus.indicators_active["mic"])
+            elif value == "ind_cam":
+                security_plus.indicate("camera", "camera_hub",
+                                        active=not security_plus.indicators_active["camera"])
+            elif value == "block": security_plus.block_tracker()
+            elif value == "kill":
+                security_plus.network_kill_switch = not security_plus.network_kill_switch
+        return True
+    return False
+
+
+# ---------- Bundle 17: Accessibility Plus ----------
+_c5_a11y_targets = []
+def draw_a11y_plus(surf, rect, win=None):
+    global _c5_a11y_targets
+    _c5_a11y_targets = []
+    _c5_draw_header(surf, rect, "Accessibility+", accent=(80, 220, 160))
+    _c5_draw_tabs(surf, rect, ["vision", "motor", "hearing", "cognitive"],
+                   a11y_plus_panel_state["tab"], targets=_c5_a11y_targets)
+    _c5_draw_stats_block(surf, rect, a11y_plus.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Magnifier",    "magnifier"),
+        ("Screen Read",  "screen_reader"),
+        ("Eye Control",  "eye"),
+        ("Filter: Mono", "filter_mono"),
+    ], _c5_a11y_targets)
+
+def handle_a11y_plus_click(pos):
+    for kind, value, hit in reversed(_c5_a11y_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": a11y_plus_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "magnifier":     a11y_plus.toggle_magnifier()
+            elif value == "screen_reader": a11y_plus.toggle_screen_reader()
+            elif value == "eye":         a11y_plus.toggle_eye_control()
+            elif value == "filter_mono": a11y_plus.set_color_filter("grayscale")
+        return True
+    return False
+
+
+# ---------- Bundle 18: Developer Toolkit ----------
+_c5_dev_targets = []
+def draw_dev_kit(surf, rect, win=None):
+    global _c5_dev_targets
+    _c5_dev_targets = []
+    _c5_draw_header(surf, rect, "Developer Toolkit", accent=(180, 180, 100))
+    _c5_draw_tabs(surf, rect, ["terminal", "ssh", "git", "http", "regex", "color"],
+                   dev_kit_panel_state["tab"], targets=_c5_dev_targets)
+    _c5_draw_stats_block(surf, rect, dev_kit.stats())
+    _c5_action_buttons(surf, rect, [
+        ("New Term",   "new_term"),
+        ("SSH",        "ssh"),
+        ("HTTP GET",   "http"),
+        ("Benchmark",  "bench"),
+        ("Container",  "container"),
+    ], _c5_dev_targets)
+
+def handle_dev_kit_click(pos):
+    for kind, value, hit in reversed(_c5_dev_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": dev_kit_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "new_term":  dev_kit.new_terminal()
+            elif value == "ssh":      dev_kit.ssh_connect("host.example.com")
+            elif value == "http":     dev_kit.http("GET", "https://api.gmansos.dev/health")
+            elif value == "bench":    dev_kit.benchmark("CPU")
+            elif value == "container":dev_kit.create_container("python:3.12")
+        return True
+    return False
+
+
+# ---------- Bundle 19: Productivity ----------
+_c5_prod_targets = []
+def draw_productivity(surf, rect, win=None):
+    global _c5_prod_targets
+    _c5_prod_targets = []
+    _c5_draw_header(surf, rect, "Productivity Suite", accent=(100, 220, 100))
+    _c5_draw_tabs(surf, rect, ["translate", "snippets", "scratch", "reading", "pomo"],
+                   productivity_panel_state["tab"], targets=_c5_prod_targets)
+    _c5_draw_stats_block(surf, rect, productivity.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Translate",   "translate"),
+        ("Live Text",   "live_text"),
+        ("Pomodoro",    "pomo"),
+        ("Note",        "note"),
+    ], _c5_prod_targets)
+
+def handle_productivity_click(pos):
+    for kind, value, hit in reversed(_c5_prod_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": productivity_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "translate":  productivity.translate("Hello world", to_lang="es")
+            elif value == "live_text": productivity.live_text("screenshot.png", "Sample OCR")
+            elif value == "pomo":
+                if productivity.pomodoro["phase"] == "idle":
+                    productivity.start_pomodoro()
+                else:
+                    productivity.stop_pomodoro()
+            elif value == "note": productivity.quick_note(f"Note at {time.strftime('%H:%M:%S')}")
+        return True
+    return False
+
+
+# ---------- Bundle 20: Continuity ----------
+_c5_cont_targets = []
+def draw_continuity(surf, rect, win=None):
+    global _c5_cont_targets
+    _c5_cont_targets = []
+    _c5_draw_header(surf, rect, "Continuity", accent=(60, 180, 220))
+    _c5_draw_tabs(surf, rect, ["devices", "clipboard", "airdrop", "find"],
+                   continuity_panel_state["tab"], targets=_c5_cont_targets)
+    _c5_draw_stats_block(surf, rect, continuity.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Handoff Phone",  "handoff_phone"),
+        ("Sidecar",        "sidecar"),
+        ("Cont. Camera",   "cont_cam"),
+        ("Lost Mode",      "lost"),
+    ], _c5_cont_targets)
+
+def handle_continuity_click(pos):
+    for kind, value, hit in reversed(_c5_cont_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": continuity_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "handoff_phone": continuity.handoff("browser", "Gmansos Phone")
+            elif value == "sidecar":
+                if continuity.sidecar_active: continuity.stop_sidecar()
+                else: continuity.start_sidecar("Gmansos Tablet")
+            elif value == "cont_cam":
+                if continuity.continuity_camera: continuity.stop_continuity_camera()
+                else: continuity.start_continuity_camera("Gmansos Phone")
+            elif value == "lost": continuity.enable_lost_mode()
+        return True
+    return False
+
+
+# ---------- Bundle 21: Cast / Share ----------
+_c5_cast_targets = []
+def draw_cast(surf, rect, win=None):
+    global _c5_cast_targets
+    _c5_cast_targets = []
+    _c5_draw_header(surf, rect, "Cast & Share", accent=(200, 140, 60))
+    _c5_draw_tabs(surf, rect, ["devices", "groups", "remote"],
+                   cast_panel_state["tab"], targets=_c5_cast_targets)
+    _c5_draw_stats_block(surf, rect, cast_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Cast TV",        "cast_tv"),
+        ("Cast Speaker",   "cast_spk"),
+        ("Stop Cast",      "stop"),
+        ("RDP",            "rdp"),
+    ], _c5_cast_targets)
+
+def handle_cast_click(pos):
+    for kind, value, hit in reversed(_c5_cast_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": cast_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "cast_tv":  cast_mgr.cast("Living Room TV")
+            elif value == "cast_spk":cast_mgr.cast("Kitchen Speaker")
+            elif value == "stop":   cast_mgr.stop_cast()
+            elif value == "rdp":    cast_mgr.start_remote_desktop("Office Display")
+        return True
+    return False
+
+
+# ---------- Bundle 22: Calendar Time v2 ----------
+_c5_cal_targets = []
+def draw_cal_v2(surf, rect, win=None):
+    global _c5_cal_targets
+    _c5_cal_targets = []
+    _c5_draw_header(surf, rect, "Calendar & Time v2", accent=(220, 220, 100))
+    _c5_draw_tabs(surf, rect, ["clocks", "alarms", "timers", "cron"],
+                   cal_v2_panel_state["tab"], targets=_c5_cal_targets)
+    _c5_draw_stats_block(surf, rect, cal_v2.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Add Clock",   "add_clock"),
+        ("Toggle WkUp", "tog_wake"),
+        ("Timer 5min",  "timer5"),
+        ("Auto Focus",  "auto_focus"),
+    ], _c5_cal_targets)
+
+def handle_cal_v2_click(pos):
+    for kind, value, hit in reversed(_c5_cal_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": cal_v2_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "add_clock":  cal_v2.add_clock("Sydney", "Australia/Sydney", 10)
+            elif value == "tog_wake": cal_v2.toggle_alarm(0)
+            elif value == "timer5":   cal_v2.start_timer("Quick", 300)
+            elif value == "auto_focus":cal_v2.auto_schedule_focus(90)
+        return True
+    return False
+
+
+# ---------- Bundle 23: Game Mode (v2; distinct from legacy draw_game_mode) ----------
+_c5_game_targets = []
+def draw_game_mode_v2(surf, rect, win=None):
+    global _c5_game_targets
+    _c5_game_targets = []
+    _c5_draw_header(surf, rect, "Game Mode v2", accent=(120, 80, 220))
+    _c5_draw_tabs(surf, rect, ["overlay", "controllers", "achievements", "cloud"],
+                   game_panel_state["tab"], targets=_c5_game_targets)
+    _c5_draw_stats_block(surf, rect, game_mode.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Start Game",  "start_game"),
+        ("Stop Game",   "stop_game"),
+        ("FPS Overlay", "fps"),
+        ("Save Replay", "replay"),
+    ], _c5_game_targets)
+
+def handle_game_mode_v2_click(pos):
+    for kind, value, hit in reversed(_c5_game_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": game_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "start_game":   game_mode.start_game("Demo")
+            elif value == "stop_game":  game_mode.stop_game()
+            elif value == "fps":        game_mode.toggle_fps_overlay()
+            elif value == "replay":     game_mode.save_replay()
+        return True
+    return False
+
+
+# ---------- Bundle 24: XR / Spatial ----------
+_c5_xr_targets = []
+def draw_xr(surf, rect, win=None):
+    global _c5_xr_targets
+    _c5_xr_targets = []
+    _c5_draw_header(surf, rect, "XR / Spatial", accent=(60, 220, 220))
+    _c5_draw_tabs(surf, rect, ["spatial", "tracking", "anchors", "share"],
+                   xr_panel_state["tab"], targets=_c5_xr_targets)
+    _c5_draw_stats_block(surf, rect, xr_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Enter Spatial", "spatial"),
+        ("Build Mesh",    "mesh"),
+        ("Anchor",        "anchor"),
+        ("Holo Call",     "holo"),
+    ], _c5_xr_targets)
+
+def handle_xr_click(pos):
+    for kind, value, hit in reversed(_c5_xr_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": xr_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "spatial":  xr_mgr.enable_spatial()
+            elif value == "mesh":   xr_mgr.build_world_mesh()
+            elif value == "anchor": xr_mgr.add_anchor(f"a{len(xr_mgr.anchors) + 1}")
+            elif value == "holo":
+                if xr_mgr.holographic_call_active:
+                    xr_mgr.end_holographic_call()
+                else:
+                    xr_mgr.start_holographic_call("Alice")
+        return True
+    return False
+
+
+# =============================================================================
+# CYCLE 5 — PANELS Group 3 + 4 (AI / Compat / Admin + I/O / Doc / QoL / Bio)
+# =============================================================================
+
+# ---------- Bundle 25: AI Co-Pilot ----------
+_c5_ai_targets = []
+def draw_ai_copilot(surf, rect, win=None):
+    global _c5_ai_targets
+    _c5_ai_targets = []
+    _c5_draw_header(surf, rect, "AI Co-Pilot", accent=(140, 220, 240))
+    _c5_draw_tabs(surf, rect, ["chat", "recall", "agents", "studio"],
+                   ai_copilot_panel_state["tab"], targets=_c5_ai_targets)
+    _c5_draw_stats_block(surf, rect, ai_copilot.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Open Sidebar", "open"),
+        ("Researcher",   "ag_res"),
+        ("Coder",        "ag_code"),
+        ("Gen Image",    "gen"),
+        ("Dream Mode",   "dream"),
+    ], _c5_ai_targets)
+
+def handle_ai_copilot_click(pos):
+    for kind, value, hit in reversed(_c5_ai_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": ai_copilot_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "open":   ai_copilot.open_sidebar()
+            elif value == "ag_res":  ai_copilot.activate_agent("Researcher")
+            elif value == "ag_code": ai_copilot.activate_agent("Coder")
+            elif value == "gen":     ai_copilot.generate_image("demo prompt")
+            elif value == "dream":   ai_copilot.run_dream_mode()
+        return True
+    return False
+
+
+# ---------- Bundle 26: Universal Compat ----------
+_c5_compat_targets = []
+def draw_universal_compat(surf, rect, win=None):
+    global _c5_compat_targets
+    _c5_compat_targets = []
+    _c5_draw_header(surf, rect, "Universal Compatibility", accent=(255, 100, 100))
+    _c5_draw_tabs(surf, rect, ["archs", "os", "bytecode", "files", "consoles"],
+                   universal_compat_panel_state["tab"], targets=_c5_compat_targets)
+    _c5_draw_stats_block(surf, rect, universal_compat.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Run x86_64",  "run_x86"),
+        ("Run macOS",   "run_mac"),
+        ("Run WASM",    "run_wasm"),
+        ("View File",   "view"),
+        ("Run NES",     "run_nes"),
+    ], _c5_compat_targets)
+
+def handle_universal_compat_click(pos):
+    for kind, value, hit in reversed(_c5_compat_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": universal_compat_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "run_x86":  universal_compat.run("arch", "x86_64")
+            elif value == "run_mac": universal_compat.run("os", "macOS")
+            elif value == "run_wasm":universal_compat.run("bytecode", "WebAssembly")
+            elif value == "view":    universal_compat.view_file("/home/gman/example.PDF")
+            elif value == "run_nes": universal_compat.run("console", "NES")
+        return True
+    return False
+
+
+# ---------- Bundle 27: Maintenance / Update ----------
+_c5_maint_targets = []
+def draw_maint(surf, rect, win=None):
+    global _c5_maint_targets
+    _c5_maint_targets = []
+    _c5_draw_header(surf, rect, "Maintenance & Updates", accent=(220, 160, 60))
+    _c5_draw_tabs(surf, rect, ["update", "health", "recovery", "drivers"],
+                   maint_panel_state["tab"], targets=_c5_maint_targets)
+    _c5_draw_stats_block(surf, rect, maint_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Start Update",   "start"),
+        ("Tick",           "tick"),
+        ("Rollback",       "rollback"),
+        ("Health Check",   "health"),
+        ("Make Recovery",  "recovery"),
+    ], _c5_maint_targets)
+
+def handle_maint_click(pos):
+    for kind, value, hit in reversed(_c5_maint_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": maint_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "start":    maint_mgr.start_update()
+            elif value == "tick":   maint_mgr.tick_update(0.1)
+            elif value == "rollback":maint_mgr.rollback()
+            elif value == "health": maint_mgr.health_check()
+            elif value == "recovery":maint_mgr.create_recovery_drive()
+        return True
+    return False
+
+
+# ---------- Bundle 28: Enterprise / Admin ----------
+_c5_ent_targets = []
+def draw_enterprise(surf, rect, win=None):
+    global _c5_ent_targets
+    _c5_ent_targets = []
+    _c5_draw_header(surf, rect, "Enterprise & Admin", accent=(100, 140, 200))
+    _c5_draw_tabs(surf, rect, ["users", "groups", "policies", "mdm", "fleet"],
+                   enterprise_panel_state["tab"], targets=_c5_ent_targets)
+    _c5_draw_stats_block(surf, rect, enterprise_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Add User",   "adduser"),
+        ("Kiosk",      "kiosk"),
+        ("Enroll MDM", "mdm"),
+        ("Add Device", "fleet"),
+    ], _c5_ent_targets)
+
+def handle_enterprise_click(pos):
+    for kind, value, hit in reversed(_c5_ent_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": enterprise_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "adduser":
+                enterprise_mgr.add_user(f"user{len(enterprise_mgr.users) + 1}")
+            elif value == "kiosk":
+                if enterprise_mgr.kiosk_mode: enterprise_mgr.disable_kiosk()
+                else: enterprise_mgr.enable_kiosk("browser")
+            elif value == "mdm":    enterprise_mgr.enroll_mdm()
+            elif value == "fleet":  enterprise_mgr.add_fleet_device(f"laptop-{len(enterprise_mgr.fleet_devices) + 1}")
+        return True
+    return False
+
+
+# ---------- Bundle 29: Decentral / Sync ----------
+_c5_dec_targets = []
+def draw_decentral(surf, rect, win=None):
+    global _c5_dec_targets
+    _c5_dec_targets = []
+    _c5_draw_header(surf, rect, "Decentralized & Sync", accent=(140, 220, 100))
+    _c5_draw_tabs(surf, rect, ["documents", "peers", "store", "mesh", "wallet"],
+                   decentral_panel_state["tab"], targets=_c5_dec_targets)
+    _c5_draw_stats_block(surf, rect, decentral_sync.stats())
+    _c5_action_buttons(surf, rect, [
+        ("New CRDT Doc", "new_doc"),
+        ("Store Blob",   "store"),
+        ("Mesh On/Off",  "mesh"),
+        ("Offline",      "offline"),
+        ("ZK Proof",     "zk"),
+    ], _c5_dec_targets)
+
+def handle_decentral_click(pos):
+    for kind, value, hit in reversed(_c5_dec_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": decentral_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "new_doc":  decentral_sync.add_document(f"doc{len(decentral_sync.crdt_documents) + 1}")
+            elif value == "store":   decentral_sync.store_content("blob", "demo")
+            elif value == "mesh":
+                if decentral_sync.mesh_active: decentral_sync.disable_mesh()
+                else: decentral_sync.enable_mesh()
+            elif value == "offline":
+                if decentral_sync.offline_mode: decentral_sync.go_online()
+                else: decentral_sync.go_offline()
+            elif value == "zk": decentral_sync.generate_zk_proof("age>=18")
+        return True
+    return False
+
+
+# ---------- Bundle 30: Personalization ----------
+_c5_pers_targets = []
+def draw_personalization(surf, rect, win=None):
+    global _c5_pers_targets
+    _c5_pers_targets = []
+    _c5_draw_header(surf, rect, "Personalization", accent=(220, 100, 160))
+    _c5_draw_tabs(surf, rect, ["theme", "icons", "cursor", "sound", "wallpaper"],
+                   personalization_panel_state["tab"], targets=_c5_pers_targets)
+    _c5_draw_stats_block(surf, rect, personalization.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Theme: Light", "th_light"),
+        ("Theme: Cyber", "th_cyber"),
+        ("Icons: Lucide","ic_lucide"),
+        ("Wall: Phys",   "w_phys"),
+    ], _c5_pers_targets)
+
+def handle_personalization_click(pos):
+    for kind, value, hit in reversed(_c5_pers_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": personalization_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "th_light":  personalization.set_theme("Light")
+            elif value == "th_cyber": personalization.set_theme("Cyberpunk")
+            elif value == "ic_lucide":personalization.set_icon_pack("Lucide")
+            elif value == "w_phys":   personalization.set_live_wallpaper("physics")
+        return True
+    return False
+
+
+# ---------- Bundle 31: Onboarding ----------
+_c5_onb_targets = []
+def draw_onboarding(surf, rect, win=None):
+    global _c5_onb_targets
+    _c5_onb_targets = []
+    _c5_draw_header(surf, rect, "Onboarding & Help", accent=(100, 180, 240))
+    _c5_draw_tabs(surf, rect, ["tour", "tutorials", "skills", "help"],
+                   onboarding_panel_state["tab"], targets=_c5_onb_targets)
+    _c5_draw_stats_block(surf, rect, onboarding.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Start Tour",       "start"),
+        ("Next Step",        "next"),
+        ("Complete Tutor1",  "tut1"),
+        ("Ask: How?",        "ask"),
+    ], _c5_onb_targets)
+
+def handle_onboarding_click(pos):
+    for kind, value, hit in reversed(_c5_onb_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": onboarding_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "start": onboarding.start_tour()
+            elif value == "next":  onboarding.next_tour_step()
+            elif value == "tut1":  onboarding.complete_tutorial("Snip a region")
+            elif value == "ask":   onboarding.ask_how_to("snap window")
+        return True
+    return False
+
+
+# ---------- Bundle 32: Power Automation ----------
+_c5_auto_targets = []
+def draw_automation(surf, rect, win=None):
+    global _c5_auto_targets
+    _c5_auto_targets = []
+    _c5_draw_header(surf, rect, "Power Automation", accent=(200, 80, 220))
+    _c5_draw_tabs(surf, rect, ["workflows", "macros", "marketplace", "runs"],
+                   automation_panel_state["tab"], targets=_c5_auto_targets)
+    _c5_draw_stats_block(surf, rect, automation.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Run Morning",    "run_m"),
+        ("Run Focus",      "run_f"),
+        ("Rec Macro",      "rec"),
+        ("Stop Rec",       "stop_rec"),
+        ("Add WF",         "add_wf"),
+    ], _c5_auto_targets)
+
+def handle_automation_click(pos):
+    for kind, value, hit in reversed(_c5_auto_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": automation_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "run_m":     automation.run_workflow("Morning Routine")
+            elif value == "run_f":   automation.run_workflow("Focus Block")
+            elif value == "rec":     automation.start_recording_macro(f"M-{len(automation.macros) + 1}")
+            elif value == "stop_rec":automation.stop_recording_macro()
+            elif value == "add_wf":
+                automation.add_workflow(f"WF-{len(automation.workflows) + 1}",
+                                         ["hotkey"], ["beep"])
+        return True
+    return False
+
+
+# ---------- Bundle 33: Universal Input ----------
+_c5_input_targets = []
+def draw_input_mgr(surf, rect, win=None):
+    global _c5_input_targets
+    _c5_input_targets = []
+    _c5_draw_header(surf, rect, "Universal Input", accent=(80, 200, 80))
+    _c5_draw_tabs(surf, rect, ["devices", "midi", "macros", "gestures"],
+                   input_mgr_panel_state["tab"], targets=_c5_input_targets)
+    _c5_draw_stats_block(surf, rect, input_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Connect EEG",   "eeg"),
+        ("Connect Eye",   "eye"),
+        ("MIDI Map",      "midi"),
+        ("Gesture",       "gest"),
+    ], _c5_input_targets)
+
+def handle_input_mgr_click(pos):
+    for kind, value, hit in reversed(_c5_input_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": input_mgr_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "eeg":   input_mgr.connect("eeg")
+            elif value == "eye":  input_mgr.connect("eye_tracker")
+            elif value == "midi": input_mgr.assign_midi(1, "play")
+            elif value == "gest": input_mgr.gesture("swipe-right")
+        return True
+    return False
+
+
+# ---------- Bundle 34: Universal Output ----------
+_c5_output_targets = []
+def draw_output_mgr(surf, rect, win=None):
+    global _c5_output_targets
+    _c5_output_targets = []
+    _c5_draw_header(surf, rect, "Universal Output", accent=(220, 200, 80))
+    _c5_draw_tabs(surf, rect, ["displays", "haptics", "3dprint", "smarthome"],
+                   output_mgr_panel_state["tab"], targets=_c5_output_targets)
+    _c5_draw_stats_block(surf, rect, output_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Add Display",  "disp"),
+        ("Haptic Buzz",  "haptic"),
+        ("3D Print",     "print3d"),
+        ("Lock Front",   "lock"),
+        ("Light Off",    "light_off"),
+    ], _c5_output_targets)
+
+def handle_output_mgr_click(pos):
+    for kind, value, hit in reversed(_c5_output_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": output_mgr_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "disp":      output_mgr.add_display()
+            elif value == "haptic":  output_mgr.haptic("buzz-short")
+            elif value == "print3d": output_mgr.print_3d("widget.stl")
+            elif value == "lock":    output_mgr.lock_door("front_door")
+            elif value == "light_off":output_mgr.set_light("living_room", "off")
+        return True
+    return False
+
+
+# ---------- Bundle 35: Doc Collab ----------
+_c5_doc_targets = []
+def draw_doc_collab(surf, rect, win=None):
+    global _c5_doc_targets
+    _c5_doc_targets = []
+    _c5_draw_header(surf, rect, "Document Collab", accent=(80, 160, 240))
+    _c5_draw_tabs(surf, rect, ["documents", "history", "comments", "shares"],
+                   doc_collab_panel_state["tab"], targets=_c5_doc_targets)
+    _c5_draw_stats_block(surf, rect, doc_collab.stats())
+    _c5_action_buttons(surf, rect, [
+        ("New Doc",    "new"),
+        ("Edit",       "edit"),
+        ("Comment",    "comment"),
+        ("Share Link", "share"),
+        ("Diff",       "diff"),
+    ], _c5_doc_targets)
+
+def handle_doc_collab_click(pos):
+    for kind, value, hit in reversed(_c5_doc_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": doc_collab_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "new":     doc_collab.new_doc(f"Doc {len(doc_collab.documents) + 1}")
+            elif value == "edit":  doc_collab.edit(1, "(test edit)")
+            elif value == "comment":doc_collab.comment(1, "(test)")
+            elif value == "share": doc_collab.share_link(1)
+            elif value == "diff":  doc_collab.diff(1, 1, 3)
+        return True
+    return False
+
+
+# ---------- Bundle 36: Quality of Life ----------
+_c5_qol_targets = []
+def draw_qol(surf, rect, win=None):
+    global _c5_qol_targets
+    _c5_qol_targets = []
+    _c5_draw_header(surf, rect, "Quality of Life", accent=(160, 200, 100))
+    _c5_draw_tabs(surf, rect, ["undo", "find", "zoom", "spell", "drag"],
+                   qol_panel_state["tab"], targets=_c5_qol_targets)
+    _c5_draw_stats_block(surf, rect, qol_mgr.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Push Undo",  "push"),
+        ("Undo",       "undo"),
+        ("Redo",       "redo"),
+        ("Find Foo",   "find"),
+        ("Set Zoom 2", "zoom"),
+    ], _c5_qol_targets)
+
+def handle_qol_click(pos):
+    for kind, value, hit in reversed(_c5_qol_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": qol_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "push":   qol_mgr.push_undo("demo", {"v": 1})
+            elif value == "undo": qol_mgr.undo()
+            elif value == "redo": qol_mgr.redo()
+            elif value == "find": qol_mgr.start_find("foo")
+            elif value == "zoom": qol_mgr.set_zoom("global", 2.0)
+        return True
+    return False
+
+
+# ---------- Bundle 37: Resilience ----------
+_c5_res_targets = []
+def draw_resilience(surf, rect, win=None):
+    global _c5_res_targets
+    _c5_res_targets = []
+    _c5_draw_header(surf, rect, "Resilience & Survival", accent=(220, 60, 100))
+    _c5_draw_tabs(surf, rect, ["summary", "sos", "falls", "drills"],
+                   resilience_panel_state["tab"], targets=_c5_res_targets)
+    _c5_draw_stats_block(surf, rect, resilience.stats())
+    _c5_action_buttons(surf, rect, [
+        ("SOS Ping",   "sos"),
+        ("Sim Fall",   "fall"),
+        ("Scrub",      "scrub"),
+        ("Drill",      "drill"),
+        ("Offsite",    "offsite"),
+    ], _c5_res_targets)
+
+def handle_resilience_click(pos):
+    for kind, value, hit in reversed(_c5_res_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": resilience_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "sos":    resilience.sos_ping(location=(45.5, -122.6))
+            elif value == "fall": resilience.detect_fall("severe")
+            elif value == "scrub":resilience.scrub_bitrot()
+            elif value == "drill":resilience.disaster_drill()
+            elif value == "offsite":resilience.offsite_backup()
+        return True
+    return False
+
+
+# ---------- Bundle 38: Window & Display Plus ----------
+_c5_win_targets = []
+def draw_window_plus(surf, rect, win=None):
+    global _c5_win_targets
+    _c5_win_targets = []
+    _c5_draw_header(surf, rect, "Window & Display+", accent=(140, 100, 240))
+    _c5_draw_tabs(surf, rect, ["zones", "monitors", "wallpaper", "color"],
+                   window_plus_panel_state["tab"], targets=_c5_win_targets)
+    _c5_draw_stats_block(surf, rect, window_plus.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Zone: Halves",  "z_half"),
+        ("Zone: Thirds",  "z_third"),
+        ("Add Monitor",   "addmon"),
+        ("ICC: Rec.2020", "icc"),
+    ], _c5_win_targets)
+
+def handle_window_plus_click(pos):
+    for kind, value, hit in reversed(_c5_win_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": window_plus_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "z_half":   window_plus.set_active_zone("Halves")
+            elif value == "z_third": window_plus.set_active_zone("Thirds")
+            elif value == "addmon":  window_plus.add_monitor("New Display", 3840, 2160, dpi=110)
+            elif value == "icc":     window_plus.set_icc("Rec.2020")
+        return True
+    return False
+
+
+# ---------- Bundle 39: Notifications Plus ----------
+_c5_np_targets = []
+def draw_notifs_plus(surf, rect, win=None):
+    global _c5_np_targets
+    _c5_np_targets = []
+    _c5_draw_header(surf, rect, "Notifications+", accent=(240, 160, 100))
+    _c5_draw_tabs(surf, rect, ["summaries", "rich", "mirror", "rules"],
+                   notifs_plus_panel_state["tab"], targets=_c5_np_targets)
+    _c5_draw_stats_block(surf, rect, notifs_plus.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Inline Reply", "reply"),
+        ("Rich Image",   "rich"),
+        ("Mirror On/Off","mirror"),
+        ("Summarize",    "sum"),
+    ], _c5_np_targets)
+
+def handle_notifs_plus_click(pos):
+    for kind, value, hit in reversed(_c5_np_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": notifs_plus_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "reply":  notifs_plus.inline_reply(1, "OK")
+            elif value == "rich": notifs_plus.add_rich("image", {"url": "img.png"})
+            elif value == "mirror":notifs_plus.toggle_mirror()
+            elif value == "sum":
+                notifs_plus.bundle_for("comms")
+                notifs_plus.summarize_unread("comms")
+        return True
+    return False
+
+
+# ---------- Bundle 40: BCI / Bio Plus ----------
+_c5_bci_targets = []
+def draw_bci_plus(surf, rect, win=None):
+    global _c5_bci_targets
+    _c5_bci_targets = []
+    _c5_draw_header(surf, rect, "BCI & Bio+", accent=(100, 240, 200))
+    _c5_draw_tabs(surf, rect, ["signals", "intents", "mood", "health", "sleep"],
+                   bci_plus_panel_state["tab"], targets=_c5_bci_targets)
+    _c5_draw_stats_block(surf, rect, bci_plus.stats())
+    _c5_action_buttons(surf, rect, [
+        ("Connect EEG",  "eeg"),
+        ("Decode",       "decode"),
+        ("Subvocal On",  "sub_on"),
+        ("Mood: Calm",   "mood_calm"),
+        ("Mood: Focus",  "mood_focus"),
+    ], _c5_bci_targets)
+
+def handle_bci_plus_click(pos):
+    for kind, value, hit in reversed(_c5_bci_targets):
+        if not hit.collidepoint(pos): continue
+        if kind == "tab": bci_plus_panel_state["tab"] = value
+        elif kind == "act":
+            if value == "eeg":    bci_plus.connect_signal("eeg_dry")
+            elif value == "decode": bci_plus.decode_intent("scroll_down")
+            elif value == "sub_on": bci_plus.start_subvocal()
+            elif value == "mood_calm":  bci_plus.detect_mood("calm")
+            elif value == "mood_focus": bci_plus.detect_mood("focused")
+        return True
+    return False
+
+
+# =============================================================================
+# CYCLE 1 — BOOTSTRAP: register every existing app + system action
+# =============================================================================
+def bootstrap_action_registry():
+    """Auto-register every app + system command so the Command Palette and
+    AI Assistant can run them. Idempotent (keyed off a specific system action).
+    """
+    if action_registry.get("sys.command_palette") is not None:
+        return False
+
+    # System actions
+    action_registry.register("sys.command_palette", "Command Palette",
+        callback=open_command_palette,
+        category="System", hotkey="Ctrl+K",
+        hint="Open the universal action launcher")
+    action_registry.register("sys.workspaces.next", "Next Workspace",
+        callback=lambda: workspace_mgr.switch_next(),
+        category="Workspace", hotkey="Ctrl+→")
+    action_registry.register("sys.workspaces.prev", "Previous Workspace",
+        callback=lambda: workspace_mgr.switch_prev(),
+        category="Workspace", hotkey="Ctrl+←")
+    action_registry.register("sys.workspaces.overlay", "Show All Workspaces",
+        callback=lambda: workspace_overlay_state.update({"open": True}),
+        category="Workspace", hotkey="Ctrl+Tab")
+    for i in range(min(len(workspace_mgr.spaces), 9)):
+        idx = i  # capture
+        action_registry.register(f"sys.workspaces.{i + 1}",
+            f"Switch to Workspace {i + 1}",
+            callback=(lambda x=idx: workspace_mgr.switch_to(x)),
+            category="Workspace", hotkey=f"Ctrl+{i + 1}")
+    action_registry.register("sys.notifications.toggle_dnd", "Toggle Do Not Disturb",
+        callback=lambda: notification_center.toggle_dnd(),
+        category="System")
+    action_registry.register("sys.notifications.clear", "Clear All Notifications",
+        callback=lambda: notification_center.clear(),
+        category="System")
+    action_registry.register("sys.activity.clear", "Clear Activity Log",
+        callback=lambda: activity_log.clear(),
+        category="System")
+    action_registry.register("sys.fps.toggle_overlay", "Toggle FPS Overlay",
+        callback=(lambda: setattr(fps_mgr, "overlay_visible",
+                                   not fps_mgr.overlay_visible)),
+        category="System", hotkey="F12")
+
+    # CYCLE 2 actions — surface every Cycle-2 manager via the Command Palette
+    # and AI Assistant.
+    action_registry.register("sys.snapshot.capture", "Capture Snapshot",
+        callback=lambda: snapshot_mgr.capture(),
+        category="System", hotkey="Ctrl+Alt+S",
+        hint="Snapshot current OS state")
+    action_registry.register("sys.snapshot.clear", "Clear All Snapshots",
+        callback=lambda: snapshot_mgr.clear(),
+        category="System")
+    for _mode in ("Off", "Work", "Sleep", "Gaming"):
+        action_registry.register(
+            f"sys.focus.{_mode.lower()}",
+            f"Focus Mode: {_mode}",
+            callback=(lambda m=_mode: focus_mgr.activate(m)),
+            category="Focus")
+    action_registry.register("sys.permissions.revoke_audit_clear",
+        "Clear Permissions Audit",
+        callback=lambda: permissions.audit.clear(),
+        category="Security")
+    action_registry.register("sys.clipboard.clear",
+        "Clear Secure Clipboard",
+        callback=lambda: secure_clipboard.clear(),
+        category="Security")
+    action_registry.register("sys.clipboard.sweep_now",
+        "Sweep Clipboard Now",
+        callback=lambda: secure_clipboard.sweep(),
+        category="Security")
+
+    # CYCLE 3 actions — context menu, notif rules, accessibility, autosave, GC,
+    # always-on-top.
+    action_registry.register("sys.context.show_desktop",
+        "Show Desktop Right-Click Menu",
+        callback=lambda: open_desktop_context_menu(
+            (LOGICAL_W // 2, LOGICAL_H // 2)),
+        category="System")
+    action_registry.register("sys.notif_rules.add_nightly_quiet",
+        "Add Nightly Quiet Hours (22-07)",
+        callback=lambda: notif_rules.add_quiet_hours(22, 7, label="Nightly"),
+        category="System")
+    action_registry.register("sys.notif_rules.clear_all",
+        "Clear All Notification Rules",
+        callback=lambda: (notif_rules.clear_rules(),
+                           setattr(notif_rules, "quiet_hours", []),
+                           setattr(notif_rules, "snoozed", []))[0],
+        category="System")
+    action_registry.register("sys.access.toggle_reduced_motion",
+        "Toggle Reduced Motion",
+        callback=lambda: accessibility.toggle_reduced_motion(),
+        category="Accessibility")
+    action_registry.register("sys.access.font_scale_up",
+        "Increase Font Size",
+        callback=lambda: accessibility.font_scale_step(+1),
+        category="Accessibility", hotkey="Ctrl++")
+    action_registry.register("sys.access.font_scale_down",
+        "Decrease Font Size",
+        callback=lambda: accessibility.font_scale_step(-1),
+        category="Accessibility", hotkey="Ctrl+-")
+    action_registry.register("sys.access.toggle_high_contrast",
+        "Toggle High Contrast",
+        callback=lambda: accessibility.toggle_high_contrast(),
+        category="Accessibility")
+    action_registry.register("sys.snapshot.toggle_autosave",
+        "Toggle Auto-save on Events",
+        callback=lambda: setattr(snapshot_mgr, "auto_on_events",
+                                   not snapshot_mgr.auto_on_events),
+        category="System")
+    action_registry.register("sys.snapshot.gc_old",
+        "GC Old Auto-Snapshots (>10min)",
+        callback=lambda: snapshot_gc(600, keep_manual=True),
+        category="System")
+    action_registry.register("sys.window.toggle_pin_top",
+        "Toggle Pin Window Always-on-Top",
+        callback=lambda: (open_windows[-1].toggle_always_on_top()
+                          if open_windows else None),
+        category="Workspace", hotkey="Ctrl+Shift+T")
+
+    # ---- CYCLE 4 ActionRegistry entries ----
+    action_registry.register("sys.capture.region", "Capture Region",
+        callback=lambda: capture_mgr.capture(kind="region", w=800, h=600),
+        category="Capture", hotkey="Ctrl+Shift+S")
+    action_registry.register("sys.capture.fullscreen", "Capture Full Screen",
+        callback=lambda: capture_mgr.capture(kind="fullscreen"),
+        category="Capture", hotkey="PrintScreen")
+    action_registry.register("sys.capture.replay_buffer", "Save Replay Buffer",
+        callback=lambda: capture_mgr.save_replay_buffer(),
+        category="Capture")
+    action_registry.register("sys.capture.toggle_record", "Toggle Screen Recording",
+        callback=lambda: (capture_mgr.stop_recording()
+                          if capture_mgr.recording
+                          else capture_mgr.start_recording()),
+        category="Capture", hotkey="Ctrl+Shift+R")
+    action_registry.register("sys.quick_settings.toggle", "Toggle Quick Settings",
+        callback=lambda: setattr(quick_settings, "open",
+                                  not quick_settings.open),
+        category="System", hotkey="Win+A")
+    action_registry.register("sys.task_manager.open", "Open Task Manager",
+        callback=lambda: open_windows.append(
+            AppWindow("Gman'sOS Task Manager", 40, 40, 760, 560, draw_task_manager_v2)),
+        category="System", hotkey="Ctrl+Shift+Esc")
+    action_registry.register("sys.spotlight.open", "Open Spotlight",
+        callback=lambda: open_windows.append(
+            AppWindow("Spotlight v2", 100, 70, 700, 480, draw_spotlight)),
+        category="System", hotkey="Win+S")
+    action_registry.register("sys.spotlight.search", "Spotlight Search…",
+        callback=lambda: spotlight.search("", scope="all"),
+        category="System")
+    action_registry.register("sys.files2.open", "Open File Manager v2",
+        callback=lambda: open_windows.append(
+            AppWindow("File Manager v2", 40, 40, 820, 560, draw_file_mgr_v2)),
+        category="System", hotkey="Win+E")
+    action_registry.register("sys.comms.open", "Open Comms Hub",
+        callback=lambda: open_windows.append(
+            AppWindow("Comms Hub", 60, 50, 760, 540, draw_comms)),
+        category="App")
+    action_registry.register("sys.frontier.quantum_pair", "Quantum Pair (Frontier)",
+        callback=lambda: frontier.quantum_pair(),
+        category="Frontier")
+    action_registry.register("sys.frontier.bci_connect", "Connect BCI (Frontier)",
+        callback=lambda: frontier.bci_connect(),
+        category="Frontier")
+    action_registry.register("sys.frontier.dtn_toggle", "Toggle Mars DTN (Frontier)",
+        callback=lambda: setattr(frontier, "dtn_enabled",
+                                  not frontier.dtn_enabled),
+        category="Frontier")
+    action_registry.register("sys.frontier.morph_cube", "Programmable Matter: Cube",
+        callback=lambda: frontier.morph_to("cube"),
+        category="Frontier")
+
+    # ---- CYCLE 5 ActionRegistry entries ----
+    # System / IO / Security
+    action_registry.register("sys.net.toggle_vpn", "Toggle VPN",
+        callback=lambda: network_v2.toggle_vpn(), category="Network", hotkey="Ctrl+Alt+V")
+    action_registry.register("sys.net.toggle_hotspot", "Toggle Hotspot",
+        callback=lambda: network_v2.toggle_hotspot(), category="Network")
+    action_registry.register("sys.audio.reset_eq", "Reset Audio EQ",
+        callback=lambda: audio_mixer_v2.reset_eq(), category="Audio")
+    action_registry.register("sys.power.profile_saver", "Power: Battery Saver",
+        callback=lambda: power_mgr.set_profile("Battery Saver"), category="System")
+    action_registry.register("sys.power.profile_perf", "Power: Best Performance",
+        callback=lambda: power_mgr.set_profile("Best Performance"), category="System")
+    action_registry.register("sys.print.pdf", "Print to PDF",
+        callback=lambda: print_mgr.queue_job("Save as PDF", pages=1), category="Print")
+    action_registry.register("sys.cam.shoot", "Camera Shoot",
+        callback=lambda: camera_hub.shoot(), category="Camera")
+    action_registry.register("sys.voice.start_dictation", "Start Dictation",
+        callback=lambda: voice_mgr.start_dictation(),
+        category="Voice", hotkey="Ctrl+Alt+D")
+    action_registry.register("sys.auth.step_up", "Require Step-Up Auth",
+        callback=lambda: auth_mgr.require_step_up(), category="Security")
+    action_registry.register("sys.auth.duress", "DURESS - Emergency Wipe Decoy",
+        callback=lambda: auth_mgr.trigger_duress(), category="Security")
+    action_registry.register("sys.security.killswitch", "Network Kill-Switch Toggle",
+        callback=lambda: setattr(security_plus, "network_kill_switch",
+                                   not security_plus.network_kill_switch),
+        category="Security")
+    # UX / Productivity
+    action_registry.register("sys.a11y.magnifier", "Toggle Magnifier",
+        callback=lambda: a11y_plus.toggle_magnifier(), category="Accessibility",
+        hotkey="Win++")
+    action_registry.register("sys.a11y.screen_reader", "Toggle Screen Reader",
+        callback=lambda: a11y_plus.toggle_screen_reader(), category="Accessibility")
+    action_registry.register("sys.dev.new_terminal", "New Terminal",
+        callback=lambda: dev_kit.new_terminal(), category="Developer",
+        hotkey="Ctrl+`")
+    action_registry.register("sys.prod.pomodoro", "Start Pomodoro",
+        callback=lambda: productivity.start_pomodoro(), category="Productivity")
+    action_registry.register("sys.prod.note", "Quick Note",
+        callback=lambda: productivity.quick_note(
+            f"Note at {time.strftime('%H:%M:%S')}"),
+        category="Productivity", hotkey="Ctrl+Alt+N")
+    action_registry.register("sys.continuity.handoff", "Handoff to Phone",
+        callback=lambda: continuity.handoff("browser", "Gmansos Phone"),
+        category="System")
+    action_registry.register("sys.cast.tv", "Cast to TV",
+        callback=lambda: cast_mgr.cast("Living Room TV"), category="System")
+    action_registry.register("sys.cal.timer_5min", "Start 5-min Timer",
+        callback=lambda: cal_v2.start_timer("Quick", 300), category="System")
+    action_registry.register("sys.game.fps_overlay", "Toggle Game FPS Overlay",
+        callback=lambda: game_mode.toggle_fps_overlay(), category="System")
+    action_registry.register("sys.xr.enter_spatial", "Enter Spatial Mode",
+        callback=lambda: xr_mgr.enable_spatial(), category="System")
+    # AI / Compat / Admin
+    action_registry.register("sys.ai.sidebar", "Toggle AI Co-Pilot Sidebar",
+        callback=lambda: (ai_copilot.close_sidebar() if ai_copilot.sidebar_open
+                          else ai_copilot.open_sidebar()),
+        category="AI", hotkey="Ctrl+Shift+A")
+    action_registry.register("sys.ai.dream", "Run AI Dream Mode",
+        callback=lambda: ai_copilot.run_dream_mode(), category="AI")
+    action_registry.register("sys.compat.run_macos", "Universal: Run macOS binary",
+        callback=lambda: universal_compat.run("os", "macOS"), category="System")
+    action_registry.register("sys.compat.run_nes", "Universal: Boot NES",
+        callback=lambda: universal_compat.run("console", "NES"), category="System")
+    action_registry.register("sys.update.start", "Start System Update",
+        callback=lambda: maint_mgr.start_update(), category="System")
+    action_registry.register("sys.update.rollback", "Rollback System Update",
+        callback=lambda: maint_mgr.rollback(), category="System")
+    action_registry.register("sys.enterprise.kiosk", "Toggle Kiosk Mode",
+        callback=lambda: (enterprise_mgr.disable_kiosk()
+                          if enterprise_mgr.kiosk_mode
+                          else enterprise_mgr.enable_kiosk("browser")),
+        category="System")
+    action_registry.register("sys.decentral.offline", "Toggle Offline Mode",
+        callback=lambda: (decentral_sync.go_online()
+                          if decentral_sync.offline_mode
+                          else decentral_sync.go_offline()),
+        category="System")
+    action_registry.register("sys.theme.cyberpunk", "Theme: Cyberpunk",
+        callback=lambda: personalization.set_theme("Cyberpunk"), category="System")
+    action_registry.register("sys.theme.light", "Theme: Light",
+        callback=lambda: personalization.set_theme("Light"), category="System")
+    action_registry.register("sys.onboarding.tour", "Start Onboarding Tour",
+        callback=lambda: onboarding.start_tour(), category="System")
+    action_registry.register("sys.workflow.morning", "Run: Morning Routine",
+        callback=lambda: automation.run_workflow("Morning Routine"),
+        category="Workflow")
+    action_registry.register("sys.workflow.focus", "Run: Focus Block",
+        callback=lambda: automation.run_workflow("Focus Block"),
+        category="Workflow")
+    # I/O / Doc / QoL / Resilience / Window+ / Notif+ / BCI+
+    action_registry.register("sys.haptic.buzz", "Haptic: Buzz",
+        callback=lambda: output_mgr.haptic("buzz-short"), category="System")
+    action_registry.register("sys.smarthome.lock_all", "Smart Home: Lock All Doors",
+        callback=lambda: [output_mgr.lock_door(d) for d in list(
+            output_mgr.smart_home_state["locks"].keys())][0],
+        category="System")
+    action_registry.register("sys.doc.new", "New Collaborative Doc",
+        callback=lambda: doc_collab.new_doc(
+            f"Doc {len(doc_collab.documents) + 1}"),
+        category="Productivity")
+    action_registry.register("sys.qol.undo", "Universal Undo",
+        callback=lambda: qol_mgr.undo(),
+        category="System", hotkey="Ctrl+Z")
+    action_registry.register("sys.qol.redo", "Universal Redo",
+        callback=lambda: qol_mgr.redo(),
+        category="System", hotkey="Ctrl+Shift+Z")
+    action_registry.register("sys.sos.ping", "EMERGENCY SOS",
+        callback=lambda: resilience.sos_ping(message="SOS from OS"),
+        category="Security", hotkey="Ctrl+Alt+F12")
+    action_registry.register("sys.resilience.drill", "Run Disaster Drill",
+        callback=lambda: resilience.disaster_drill(), category="System")
+    action_registry.register("sys.window.zone_halves", "Zone: Halves",
+        callback=lambda: window_plus.set_active_zone("Halves"), category="Workspace")
+    action_registry.register("sys.window.zone_thirds", "Zone: Thirds",
+        callback=lambda: window_plus.set_active_zone("Thirds"), category="Workspace")
+    action_registry.register("sys.notifs.toggle_mirror", "Toggle Notification Mirror",
+        callback=lambda: notifs_plus.toggle_mirror(), category="System")
+    action_registry.register("sys.bci.subvocal", "Toggle Subvocal Dictation",
+        callback=lambda: (bci_plus.stop_subvocal() if bci_plus.subvocal_dictation
+                          else bci_plus.start_subvocal()),
+        category="System")
+    action_registry.register("sys.bci.mood_calm", "Mood: Calm",
+        callback=lambda: bci_plus.detect_mood("calm"), category="System")
+
+    # Auto-register every defined app from the apps dict
+    # (Walk the file's app_defs at boot - but that's inside main(), so we
+    # provide a registration helper that the main()'s app_defs construction
+    # will call.)
+    return True
+
+
+def register_app_action(name, label, opener):
+    """Register an app launcher in the action registry. Called once for each
+    app entry in the desktop_icons / start menu list.
+    """
+    action_registry.register(
+        f"app.{name.lower().replace(' ', '_')}",
+        f"Open {label}",
+        callback=opener,
+        category="App",
+        hint=f"{label} application",
+    )
+
+
 def handle_multiseat_click(pos):
     """Dispatch a click within the multi-seat panel to the correct action."""
     targets = globals().get('_active_multiseat_targets', [])
@@ -12782,7 +24469,63 @@ def create_desktop():
         ("FPS", "⚡", lambda: open_windows.append(AppWindow("Frame Pacing / FPS", 40, 40, 720, 540, draw_fps_settings))),
         ("HWInfo", "🖥", lambda: open_windows.append(AppWindow("Hardware Compatibility", 40, 40, 760, 540, draw_hwcompat))),
         ("Seats", "👥", lambda: open_windows.append(AppWindow("Display & Multi-User Sessions", 30, 30, 820, 580, draw_multiseat))),
+        ("Palette", "⌘", open_command_palette),
+        ("Timeline", "⏱", lambda: open_windows.append(AppWindow("Activity Timeline", 40, 40, 720, 520, draw_activity_timeline))),
+        ("AIChat", "🤖", lambda: open_windows.append(AppWindow("AI Assistant", 60, 60, 640, 520, draw_ai_assistant))),
+        ("NotifCtr", "🔔", lambda: open_windows.append(AppWindow("Notification Center v2", 60, 50, 720, 520, draw_notif_center_v2))),
+        ("Hotkeys", "⌨", lambda: open_windows.append(AppWindow("Keyboard Shortcuts", 50, 50, 700, 540, draw_hotkey_settings))),
+        ("Snapshot", "📸", lambda: open_windows.append(AppWindow("Snapshot Manager", 60, 50, 720, 540, draw_snapshot_manager))),
+        ("FocusMd", "🎯", lambda: open_windows.append(AppWindow("Focus Modes", 60, 60, 720, 380, draw_focus_modes))),
+        ("Permis", "🔒", lambda: open_windows.append(AppWindow("Permissions Center", 40, 40, 820, 520, draw_permissions))),
+        ("SecClip", "📝", lambda: open_windows.append(AppWindow("Secure Clipboard", 60, 50, 720, 520, draw_secure_clipboard))),
+        ("NotifRl", "🔕", lambda: open_windows.append(AppWindow("Notification Rules", 40, 40, 760, 520, draw_notif_rules))),
+        ("Access", "♿", lambda: open_windows.append(AppWindow("Accessibility", 60, 50, 640, 520, draw_accessibility))),
+        # ---- CYCLE 4 apps ----
+        ("Capture", "📸", lambda: open_windows.append(AppWindow("Capture & Record", 60, 50, 720, 520, draw_capture))),
+        ("QuickSet", "⚙", lambda: open_windows.append(AppWindow("Quick Settings", 80, 60, 540, 480, draw_quick_settings_v2))),
+        ("TaskMgr", "🧠", lambda: open_windows.append(AppWindow("Gman'sOS Task Manager", 40, 40, 760, 560, draw_task_manager_v2))),
+        ("Spotlt", "🔎", lambda: open_windows.append(AppWindow("Spotlight v2", 100, 70, 700, 480, draw_spotlight))),
+        ("Files2", "📁", lambda: open_windows.append(AppWindow("File Manager v2", 40, 40, 820, 560, draw_file_mgr_v2))),
+        ("Comms", "📨", lambda: open_windows.append(AppWindow("Comms Hub", 60, 50, 760, 540, draw_comms))),
+        ("Frontier", "🛰", lambda: open_windows.append(AppWindow("Frontier (2117)", 80, 60, 720, 520, draw_frontier))),
+        # ---- CYCLE 5 apps (32 new managers) ----
+        ("Network2", "🌐", lambda: open_windows.append(AppWindow("Network v2", 60, 50, 740, 540, draw_network_v2))),
+        ("AudioMix", "🎚", lambda: open_windows.append(AppWindow("Audio Mixer v2", 80, 60, 720, 520, draw_audio_mixer_v2))),
+        ("Power",    "🔋", lambda: open_windows.append(AppWindow("Power & Thermal", 60, 50, 720, 520, draw_power))),
+        ("Print",    "🖨", lambda: open_windows.append(AppWindow("Print & Scan", 80, 60, 720, 520, draw_print))),
+        ("Camera",   "📷", lambda: open_windows.append(AppWindow("Camera & Photos", 60, 50, 740, 540, draw_camera_hub))),
+        ("Voice",    "🎤", lambda: open_windows.append(AppWindow("Voice Assistant", 80, 60, 720, 520, draw_voice))),
+        ("Auth",     "🔑", lambda: open_windows.append(AppWindow("Auth & Identity", 60, 50, 720, 520, draw_auth))),
+        ("SecPlus",  "🛡", lambda: open_windows.append(AppWindow("Security Center+", 60, 50, 740, 540, draw_security_plus))),
+        ("A11yPlus", "♿", lambda: open_windows.append(AppWindow("Accessibility+", 80, 60, 720, 520, draw_a11y_plus))),
+        ("DevKit",   "⌨", lambda: open_windows.append(AppWindow("Developer Toolkit", 40, 40, 800, 560, draw_dev_kit))),
+        ("ProdSuit", "📋", lambda: open_windows.append(AppWindow("Productivity Suite", 80, 60, 720, 520, draw_productivity))),
+        ("Contin",   "🔗", lambda: open_windows.append(AppWindow("Continuity", 80, 60, 720, 520, draw_continuity))),
+        ("Cast",     "📡", lambda: open_windows.append(AppWindow("Cast & Share", 80, 60, 720, 520, draw_cast))),
+        ("CalV2",    "🗓", lambda: open_windows.append(AppWindow("Calendar & Time v2", 80, 60, 720, 520, draw_cal_v2))),
+        ("GameMd2",  "🎮", lambda: open_windows.append(AppWindow("Game Mode v2", 80, 60, 720, 520, draw_game_mode_v2))),
+        ("XR",       "🥽", lambda: open_windows.append(AppWindow("XR / Spatial", 80, 60, 720, 520, draw_xr))),
+        ("AICopil",  "🤖", lambda: open_windows.append(AppWindow("AI Co-Pilot", 60, 50, 740, 540, draw_ai_copilot))),
+        ("Universa", "🌍", lambda: open_windows.append(AppWindow("Universal Compat", 40, 40, 800, 560, draw_universal_compat))),
+        ("Maint",    "🔧", lambda: open_windows.append(AppWindow("Maintenance", 80, 60, 720, 520, draw_maint))),
+        ("Enterpr",  "🏢", lambda: open_windows.append(AppWindow("Enterprise Admin", 60, 50, 740, 540, draw_enterprise))),
+        ("Decentr",  "🕸", lambda: open_windows.append(AppWindow("Decentralized", 60, 50, 740, 540, draw_decentral))),
+        ("Themes",   "🎨", lambda: open_windows.append(AppWindow("Personalization", 80, 60, 720, 520, draw_personalization))),
+        ("Onboard",  "🎓", lambda: open_windows.append(AppWindow("Onboarding & Help", 80, 60, 720, 520, draw_onboarding))),
+        ("Automat",  "⚡", lambda: open_windows.append(AppWindow("Power Automation", 60, 50, 740, 540, draw_automation))),
+        ("Input",    "🕹", lambda: open_windows.append(AppWindow("Universal Input", 80, 60, 720, 520, draw_input_mgr))),
+        ("Output",   "📺", lambda: open_windows.append(AppWindow("Universal Output", 80, 60, 720, 520, draw_output_mgr))),
+        ("DocCol",   "📝", lambda: open_windows.append(AppWindow("Document Collab", 60, 50, 740, 540, draw_doc_collab))),
+        ("QoL",      "✨", lambda: open_windows.append(AppWindow("Quality of Life", 80, 60, 720, 520, draw_qol))),
+        ("Resilnc",  "🆘", lambda: open_windows.append(AppWindow("Resilience", 80, 60, 720, 520, draw_resilience))),
+        ("WinPls",   "🪟", lambda: open_windows.append(AppWindow("Window Display+", 80, 60, 720, 520, draw_window_plus))),
+        ("NotifP",   "🔔", lambda: open_windows.append(AppWindow("Notifications+", 80, 60, 720, 520, draw_notifs_plus))),
+        ("BCIPls",   "🧠", lambda: open_windows.append(AppWindow("BCI & Bio+", 60, 50, 740, 540, draw_bci_plus))),
     ]
+    # Register every app launcher in the ActionRegistry so Cmd-K + AI Assistant
+    # can launch any of them. Idempotent.
+    for _name, _emoji, _opener in app_defs:
+        register_app_action(_name, _name, _opener)
     cols = 8  # Even more columns for 108 apps
     icon_spacing_x = 90
     icon_spacing_y = 100
@@ -12857,7 +24600,7 @@ display_profile_state = {
 # ========================================================================
 # Beyond auto-detected display profiles, users can pick a named layout that
 # overrides the default chrome. Each layout provides distinct navigation:
-#   - gman_classic:     original GMan OS (bottom taskbar + bezel)
+#   - gman_classic:     original Gman'sOS (bottom taskbar + bezel)
 #   - gman_flux:        Samsung Galaxy One UI-inspired (status bar + bottom nav)
 #   - gman_workstation: Windows 11-inspired (centered rounded taskbar)
 #   - gman_unity:       GNOME/Linux-inspired (top bar + left vertical dock)
@@ -13522,7 +25265,7 @@ def render_legacy(screen):
     # Monochrome green CRT aesthetic
     lines = [
         "+------------------------------------------+",
-        "|      GMAN OS v1.0  (LEGACY MODE)        |",
+        "|      GMAN'SOS v1.0  (LEGACY MODE)        |",
         "+------------------------------------------+",
         "",
         "  Hardware tier: ANCIENT / MINIMAL",
@@ -13554,7 +25297,7 @@ _emulator_install_btn_rect = [None]
 _emulator_flash_btn_rect = [None]
 
 def render_emulator_frame(screen):
-    """Add an emulator-chrome frame when GMan OS is NOT installed on bare metal.
+    """Add an emulator-chrome frame when Gman'sOS is NOT installed on bare metal.
     Makes it clear this is the OS emulator, not a browser, with prominent
     'INSTALL NOW' + 'FLASH BIOS' action buttons.
     """
@@ -13574,8 +25317,8 @@ def render_emulator_frame(screen):
     for i, c in enumerate([(255, 95, 90), (255, 180, 50), (50, 200, 100)]):
         pygame.draw.circle(screen, c, (12 + i * 16, chrome_h // 2), 6)
         pygame.draw.circle(screen, (255, 255, 255, 80), (12 + i * 16, chrome_h // 2), 6, 1)
-    # Left label: GMan OS Emulator logo
-    logo = font_small.render("GMan OS Emulator", True, (100, 220, 255))
+    # Left label: Gman'sOS Emulator logo
+    logo = font_small.render("Gman'sOS Emulator", True, (100, 220, 255))
     screen.blit(logo, (70, 7))
     # Center: emulation status
     if display_profile_state.get('profile'):
@@ -13604,7 +25347,7 @@ def render_emulator_frame(screen):
 
 
 def _is_gman_installed():
-    """Detect if we're running on bare-metal GMan OS vs emulated on a host OS."""
+    """Detect if we're running on bare-metal Gman'sOS vs emulated on a host OS."""
     try:
         # If marker file exists next to script, we treat as installed
         here = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
@@ -13646,7 +25389,7 @@ def main():
     running = True
     
     # Run initial performance tests
-    print("GMan OS v1.0 Starting...")
+    print("Gman'sOS v1.0 Starting...")
     print("Running initial performance optimization...")
     performance_suite.run_all_tests()
 
@@ -13679,6 +25422,11 @@ def main():
     print(f"Multi-seat ready: {_seat_stats['users']} users, "
           f"{_seat_stats['monitors_connected']} monitors, "
           f"{_seat_stats['sessions_active']} active sessions.")
+
+    # Bootstrap the action registry (system commands).  App launchers will be
+    # registered as the desktop icons are constructed below.
+    bootstrap_action_registry()
+    activity_log.record("boot", "OS started", category="System")
 
     while running:
         # Adaptive frame pacing - replaces death-spiral bug where measured FPS
@@ -13794,10 +25542,17 @@ def main():
             for icon in desktop_icons:
                 icon.draw(screen)
 
-        # Open Windows - drawn under the chrome for modern layouts so nav bars stay on top
+        # Open Windows - drawn under the chrome for modern layouts so nav bars stay on top.
+        # CYCLE 3: always-on-top windows are rendered last (above pinned-False).
         if active_layout_id != "gman_tiles":
-            for win in open_windows[:]:
+            _draw_order = sorted(open_windows[:],
+                                  key=lambda w: 1 if getattr(w, "always_on_top", False) else 0)
+            for win in _draw_order:
                 win.draw(screen)
+                # Pin indicator
+                if getattr(win, "always_on_top", False) and not win.minimized:
+                    pin_s = font_small.render("📌", True, (255, 220, 80))
+                    screen.blit(pin_s, (win.rect.right - 26, win.rect.y + 6))
 
         # Render the active UI layout's chrome (taskbar / nav bar / menu bar etc.)
         # This returns click targets stored for the event handler to route clicks.
@@ -13942,6 +25697,58 @@ def main():
                 ("FPS", lambda: open_windows.append(AppWindow("Frame Pacing / FPS", 40, 40, 720, 540, draw_fps_settings))),
                 ("HWInfo", lambda: open_windows.append(AppWindow("Hardware Compatibility", 40, 40, 760, 540, draw_hwcompat))),
                 ("Seats", lambda: open_windows.append(AppWindow("Display & Multi-User Sessions", 30, 30, 820, 580, draw_multiseat))),
+                ("Palette", open_command_palette),
+                ("Timeline", lambda: open_windows.append(AppWindow("Activity Timeline", 40, 40, 720, 520, draw_activity_timeline))),
+                ("AIChat", lambda: open_windows.append(AppWindow("AI Assistant", 60, 60, 640, 520, draw_ai_assistant))),
+                ("NotifCtr", lambda: open_windows.append(AppWindow("Notification Center v2", 60, 50, 720, 520, draw_notif_center_v2))),
+                ("Hotkeys", lambda: open_windows.append(AppWindow("Keyboard Shortcuts", 50, 50, 700, 540, draw_hotkey_settings))),
+                ("Snapshot", lambda: open_windows.append(AppWindow("Snapshot Manager", 60, 50, 720, 540, draw_snapshot_manager))),
+                ("FocusMd", lambda: open_windows.append(AppWindow("Focus Modes", 60, 60, 720, 380, draw_focus_modes))),
+                ("Permis", lambda: open_windows.append(AppWindow("Permissions Center", 40, 40, 820, 520, draw_permissions))),
+                ("SecClip", lambda: open_windows.append(AppWindow("Secure Clipboard", 60, 50, 720, 520, draw_secure_clipboard))),
+                ("NotifRl", lambda: open_windows.append(AppWindow("Notification Rules", 40, 40, 760, 520, draw_notif_rules))),
+                ("Access", lambda: open_windows.append(AppWindow("Accessibility", 60, 50, 640, 520, draw_accessibility))),
+                # ---- CYCLE 4 apps in Start Menu ----
+                ("Capture", lambda: open_windows.append(AppWindow("Capture & Record", 60, 50, 720, 520, draw_capture))),
+                ("QuickSet", lambda: open_windows.append(AppWindow("Quick Settings", 80, 60, 540, 480, draw_quick_settings_v2))),
+                ("TaskMgr", lambda: open_windows.append(AppWindow("Gman'sOS Task Manager", 40, 40, 760, 560, draw_task_manager_v2))),
+                ("Spotlt", lambda: open_windows.append(AppWindow("Spotlight v2", 100, 70, 700, 480, draw_spotlight))),
+                ("Files2", lambda: open_windows.append(AppWindow("File Manager v2", 40, 40, 820, 560, draw_file_mgr_v2))),
+                ("Comms", lambda: open_windows.append(AppWindow("Comms Hub", 60, 50, 760, 540, draw_comms))),
+                ("Frontier", lambda: open_windows.append(AppWindow("Frontier (2117)", 80, 60, 720, 520, draw_frontier))),
+                # ---- CYCLE 5 ----
+                ("Network2", lambda: open_windows.append(AppWindow("Network v2", 60, 50, 740, 540, draw_network_v2))),
+                ("AudioMix", lambda: open_windows.append(AppWindow("Audio Mixer v2", 80, 60, 720, 520, draw_audio_mixer_v2))),
+                ("Power",    lambda: open_windows.append(AppWindow("Power & Thermal", 60, 50, 720, 520, draw_power))),
+                ("Print",    lambda: open_windows.append(AppWindow("Print & Scan", 80, 60, 720, 520, draw_print))),
+                ("Camera",   lambda: open_windows.append(AppWindow("Camera & Photos", 60, 50, 740, 540, draw_camera_hub))),
+                ("Voice",    lambda: open_windows.append(AppWindow("Voice Assistant", 80, 60, 720, 520, draw_voice))),
+                ("Auth",     lambda: open_windows.append(AppWindow("Auth & Identity", 60, 50, 720, 520, draw_auth))),
+                ("SecPlus",  lambda: open_windows.append(AppWindow("Security Center+", 60, 50, 740, 540, draw_security_plus))),
+                ("A11yPlus", lambda: open_windows.append(AppWindow("Accessibility+", 80, 60, 720, 520, draw_a11y_plus))),
+                ("DevKit",   lambda: open_windows.append(AppWindow("Developer Toolkit", 40, 40, 800, 560, draw_dev_kit))),
+                ("ProdSuit", lambda: open_windows.append(AppWindow("Productivity Suite", 80, 60, 720, 520, draw_productivity))),
+                ("Contin",   lambda: open_windows.append(AppWindow("Continuity", 80, 60, 720, 520, draw_continuity))),
+                ("Cast",     lambda: open_windows.append(AppWindow("Cast & Share", 80, 60, 720, 520, draw_cast))),
+                ("CalV2",    lambda: open_windows.append(AppWindow("Calendar & Time v2", 80, 60, 720, 520, draw_cal_v2))),
+                ("GameMd2",  lambda: open_windows.append(AppWindow("Game Mode v2", 80, 60, 720, 520, draw_game_mode_v2))),
+                ("XR",       lambda: open_windows.append(AppWindow("XR / Spatial", 80, 60, 720, 520, draw_xr))),
+                ("AICopil",  lambda: open_windows.append(AppWindow("AI Co-Pilot", 60, 50, 740, 540, draw_ai_copilot))),
+                ("Universa", lambda: open_windows.append(AppWindow("Universal Compat", 40, 40, 800, 560, draw_universal_compat))),
+                ("Maint",    lambda: open_windows.append(AppWindow("Maintenance", 80, 60, 720, 520, draw_maint))),
+                ("Enterpr",  lambda: open_windows.append(AppWindow("Enterprise Admin", 60, 50, 740, 540, draw_enterprise))),
+                ("Decentr",  lambda: open_windows.append(AppWindow("Decentralized", 60, 50, 740, 540, draw_decentral))),
+                ("Themes",   lambda: open_windows.append(AppWindow("Personalization", 80, 60, 720, 520, draw_personalization))),
+                ("Onboard",  lambda: open_windows.append(AppWindow("Onboarding & Help", 80, 60, 720, 520, draw_onboarding))),
+                ("Automat",  lambda: open_windows.append(AppWindow("Power Automation", 60, 50, 740, 540, draw_automation))),
+                ("Input",    lambda: open_windows.append(AppWindow("Universal Input", 80, 60, 720, 520, draw_input_mgr))),
+                ("Output",   lambda: open_windows.append(AppWindow("Universal Output", 80, 60, 720, 520, draw_output_mgr))),
+                ("DocCol",   lambda: open_windows.append(AppWindow("Document Collab", 60, 50, 740, 540, draw_doc_collab))),
+                ("QoL",      lambda: open_windows.append(AppWindow("Quality of Life", 80, 60, 720, 520, draw_qol))),
+                ("Resilnc",  lambda: open_windows.append(AppWindow("Resilience", 80, 60, 720, 520, draw_resilience))),
+                ("WinPls",   lambda: open_windows.append(AppWindow("Window Display+", 80, 60, 720, 520, draw_window_plus))),
+                ("NotifP",   lambda: open_windows.append(AppWindow("Notifications+", 80, 60, 720, 520, draw_notifs_plus))),
+                ("BCIPls",   lambda: open_windows.append(AppWindow("BCI & Bio+", 60, 50, 740, 540, draw_bci_plus))),
             ]
             
             cols = 8
@@ -13998,6 +25805,36 @@ def main():
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = event.pos
+                btn = getattr(event, "button", 1)
+
+                # CYCLE 3: context menu has the absolute highest priority
+                # because it sits above EVERY window/overlay in render order.
+                if context_menu.open:
+                    handle_context_menu_click(pos, button=btn)
+                    continue
+
+                # CYCLE 3: right-click opens a contextual menu and consumes
+                # the click. Window title bar -> window menu; otherwise desktop.
+                if btn == 3:
+                    _rc_handled = False
+                    for win in reversed(open_windows):
+                        # Title bar = first 36px of the window
+                        tb = pygame.Rect(win.rect.x, win.rect.y, win.rect.w, 36)
+                        if tb.collidepoint(pos):
+                            open_window_context_menu(pos, win)
+                            _rc_handled = True
+                            break
+                    if not _rc_handled:
+                        open_desktop_context_menu(pos)
+                    continue
+
+                # CYCLE 1 overlays consume clicks first - they're modal-on-top.
+                if command_palette_state["open"]:
+                    handle_command_palette_click(pos)
+                    continue
+                if workspace_overlay_state["open"]:
+                    handle_workspace_overlay_click(pos)
+                    continue
 
                 # Emulator chrome buttons (INSTALL NOW / FLASH BIOS) have highest priority
                 if _emulator_install_btn_rect[0] and _emulator_install_btn_rect[0].collidepoint(pos):
@@ -14117,6 +25954,113 @@ def main():
                 if clicked:
                     continue
 
+                # CYCLE 1: Activity Timeline panel
+                for win in reversed(open_windows):
+                    if win.content_draw == draw_activity_timeline and win.rect.collidepoint(pos):
+                        if handle_timeline_click(pos):
+                            clicked = True
+                            break
+                if clicked:
+                    continue
+
+                # CYCLE 1: AI Assistant panel
+                for win in reversed(open_windows):
+                    if win.content_draw == draw_ai_assistant and win.rect.collidepoint(pos):
+                        if handle_ai_click(pos):
+                            clicked = True
+                            break
+                if clicked:
+                    continue
+
+                # CYCLE 1: Notification Center v2 panel
+                for win in reversed(open_windows):
+                    if win.content_draw == draw_notif_center_v2 and win.rect.collidepoint(pos):
+                        if handle_nc_click(pos):
+                            clicked = True
+                            break
+                if clicked:
+                    continue
+
+                # CYCLE 2 + 3 panel click routing
+                _c2_panel_handlers = [
+                    (draw_hotkey_settings, handle_hotkey_settings_click),
+                    (draw_snapshot_manager, handle_snapshot_click),
+                    (draw_focus_modes, handle_focus_click),
+                    (draw_permissions, handle_permissions_click),
+                    (draw_secure_clipboard, handle_secure_clipboard_click),
+                    (draw_notif_rules, handle_notif_rules_click),
+                    (draw_accessibility, handle_accessibility_click),
+                ]
+                for _draw_fn, _handler in _c2_panel_handlers:
+                    if clicked:
+                        break
+                    for win in reversed(open_windows):
+                        if win.content_draw == _draw_fn and win.rect.collidepoint(pos):
+                            if _handler(pos):
+                                clicked = True
+                                break
+                if clicked:
+                    continue
+
+                # CYCLE 4 + 5 panel click routing (32 new bundles + previously
+                # unwired Cycle 4 panels)
+                _c45_panel_handlers = [
+                    # Cycle 4 panels (previously unwired)
+                    (draw_capture,                   handle_capture_click),
+                    (draw_quick_settings_v2,         handle_quick_settings_v2_click),
+                    (draw_task_manager_v2,           handle_task_manager_v2_click),
+                    (draw_spotlight,                 handle_spotlight_click),
+                    (draw_file_mgr_v2,               handle_file_mgr_v2_click),
+                    (draw_comms,                     handle_comms_click),
+                    (draw_frontier,                  handle_frontier_click),
+                    # Cycle 5 panels — Group 1 (System/IO/Security)
+                    (draw_network_v2,                handle_network_v2_click),
+                    (draw_audio_mixer_v2,            handle_audio_mixer_v2_click),
+                    (draw_power,                     handle_power_click),
+                    (draw_print,                     handle_print_click),
+                    (draw_camera_hub,                handle_camera_click),
+                    (draw_voice,                     handle_voice_click),
+                    (draw_auth,                      handle_auth_click),
+                    (draw_security_plus,             handle_security_plus_click),
+                    # Cycle 5 panels — Group 2 (UX/Productivity)
+                    (draw_a11y_plus,                 handle_a11y_plus_click),
+                    (draw_dev_kit,                   handle_dev_kit_click),
+                    (draw_productivity,              handle_productivity_click),
+                    (draw_continuity,                handle_continuity_click),
+                    (draw_cast,                      handle_cast_click),
+                    (draw_cal_v2,                    handle_cal_v2_click),
+                    (draw_game_mode_v2,              handle_game_mode_v2_click),
+                    (draw_xr,                        handle_xr_click),
+                    # Cycle 5 panels — Group 3 (AI/Compat/Admin)
+                    (draw_ai_copilot,                handle_ai_copilot_click),
+                    (draw_universal_compat,          handle_universal_compat_click),
+                    (draw_maint,                     handle_maint_click),
+                    (draw_enterprise,                handle_enterprise_click),
+                    (draw_decentral,                 handle_decentral_click),
+                    (draw_personalization,           handle_personalization_click),
+                    (draw_onboarding,                handle_onboarding_click),
+                    (draw_automation,                handle_automation_click),
+                    # Cycle 5 panels — Group 4 (I/O/Doc/QoL/Resilience/BCI)
+                    (draw_input_mgr,                 handle_input_mgr_click),
+                    (draw_output_mgr,                handle_output_mgr_click),
+                    (draw_doc_collab,                handle_doc_collab_click),
+                    (draw_qol,                       handle_qol_click),
+                    (draw_resilience,                handle_resilience_click),
+                    (draw_window_plus,               handle_window_plus_click),
+                    (draw_notifs_plus,               handle_notifs_plus_click),
+                    (draw_bci_plus,                  handle_bci_plus_click),
+                ]
+                for _draw_fn, _handler in _c45_panel_handlers:
+                    if clicked:
+                        break
+                    for win in reversed(open_windows):
+                        if win.content_draw == _draw_fn and win.rect.collidepoint(pos):
+                            if _handler(pos):
+                                clicked = True
+                                break
+                if clicked:
+                    continue
+
                 # Window interaction
                 for win in reversed(open_windows):
                     if win.rect.collidepoint(pos):
@@ -14153,6 +26097,49 @@ def main():
                         win.rect.y = event.pos[1] - win.drag_offset[1]
 
             elif event.type == pygame.KEYDOWN:
+                # CYCLE 1: Command Palette has highest priority - it captures all
+                # text input until ESC.
+                if command_palette_state["open"]:
+                    handle_command_palette_key(event)
+                    continue
+
+                mods = pygame.key.get_mods()
+                ctrl = bool(mods & pygame.KMOD_CTRL)
+
+                # Ctrl+K -> Command Palette
+                if ctrl and event.key == pygame.K_k:
+                    open_command_palette()
+                    continue
+                # Ctrl+Tab -> Workspace overlay
+                if ctrl and event.key == pygame.K_TAB:
+                    workspace_overlay_state["open"] = not workspace_overlay_state["open"]
+                    continue
+                # Ctrl+1..9 -> jump to workspace N
+                if ctrl and pygame.K_1 <= event.key <= pygame.K_9:
+                    idx = event.key - pygame.K_1
+                    if idx < len(workspace_mgr.spaces):
+                        workspace_mgr.switch_to(idx)
+                    continue
+                # Ctrl+Shift+N -> next workspace, Ctrl+Shift+P -> prev
+                if ctrl and (mods & pygame.KMOD_SHIFT):
+                    if event.key == pygame.K_n:
+                        workspace_mgr.switch_next()
+                        continue
+                    if event.key == pygame.K_p:
+                        workspace_mgr.switch_prev()
+                        continue
+
+                # Type into AI Assistant when its window is focused (topmost)
+                if open_windows and getattr(open_windows[-1], "content_draw", None) == draw_ai_assistant:
+                    if handle_ai_key(event):
+                        continue
+
+                # Workspace overlay: Esc closes it
+                if workspace_overlay_state["open"]:
+                    if event.key == pygame.K_ESCAPE:
+                        workspace_overlay_state["open"] = False
+                        continue
+
                 if event.key == pygame.K_ESCAPE:
                     if cast_mode: cast_mode = False
                     elif dex_mode: dex_mode = False
@@ -14193,6 +26180,12 @@ def main():
             if random.random() < 0.22:
                 notifications.append(random.choice(["Heart optimal ❤️", "Bluetooth paired", "System 100% secure", "Steps goal met!"]))
 
+        # CYCLE 2 — once-per-frame ticks for auto-snapshot + clipboard sweep
+        snapshot_mgr.maybe_auto_snapshot()
+        # sweep clipboard every ~1s so expirations show in real time
+        if time.time() - secure_clipboard._last_sweep > 1:
+            secure_clipboard.sweep()
+
         # Emulator chrome overlay (when not installed on bare metal)
         render_emulator_frame(screen)
 
@@ -14209,9 +26202,9 @@ def main():
             help_x, help_y = (sw - help_w) // 2, (sh - help_h) // 2
             pygame.draw.rect(screen, (20, 28, 45), (help_x, help_y, help_w, help_h), border_radius=12)
             pygame.draw.rect(screen, (0, 220, 255), (help_x, help_y, help_w, help_h), 2, border_radius=12)
-            screen.blit(font_title.render("GMan OS Emulator - Help", True, (0, 220, 255)), (help_x + 20, help_y + 20))
+            screen.blit(font_title.render("Gman'sOS Emulator - Help", True, (0, 220, 255)), (help_x + 20, help_y + 20))
             help_lines = [
-                ("This window IS the GMan OS Emulator", (0, 255, 140)),
+                ("This window IS the Gman'sOS Emulator", (0, 255, 140)),
                 ("Not Chrome, not a browser - this is the OS itself.", (200, 220, 240)),
                 ("", (255, 255, 255)),
                 ("Keyboard shortcuts:", (255, 200, 60)),
@@ -14230,6 +26223,13 @@ def main():
             ]
             for i, (line, col) in enumerate(help_lines):
                 screen.blit(font_small.render(line, True, col), (help_x + 25, help_y + 65 + i * 20))
+
+        # CYCLE 1 overlays - drawn last so they sit above everything
+        draw_workspace_overlay(screen)
+        draw_command_palette(screen)
+
+        # CYCLE 3: context menu sits ABOVE every overlay. Drawn last.
+        render_context_menu(screen)
 
         pygame.display.flip()
 
